@@ -63,6 +63,10 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
     private DateTimeView mGlobalDate;
     private SearchOrbView mSearchOrbView;
     private View mSearchPill;
+    private View mSearchHint;
+    private Drawable mSearchPillBackground;
+    private int mSearchPillPaddingEnd;
+    private boolean mIsSidebarOpen;
     private View mGreetingGroup;
     private TextView mGreetingTitle;
     private boolean mInitDone;
@@ -181,6 +185,32 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
     }
 
     /**
+     * While the full sidebar is open the header shrinks to the orbs only (search + account),
+     * so it fits inside the sidebar panel instead of straddling its edge.
+     */
+    public void setSidebarOpen(boolean open) {
+        if (mIsSidebarOpen == open) {
+            return;
+        }
+
+        mIsSidebarOpen = open;
+        applySidebarState();
+    }
+
+    private void applySidebarState() {
+        if (mSearchPill == null || mSearchHint == null) {
+            return; // not initialized yet: the state is applied after init
+        }
+
+        mSearchHint.setVisibility(mIsSidebarOpen ? View.GONE : View.VISIBLE);
+        mSearchPill.setBackground(mIsSidebarOpen ? null : mSearchPillBackground);
+        mSearchPill.setPadding(mSearchPill.getPaddingLeft(), mSearchPill.getPaddingTop(),
+                mIsSidebarOpen ? 0 : mSearchPillPaddingEnd, mSearchPill.getPaddingBottom());
+
+        syncHeaderExtras();
+    }
+
+    /**
      * Keeps the search "pill" and the greeting in sync with the visibility of the views they decorate.
      */
     private void syncHeaderExtras() {
@@ -191,7 +221,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         if (mGreetingGroup != null) {
             // The greeting would collide with the title of the background video
             boolean isPipShown = mExitPip != null && mExitPip.getVisibility() == View.VISIBLE;
-            mGreetingGroup.setVisibility(isPipShown ? View.GONE : mSearchVisibility);
+            mGreetingGroup.setVisibility(isPipShown || mIsSidebarOpen ? View.GONE : mSearchVisibility);
 
             if (mGreetingGroup.getVisibility() == View.VISIBLE) {
                 updateGreeting();
@@ -237,6 +267,9 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
 
         mSearchOrbView = findViewById(R.id.title_orb);
         mSearchPill = findViewById(R.id.search_pill);
+        mSearchHint = findViewById(R.id.search_hint);
+        mSearchPillBackground = mSearchPill.getBackground();
+        mSearchPillPaddingEnd = mSearchPill.getPaddingRight();
         mGreetingGroup = findViewById(R.id.greeting_group);
         mGreetingTitle = findViewById(R.id.greeting_title);
 
@@ -267,6 +300,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         mGlobalDate.showDate(true);
 
         updateButtonsVisibility();
+        applySidebarState();
     }
 
     private void updateButtonsVisibility() {

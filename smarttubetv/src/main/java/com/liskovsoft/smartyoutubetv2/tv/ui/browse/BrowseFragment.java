@@ -39,6 +39,7 @@ import com.liskovsoft.smartyoutubetv2.tv.presenter.IconHeaderItemPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.ui.browse.dialog.ErrorDialogFragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.headers.ExtendedHeadersSupportFragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.misc.ProgressBarManager;
+import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.browse.NavigateTitleView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -103,6 +104,14 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         refreshNavigationRail();
 
         return root;
+    }
+
+    private void updateTitleForSidebar(boolean sidebarOpen) {
+        View titleView = getTitleView();
+
+        if (titleView instanceof NavigateTitleView) {
+            ((NavigateTitleView) titleView).setSidebarOpen(sidebarOpen);
+        }
     }
 
     private void refreshNavigationRail() {
@@ -221,11 +230,16 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                 if (mNavigationRail != null) {
                     mNavigationRail.setVisible(!withHeaders, true);
                 }
+
+                if (withHeaders) {
+                    updateTitleForSidebar(true); // shrink the header right away
+                }
             }
 
             @Override
             public void onHeadersTransitionStop(boolean withHeaders) {
                 refreshNavigationRail();
+                updateTitleForSidebar(withHeaders); // expand the header once the sidebar is gone
             }
         });
 

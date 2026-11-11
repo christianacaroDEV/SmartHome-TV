@@ -26,6 +26,9 @@ import java.util.List;
  */
 class NavigationRail {
     static final int WIDTH_DP = 80;
+    private static final int CAPSULE_WIDTH_DP = 56;
+    private static final int CAPSULE_MARGIN_START_DP = 14;
+    private static final int CAPSULE_PADDING_V_DP = 10;
     private static final int MAX_VISIBLE_ITEMS = 9;
     private static final int ITEM_SIZE_DP = 40;
     private static final int ITEM_GAP_DP = 8;
@@ -41,10 +44,23 @@ class NavigationRail {
 
         mContainer = new LinearLayout(mContext);
         mContainer.setOrientation(LinearLayout.VERTICAL);
-        mContainer.setGravity(Gravity.CENTER);
+        mContainer.setGravity(Gravity.CENTER_HORIZONTAL);
         mContainer.setFocusable(false);
         mContainer.setClickable(false);
-        mContainer.setLayoutParams(new FrameLayout.LayoutParams(dp(WIDTH_DP), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START));
+
+        // Capsule floating at the left edge, vertically centered
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                dp(CAPSULE_WIDTH_DP), ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL);
+        params.leftMargin = dp(CAPSULE_MARGIN_START_DP);
+        mContainer.setLayoutParams(params);
+        mContainer.setPadding(0, dp(CAPSULE_PADDING_V_DP), 0, dp(CAPSULE_PADDING_V_DP));
+
+        GradientDrawable capsule = new GradientDrawable();
+        capsule.setShape(GradientDrawable.RECTANGLE);
+        capsule.setCornerRadius(dp(CAPSULE_WIDTH_DP / 2));
+        capsule.setColor(0x14FFFFFF);
+        capsule.setStroke(dp(1), 0x24FFFFFF);
+        mContainer.setBackground(capsule);
 
         root.addView(mContainer);
     }
