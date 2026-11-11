@@ -39,6 +39,7 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.search.LongClickSearchOrbVie
 import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.time.DateTimeView;
 import com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil;
 
+import java.util.Calendar;
 import java.util.Locale;
 
 import static androidx.leanback.widget.TitleViewAdapter.BRANDING_VIEW_VISIBLE;
@@ -61,6 +62,9 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
     private DateTimeView mGlobalClock;
     private DateTimeView mGlobalDate;
     private SearchOrbView mSearchOrbView;
+    private View mSearchPill;
+    private View mGreetingGroup;
+    private TextView mGreetingTitle;
     private boolean mInitDone;
     private int mFlags = FULL_VIEW_VISIBLE;
     private int mIconWidth;
@@ -172,6 +176,45 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         if (mIsGlobalClockEnabled) {
             mGlobalDate.setVisibility(mBrandingVisibility);
         }
+
+        syncHeaderExtras();
+    }
+
+    /**
+     * Keeps the search "pill" and the greeting in sync with the visibility of the views they decorate.
+     */
+    private void syncHeaderExtras() {
+        if (mSearchPill != null && mSearchOrbView != null) {
+            mSearchPill.setVisibility(mSearchOrbView.getVisibility());
+        }
+
+        if (mGreetingGroup != null) {
+            // The greeting would collide with the title of the background video
+            boolean isPipShown = mExitPip != null && mExitPip.getVisibility() == View.VISIBLE;
+            mGreetingGroup.setVisibility(isPipShown ? View.GONE : mSearchVisibility);
+
+            if (mGreetingGroup.getVisibility() == View.VISIBLE) {
+                updateGreeting();
+            }
+        }
+    }
+
+    private void updateGreeting() {
+        if (mGreetingTitle == null) {
+            return;
+        }
+
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        int greetingResId = hour >= 5 && hour < 12 ? R.string.greeting_morning
+                : hour >= 12 && hour < 19 ? R.string.greeting_afternoon : R.string.greeting_evening;
+        String greeting = getContext().getString(greetingResId);
+
+        Account account = MediaServiceManager.instance().getSelectedAccount();
+        String name = account != null ? account.getName() : null;
+        String firstName = name != null ? name.trim().split("\\s+")[0] : null;
+
+        mGreetingTitle.setText(firstName != null && !firstName.isEmpty()
+                ? getContext().getString(R.string.greeting_with_name, greeting, firstName) : greeting);
     }
 
     private void init() {
@@ -193,6 +236,9 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         MainUIData mainUIData = MainUIData.instance(getContext());
 
         mSearchOrbView = findViewById(R.id.title_orb);
+        mSearchPill = findViewById(R.id.search_pill);
+        mGreetingGroup = findViewById(R.id.greeting_group);
+        mGreetingTitle = findViewById(R.id.greeting_title);
 
         mAccountView = findViewById(R.id.account_orb);
         mAccountView.setOnOrbClickedListener(v -> AccountSelectionPresenter.instance(getContext()).nextAccountOrDialog());
@@ -237,7 +283,10 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         mGlobalClock.setVisibility(mIsGlobalClockEnabled ? View.VISIBLE : View.GONE);
         mGlobalDate.setVisibility(mIsGlobalClockEnabled ? View.VISIBLE : View.GONE);
 
+        syncHeaderExtras();
+
         Utils.postDelayed(this::updateAccountIcon, 1_000); // give a time to engine to fetch an updated icon url
+        Utils.postDelayed(this::updateGreeting, 1_000); // the account name could be fetched later too
         //updateAccountIcon();
         updateLanguageIcon();
     }
@@ -263,6 +312,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
     @Override
     public void onAccountChanged(Account account) {
         updateAccountIcon();
+        updateGreeting();
     }
 
     private void applyPipParameters() {
@@ -275,6 +325,8 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
                 Video video = PlaybackPresenter.instance(getContext()).getVideo();
                 mPipTitle.setText(video != null ? String.format("%s - %s", video.getTitle(), video.getAuthor()) : "");
             }
+
+            syncHeaderExtras();
         }
     }
 

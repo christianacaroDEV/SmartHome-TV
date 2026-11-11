@@ -135,4 +135,6 @@
     <dimen name="tooltip_y_offset_non_touch_mod">0dp</dimen>
     <dimen name="tooltip_y_offset_touch_mod">16dp</dimen>
     <dimen name="smarthome_browse_padding_start">96dp</dimen>
+    <dimen name="search_pill_padding_end">24dp</dimen>
+    <dimen name="greeting_margin_start">32dp</dimen>
 </resources>

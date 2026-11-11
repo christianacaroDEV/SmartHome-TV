@@ -26,15 +26,40 @@
     <LinearLayout android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
                   android:orientation="horizontal"
+                  android:clipChildren="false"
+                  android:clipToPadding="false"
                   android:layout_gravity="center_vertical|start">
-        <androidx.leanback.widget.SearchOrbView
-            android:id="@+id/title_orb"
-            android:layout_height="wrap_content"
+        <!-- SmartHome: search "pill" = the search orb + a visible hint, so the search is easy to discover -->
+        <LinearLayout
+            android:id="@+id/search_pill"
             android:layout_width="wrap_content"
-            android:transitionGroup="true"
+            android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|start"
-            android:nextFocusRight="@id/account_orb"
-            android:visibility="invisible" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:background="@drawable/search_pill_bg"
+            android:paddingEnd="@dimen/search_pill_padding_end"
+            android:visibility="invisible">
+            <androidx.leanback.widget.SearchOrbView
+                android:id="@+id/title_orb"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:transitionGroup="true"
+                android:layout_gravity="center_vertical|start"
+                android:nextFocusRight="@id/account_orb"
+                android:visibility="invisible" />
+            <TextView
+                android:id="@+id/search_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/home_search_hint"
+                android:textColor="#B8C7E6"
+                android:textSize="18sp"
+                android:maxLines="1" />
+        </LinearLayout>
 
         <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.search.LongClickSearchOrbView
             android:id="@+id/account_orb"
@@ -49,6 +74,39 @@
             app:searchOrbBrightColor="@color/orb_bright_color"
             app:searchOrbIconColor="@color/orb_icon_color"
             android:visibility="gone" />
+
+        <!-- SmartHome: dynamic greeting (time of day + account name), right after the account button -->
+        <LinearLayout
+            android:id="@+id/greeting_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="@dimen/greeting_margin_start"
+            android:gravity="start"
+            android:orientation="vertical"
+            android:visibility="invisible">
+            <TextView
+                android:id="@+id/greeting_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="320dp"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/greeting_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="320dp"
+                android:text="@string/home_greeting_subtitle"
+                android:textColor="#8FD8FF"
+                android:textSize="16sp" />
+        </LinearLayout>
 
         <androidx.leanback.widget.SearchOrbView
             android:id="@+id/language_orb"

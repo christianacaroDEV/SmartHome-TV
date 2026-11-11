@@ -768,4 +768,10 @@
     <string name="splash_tagline">Artificial Intelligence · Taking you to the future</string>
     <string name="splash_loading">Loading…</string>
     <string name="color_scheme_smarthome">SmartHome (Navy)</string>
+    <string name="home_search_hint">Search videos…</string>
+    <string name="home_greeting_subtitle">What do you want to watch today?</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_with_name">%1$s, %2$s</string>
 </resources>
