@@ -41,6 +41,7 @@ public class MotherActivity extends FragmentActivity {
     private static final String TAG = MotherActivity.class.getSimpleName();
     private static final float DEFAULT_DENSITY = 2.0f; // xhdpi
     private static final float DEFAULT_WIDTH = 1920f; // xhdpi
+    private static final float MOBILE_UI_SCALE = 0.8f; // on a 20:9 phone this gives a 16:9-like canvas (1200 x 540 dp)
     private static DisplayMetrics sCachedDisplayMetrics;
     protected static boolean sIsInPipMode;
     private ScreensaverManager mScreensaverManager;
@@ -69,6 +70,12 @@ public class MotherActivity extends FragmentActivity {
         //if (VERSION.SDK_INT != 26) {
         //    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //}
+        // Mobile mode (phones/tablets): the UI is designed for a wide screen. Lock to landscape (both directions).
+        // NOTE: skipped on api 26: 'Only fullscreen opaque activities can request orientation'
+        if (DeviceMode.isMobile(this) && VERSION.SDK_INT != 26) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        }
+
         super.onCreate(savedInstanceState);
 
         Log.d(TAG, "Starting %s...", this.getClass().getSimpleName());
@@ -269,6 +276,10 @@ public class MotherActivity extends FragmentActivity {
             DisplayMetrics displayMetrics = new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
             float uiScale = MainUIData.instance(context).getUIScale();
+            // Phones are held close to the eyes: the TV-sized UI is too big there
+            if (DeviceMode.isMobile(context)) {
+                uiScale *= MOBILE_UI_SCALE;
+            }
             // Take into the account screen orientation (e.g. when running on phone)
             int widthPixels = Math.max(displayMetrics.widthPixels, displayMetrics.heightPixels);
             float widthRatio = DEFAULT_WIDTH / widthPixels;

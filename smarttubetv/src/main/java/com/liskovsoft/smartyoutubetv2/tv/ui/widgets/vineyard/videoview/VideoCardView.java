@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.widgets.vineyard.videoview;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
@@ -62,7 +63,7 @@ public class VideoCardView extends BaseCardView {
     private void buildImageCardView(int styleResId) {
         // Make sure the ImageCardView is focusable.
         setFocusable(true);
-        setFocusableInTouchMode(true);
+        setFocusableInTouchMode(!DeviceMode.isMobile(getContext()));
 
         LayoutInflater inflater = LayoutInflater.from(getContext());
         View view = inflater.inflate(R.layout.lb_video_card_view, this);

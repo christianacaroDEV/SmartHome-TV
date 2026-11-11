@@ -774,4 +774,8 @@
     <string name="greeting_afternoon">Good afternoon</string>
     <string name="greeting_evening">Good evening</string>
     <string name="greeting_with_name">%1$s, %2$s</string>
+    <string name="device_mode">Device mode</string>
+    <string name="device_mode_auto">Automatic</string>
+    <string name="device_mode_mobile">Mobile (touch, landscape)</string>
+    <string name="device_mode_tv">TV (remote control)</string>
 </resources>

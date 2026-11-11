@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.presenter;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.view.Gravity;
@@ -27,7 +28,7 @@ public class GridItemPresenter extends Presenter {
 
         view.setLayoutParams(new ViewGroup.LayoutParams(width, height));
         view.setFocusable(true);
-        view.setFocusableInTouchMode(true);
+        view.setFocusableInTouchMode(!DeviceMode.isMobile(parent.getContext()));
         view.setBackgroundColor(ContextCompat.getColor(parent.getContext(),
                 R.color.card_default_background));
         view.setTextColor(Color.WHITE);

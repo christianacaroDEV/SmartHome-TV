@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.common.app.presenters.settings;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.annotation.SuppressLint;
 import android.content.Context;
 
@@ -86,6 +87,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         appendNetworkCategory(settingsPresenter);
         appendHistoryCategory(settingsPresenter);
         appendMiscCategory(settingsPresenter);
+        appendDeviceModeCategory(settingsPresenter);
 
         settingsPresenter.showDialog(getContext().getString(R.string.settings_general), mOnFinish);
     }
@@ -865,5 +867,27 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         }
 
         return menuNames;
+    }
+
+    /**
+     * Mobile mode (phones/tablets): touch, landscape lock and a smaller UI. 'Auto' detects it by the device features.
+     */
+    private void appendDeviceModeCategory(AppDialogPresenter settingsPresenter) {
+        List<OptionItem> options = new ArrayList<>();
+        int currentMode = DeviceMode.getMode(getContext());
+
+        for (int[] pair : new int[][] {
+                {R.string.device_mode_auto, DeviceMode.MODE_AUTO},
+                {R.string.device_mode_mobile, DeviceMode.MODE_MOBILE},
+                {R.string.device_mode_tv, DeviceMode.MODE_TV}}) {
+            options.add(UiOptionItem.from(getContext().getString(pair[0]),
+                    optionItem -> {
+                        DeviceMode.setMode(getContext(), pair[1]);
+                        MessageHelpers.showLongMessage(getContext(), R.string.msg_restart_app);
+                    },
+                    currentMode == pair[1]));
+        }
+
+        settingsPresenter.appendRadioCategory(getContext().getString(R.string.device_mode), options);
     }
 }

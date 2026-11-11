@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.presenter.vineyard;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.os.Build.VERSION;
 import android.view.ViewGroup;
 
@@ -39,7 +40,7 @@ public class TagPresenter extends LongClickPresenter {
         };
 
         cardView.setFocusable(true);
-        cardView.setFocusableInTouchMode(true);
+        cardView.setFocusableInTouchMode(!DeviceMode.isMobile(parent.getContext()));
         updateCardBackgroundColor(cardView, false);
         updateCardTextColor(cardView, false);
         //if (VERSION.SDK_INT >= 23 && MainUIData.instance(parent.getContext()).isUiTweakEnabled(MainUIData.UI_TWEAK_ROUNDED_CORNERS)) {

@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.presenter;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -80,7 +81,7 @@ public class VideoCardPresenter extends LongClickPresenter {
         cardView.enableTextAutoScroll(isCardTextAutoScrollEnabled);
         cardView.setTextScrollSpeed(cardTextScrollSpeed);
         cardView.setFocusable(true);
-        cardView.setFocusableInTouchMode(true);
+        cardView.setFocusableInTouchMode(!DeviceMode.isMobile(context));
         cardView.enableBadge(isBadgeEnabled());
         cardView.enableTitle(isTitleEnabled());
         cardView.enableContent(isContentEnabled());

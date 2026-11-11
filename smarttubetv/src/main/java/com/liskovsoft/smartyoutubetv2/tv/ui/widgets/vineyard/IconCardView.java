@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.widgets.vineyard;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
@@ -35,7 +36,7 @@ public class IconCardView extends BaseCardView {
     private void buildCardView(int styleResId) {
         // Make sure the ImageCardView is focusable.
         setFocusable(true);
-        setFocusableInTouchMode(true);
+        setFocusableInTouchMode(!DeviceMode.isMobile(getContext()));
         //setCardType(CARD_TYPE_INFO_UNDER);
         setCardType(CARD_TYPE_MAIN_ONLY);
         setBackgroundResource(R.color.primary_dark);
