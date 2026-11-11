@@ -765,4 +765,6 @@
     <string name="sleep_countdown">Apagar reproducción en</string>
     <string name="sleep_countdown_remaining">quedan %1$d min</string>
     <string name="continue_watching">Continuar viendo</string>
+    <string name="splash_tagline">Inteligencia Artificial · Llevándote al futuro</string>
+    <string name="splash_loading">Cargando…</string>
 </resources>

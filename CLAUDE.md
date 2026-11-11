@@ -14,7 +14,8 @@ git submodule update --init --recursive   # MediaServiceCore, SharedModules
 
 - Requires an Android SDK (`local.properties` with `sdk.dir`, git-ignored), platform 34, build-tools 30.0.3 and **NDK 21.0.6113669**.
 - Build with **JDK 17** (what CI uses). Gradle 7.5 / AGP 7.4.2 fail with JDK 21 (`Unable to establish loopback connection`), so do not rely on a `JAVA_HOME` pointing to 21. The README warns that a JDK newer than 14 can make the *app* misbehave at runtime; none of that has been seen in a JDK 17 build.
-- Flavors: `stbeta` (`org.smarttube.beta`), `ststable` (`org.smarttube.stable`), `stfdroid` (`app.smarttube.fdroid`, minSdk 21). Task names use the capitalised flavor, e.g. `Stbeta`.
+- This is the **SmartHome TV** fork (remote `origin` = `christianacaroDEV/SmartHome-TV`, branch `main`; the original project is the read-only `upstream` remote, push disabled).
+- Flavors: `stbeta` (`com.smarthome.tv.beta`), `ststable` (`com.smarthome.tv.stable`), `stfdroid` (`com.smarthome.tv.fdroid`, minSdk 21). Task names use the capitalised flavor, e.g. `Stbeta`.
 
 ```bash
 ./gradlew assembleStbetaDebug      # APKs in smarttubetv/build/outputs/apk/stbeta/debug/ (per-ABI + universal)
@@ -52,6 +53,9 @@ Unit tests (JUnit + Robolectric) exist only in `common` and `slidableactivity`, 
 
 - The code targets Android 4.x+ with `JavaVersion.VERSION_1_8`; keep to Java 8 syntax and APIs available on minSdk 17 (21 for `stfdroid`). Kotlin is used in only a handful of files.
 - Release builds are **not minified** (`minifyEnabled`/`shrinkResources` commented out).
-- The dev emulator used here is an Android TV image (API 28, x86); install the `x86` APK or use `installStbetaDebug`. The installed package for the beta flavor is `org.smarttube.beta`, not `app.smarttube`.
+- The dev emulator used here is an Android TV image (API 28, x86); install the `x86` APK or use `installStbetaDebug`. The installed package for the beta flavor is `com.smarthome.tv.beta`.
+- Update checks read `releases/download/latest/smarthome_{beta,stable}.json` from the SmartHome-TV repo (`common/src/<flavor>/res/values/update_urls.xml`); Firebase/Crashlytics is applied only if `smarttubetv/google-services.json` lists a `com.smarthome.tv*` package (the bundled file is the original project's and is ignored). APK-downloading "bridge" features of the original were removed.
+- Cold start shows a branded splash (`SplashActivity` + `activity_splash.xml`, ~2.4 s, once per process) before `SplashPresenter` starts the app.
+- Beware of line endings: many files are committed with CRLF; `sed -i` on them can rewrite whole files. Re-add such files with `git -c core.autocrlf=false add` after restoring CRLF so diffs stay minimal.
 - Large "god classes" exist (`Utils`, `BrowsePresenter`, `PlayerUIController`, each >1000 lines); prefer adding a focused class over growing them further.
 - Translations are managed through Crowdin (`crowdin.yml`); only edit the default `values/strings.xml`.
