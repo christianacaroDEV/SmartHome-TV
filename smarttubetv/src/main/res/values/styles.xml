@@ -270,6 +270,8 @@
         <item name="cardSelectedBackground">@color/sh_card_selected_background</item>
         <item name="appLogo">@mipmap/app_logo</item>
         <item name="android:colorAccent" tools:targetApi="21">@color/sh_accent</item>
+        <!-- Leave room for the always visible icon rail (NavigationRail, 80dp) -->
+        <item name="browsePaddingStart">@dimen/smarthome_browse_padding_start</item>
     </style>
     <style name="App.Theme.SmartHome.Preferences" parent="App.Theme.Leanback.Preferences">
         <item name="android:colorPrimary" tools:targetApi="21">@color/sh_brand_background</item>

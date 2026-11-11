@@ -17,6 +17,7 @@ import androidx.leanback.app.HeadersSupportFragment;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.HeaderItem;
 import androidx.leanback.widget.ListRowPresenter;
+import androidx.leanback.widget.ObjectAdapter;
 import androidx.leanback.widget.PageRow;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
@@ -56,6 +57,7 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
     private boolean mIsFragmentCreated;
     private boolean mFocusOnContent;
     private CrashRestorer mCrashRestorer;
+    private NavigationRail mNavigationRail;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -96,7 +98,25 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
 
         mProgressBarManager.setRootView((ViewGroup) root);
 
+        // Always visible icon rail (the full sidebar is hidden while the user browses the content)
+        mNavigationRail = new NavigationRail((ViewGroup) root);
+        refreshNavigationRail();
+
         return root;
+    }
+
+    private void refreshNavigationRail() {
+        if (mNavigationRail == null || mSectionRowAdapter == null) {
+            return;
+        }
+
+        try {
+            mNavigationRail.update(mSectionRowAdapter.unmodifiableList(), getSelectedPosition());
+            mNavigationRail.setVisible(!isShowingHeaders(), false);
+        } catch (RuntimeException e) {
+            // The rail is purely decorative: never break the browse screen because of it
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -177,6 +197,12 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         // Map category results from the database to ListRow objects.
         // This Adapter is used to render the MainFragment sidebar labels.
         mSectionRowAdapter = new ArrayObjectAdapter(new ListRowPresenter());
+        mSectionRowAdapter.registerObserver(new ObjectAdapter.DataObserver() {
+            @Override
+            public void onChanged() {
+                refreshNavigationRail();
+            }
+        });
         setAdapter(mSectionRowAdapter);
     }
 
@@ -187,6 +213,21 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
 
         setHeadersState(HEADERS_ENABLED);
         setHeadersTransitionOnBackEnabled(true);
+
+        // The rail is shown only while the full sidebar is collapsed
+        setBrowseTransitionListener(new BrowseTransitionListener() {
+            @Override
+            public void onHeadersTransitionStart(boolean withHeaders) {
+                if (mNavigationRail != null) {
+                    mNavigationRail.setVisible(!withHeaders, true);
+                }
+            }
+
+            @Override
+            public void onHeadersTransitionStop(boolean withHeaders) {
+                refreshNavigationRail();
+            }
+        });
 
         int brandColorRes = Helpers.getThemeAttr(getContext(), R.attr.brandColor);
         int brandAccentColorRes = Helpers.getThemeAttr(getContext(), R.attr.brandAccentColor);
