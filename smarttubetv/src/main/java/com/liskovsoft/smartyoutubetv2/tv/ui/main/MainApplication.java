@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.main;
 
+import android.content.SharedPreferences;
 import android.os.Build.VERSION;
 
 import androidx.annotation.NonNull;
@@ -44,6 +45,8 @@ import java.security.Security;
 
 public class MainApplication extends MultiDexApplication implements Configuration.Provider { // fix: Didn't find class "com.google.firebase.provider.FirebaseInitProvider"
     private static final String DEFAULT_LANGUAGE = "es";
+    private static final String DEFAULTS_MARKER_PREFS = "smarthome_defaults";
+    private static final String CLOCK_24H_APPLIED_KEY = "clock_24h_applied";
 
     static {
         // fix YouTube bandwidth throttling (best - false)???
@@ -87,6 +90,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         }
 
         setupDefaultLanguage();
+        setupDefaultClockFormat();
         setupGlobalExceptionHandler();
         setupViewManager();
     }
@@ -105,6 +109,27 @@ public class MainApplication extends MultiDexApplication implements Configuratio
             }
         } catch (Throwable e) {
             // Not critical: fallback to the system language
+        }
+    }
+
+    /**
+     * The clock (home screen, player) uses the 24-hour format by default.<br/>
+     * Applied only once (tracked with a marker), so the user can still switch back to 12 hours in the settings.
+     */
+    private void setupDefaultClockFormat() {
+        try {
+            SharedPreferences marker = getSharedPreferences(DEFAULTS_MARKER_PREFS, MODE_PRIVATE);
+
+            if (!marker.getBoolean(CLOCK_24H_APPLIED_KEY, false)) {
+                GlobalPreferences prefs = GlobalPreferences.instance(this);
+
+                if (prefs != null) {
+                    prefs.set24HourLocaleEnabled(true);
+                    marker.edit().putBoolean(CLOCK_24H_APPLIED_KEY, true).apply();
+                }
+            }
+        } catch (Throwable e) {
+            // Not critical: fallback to the locale format
         }
     }
 
