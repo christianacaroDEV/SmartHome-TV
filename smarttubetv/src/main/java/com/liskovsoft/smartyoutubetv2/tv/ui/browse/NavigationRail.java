@@ -29,7 +29,9 @@ class NavigationRail {
     private static final int CAPSULE_WIDTH_DP = 56;
     private static final int CAPSULE_MARGIN_START_DP = 14;
     private static final int CAPSULE_PADDING_V_DP = 10;
+    private static final int CAPSULE_SCREEN_MARGIN_V_DP = 16;
     private static final int MAX_VISIBLE_ITEMS = 9;
+    private static final int MIN_VISIBLE_ITEMS = 3;
     private static final int ITEM_SIZE_DP = 40;
     private static final int ITEM_GAP_DP = 8;
     private static final int ICON_PADDING_DP = 4; // icons are normalized: the glyph fills ~78% of its canvas
@@ -37,6 +39,9 @@ class NavigationRail {
     private final Context mContext;
     private final float mDensity;
     private final LinearLayout mContainer;
+    private ViewGroup mRoot;
+    private List<?> mLastRows;
+    private int mLastSelected;
 
     NavigationRail(ViewGroup root) {
         mContext = root.getContext();
@@ -63,6 +68,30 @@ class NavigationRail {
         mContainer.setBackground(capsule);
 
         root.addView(mContainer);
+
+        // Wide screens (e.g. 21:9) are short in dp: redraw the rail when the available height changes
+        mRoot = root;
+        root.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom - top != oldBottom - oldTop && mLastRows != null) {
+                update(mLastRows, mLastSelected);
+            }
+        });
+    }
+
+    /**
+     * How many icons fit into the available height (the rail must never be clipped).
+     */
+    private int getMaxVisibleItems() {
+        int height = mRoot != null ? mRoot.getHeight() : 0;
+
+        if (height <= 0) {
+            return MAX_VISIBLE_ITEMS; // not measured yet. Will be redrawn after the layout pass
+        }
+
+        float availableDp = height / mDensity - 2 * CAPSULE_PADDING_V_DP - 2 * CAPSULE_SCREEN_MARGIN_V_DP;
+        int fit = (int) (availableDp / (ITEM_SIZE_DP + ITEM_GAP_DP));
+
+        return Math.max(MIN_VISIBLE_ITEMS, Math.min(MAX_VISIBLE_ITEMS, fit));
     }
 
     /**
@@ -71,6 +100,9 @@ class NavigationRail {
      * @param selected index of the current section
      */
     void update(List<?> rows, int selected) {
+        mLastRows = rows;
+        mLastSelected = selected;
+
         mContainer.removeAllViews();
 
         if (rows == null || rows.isEmpty()) {
@@ -80,7 +112,7 @@ class NavigationRail {
         selected = Math.max(0, Math.min(selected, rows.size() - 1));
 
         // Window of visible items that always contains the selected one
-        int count = Math.min(MAX_VISIBLE_ITEMS, rows.size());
+        int count = Math.min(getMaxVisibleItems(), rows.size());
         int start = Math.max(0, Math.min(selected - count / 2, rows.size() - count));
 
         for (int i = start; i < start + count; i++) {
