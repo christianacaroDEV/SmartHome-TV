@@ -25,7 +25,7 @@ public class SimpleEditDialog {
     }
 
     public static void show(Context context, String dialogTitle, String dialogHint, String defaultValue, OnChange onChange, Runnable onDismiss) {
-        show(context, dialogTitle, dialogHint, defaultValue, onChange, onDismiss, false);
+        show(context, dialogTitle, dialogHint, defaultValue, onChange, onDismiss, false, false);
     }
 
     public static void showPassword(Context context, String dialogTitle, String defaultValue, OnChange onChange) {
@@ -33,17 +33,26 @@ public class SimpleEditDialog {
     }
 
     public static void showPassword(Context context, String dialogTitle, String defaultValue, OnChange onChange, Runnable onDismiss) {
-        show(context, dialogTitle, dialogTitle, defaultValue, onChange, onDismiss, true);
+        show(context, dialogTitle, dialogTitle, defaultValue, onChange, onDismiss, true, false);
     }
 
-    private static void show(Context context, String dialogTitle, String dialogHint, String defaultValue, OnChange onChange, Runnable onDismiss, boolean isPassword) {
+    /**
+     * Masked numeric input (PIN). Shows the numeric keypad.
+     */
+    public static void showPin(Context context, String dialogTitle, String defaultValue, OnChange onChange) {
+        show(context, dialogTitle, dialogTitle, defaultValue, onChange, null, true, true);
+    }
+
+    private static void show(Context context, String dialogTitle, String dialogHint, String defaultValue, OnChange onChange, Runnable onDismiss, boolean isPassword, boolean isNumeric) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context, R.style.AppDialog);
         LayoutInflater inflater = LayoutInflater.from(context);
         View contentView = inflater.inflate(R.layout.simple_edit_dialog, null);
 
         EditText editField = contentView.findViewById(R.id.simple_edit_value);
         if (isPassword) {
-            editField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            editField.setInputType(isNumeric ?
+                    InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD :
+                    InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         }
         KeyHelpers.fixShowKeyboard(editField);
 

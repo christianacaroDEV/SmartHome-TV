@@ -74,6 +74,7 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
     private boolean mIsAllSpeedEnabled;
     private int mPlaybackMode;
     private float mSleepTimerHours;
+    private long mSleepCountdownEndMs; // not persisted
     private boolean mIsQualityInfoEnabled;
     private boolean mIsSpeedPerVideoEnabled;
     private boolean mIsTimeCorrectionEnabled;
@@ -672,6 +673,26 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
     public void setSleepTimerHours(float hours) {
         mSleepTimerHours = hours;
         persistState();
+    }
+
+    /**
+     * Countdown sleep timer: stops the playback at the given moment, regardless of the remote usage.<br/>
+     * Intentionally NOT persisted: a countdown shouldn't survive an app restart.
+     * @return end time in ms since epoch or 0 if the countdown is disabled
+     */
+    public long getSleepCountdownEndMs() {
+        return mSleepCountdownEndMs;
+    }
+
+    /**
+     * @param minutes minutes from now; 0 or less disables the countdown
+     */
+    public void setSleepCountdownMinutes(int minutes) {
+        mSleepCountdownEndMs = minutes > 0 ? System.currentTimeMillis() + minutes * 60_000L : 0;
+    }
+
+    public void resetSleepCountdown() {
+        mSleepCountdownEndMs = 0;
     }
 
     public boolean isTimeCorrectionEnabled() {

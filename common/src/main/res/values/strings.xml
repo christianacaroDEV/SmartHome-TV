@@ -762,4 +762,7 @@
         <item quantity="one">%s second</item>
         <item quantity="other">%s seconds</item>
     </plurals>
+    <string name="sleep_countdown">Stop playback in</string>
+    <string name="sleep_countdown_remaining">%1$d min left</string>
+    <string name="continue_watching">Continue watching</string>
 </resources>

@@ -168,6 +168,16 @@ public class VideoStateController extends BasePlayerController {
             return;
         }
 
+        long countdownEndMs = getPlayerData().getSleepCountdownEndMs();
+        if (countdownEndMs > 0 && System.currentTimeMillis() >= countdownEndMs) {
+            getPlayerData().resetSleepCountdown();
+            getPlayer().setPlayWhenReady(false);
+            getPlayer().setTitle(getContext().getString(R.string.sleep_countdown));
+            getPlayer().showOverlay(true);
+            Helpers.enableScreensaver(getActivity());
+            return;
+        }
+
         float sleepHours = getPlayerData().getSleepTimerHours();
         if (sleepHours > 0 && System.currentTimeMillis() - mSleepTimerStartMs > sleepHours * 60 * 60 * 1_000) {
             getPlayer().setPlayWhenReady(false);

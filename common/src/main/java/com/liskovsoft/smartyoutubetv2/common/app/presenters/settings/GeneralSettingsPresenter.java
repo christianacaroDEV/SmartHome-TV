@@ -782,7 +782,8 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         }
 
         settingsPresenter.closeDialog();
-        SimpleEditDialog.showPassword(
+        // Settings are protected with a numeric PIN (numeric keypad is much easier with a TV remote)
+        SimpleEditDialog.showPin(
                 getContext(),
                 getContext().getString(R.string.protect_settings_with_password),
                 null,

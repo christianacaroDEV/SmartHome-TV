@@ -143,6 +143,7 @@ public class HQDialogController extends BasePlayerController {
     }
 
     private void addSleepTimerCategory() {
+        addCategoryInt(AppDialogUtil.createSleepCountdownCategory(getContext()));
         addCategoryInt(AppDialogUtil.createSleepTimerCategory(getContext()));
     }
 

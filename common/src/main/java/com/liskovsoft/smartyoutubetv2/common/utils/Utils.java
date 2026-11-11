@@ -115,6 +115,10 @@ public class Utils {
             "org.smarttube.beta",
             "org.smarttube.stable",
             "app.smarttube.fdroid",
+            "com.smarthome.tv",
+            "com.smarthome.tv.beta",
+            "com.smarthome.tv.stable",
+            "com.smarthome.tv.fdroid",
     };
     public static final String[] BACKUP_PREFS = {
             "yt_service_prefs.xml",

@@ -342,6 +342,7 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
     }
 
     private void appendSleepTimerCategory(AppDialogPresenter settingsPresenter) {
+        settingsPresenter.appendCategory(AppDialogUtil.createSleepCountdownCategory(getContext()));
         OptionCategory category = AppDialogUtil.createSleepTimerCategory(getContext());
         settingsPresenter.appendCategory(category);
     }

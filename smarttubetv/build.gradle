@@ -30,8 +30,15 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Firebase/Crashlytics is applied only when google-services.json belongs to THIS app (package 'com.smarthome.tv*').
+// The bundled google-services.json comes from the upstream project (old package names) and would fail the build
+// ('No matching client found for package name') and send crash reports to someone else's Firebase project.
+// To enable Crashlytics, replace google-services.json with the one from your own Firebase project.
+def googleServicesFile = new File("${projectDir}/google-services.json")
+def hasOwnGoogleServices = googleServicesFile.exists() && googleServicesFile.text.contains('"package_name": "com.smarthome.tv')
+
 // The first letter of the flavor name must be in uppercase
-if (new File("${projectDir}/google-services.json").exists() && (getGradle().getStartParameter().getTaskRequests().toString().contains("Stbeta") ||
+if (hasOwnGoogleServices && (getGradle().getStartParameter().getTaskRequests().toString().contains("Stbeta") ||
         getGradle().getStartParameter().getTaskRequests().toString().contains("Ststable"))) {
     // Google Services Gradle plugin (transforms google-services.json file)
     apply plugin: 'com.google.gms.google-services'
@@ -54,7 +61,7 @@ android {
     
     defaultConfig {
         // values linked with applicationId: searchable.searchSuggestAuthority, searchable.searchSuggestIntentData, VideoContract.CONTENT_AUTHORITY
-        applicationId "app.smarttube"
+        applicationId "com.smarthome.tv"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
         versionCode 2462
@@ -123,7 +130,7 @@ android {
     // https://stackoverflow.com/questions/18332474/how-to-set-versionname-in-apk-filename-using-gradle
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def project = "SmartTube"
+            def project = "SmartHomeTV"
             def flavor = variant.productFlavors[-1].name.substring(2) // remove st prefix
             def buildType = variant.buildType.name.take(1)
             def version = variant.versionName
@@ -160,15 +167,15 @@ android {
     // NOTE: The main goal of prefixing a flavor is to group flavors' folders together
     productFlavors {
         stbeta {
-            applicationId "org.smarttube.beta"
+            applicationId "com.smarthome.tv.beta"
             targetSdkVersion project.properties.compileSdkVersion
         }
         ststable {
-            applicationId "org.smarttube.stable"
+            applicationId "com.smarthome.tv.stable"
             targetSdkVersion project.properties.compileSdkVersion
         }
         stfdroid {
-            applicationId "app.smarttube.fdroid"
+            applicationId "com.smarthome.tv.fdroid"
             minSdkVersion 21
             targetSdkVersion project.properties.compileSdkVersion
 

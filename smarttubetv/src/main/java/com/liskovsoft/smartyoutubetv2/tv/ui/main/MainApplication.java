@@ -8,6 +8,7 @@ import androidx.work.Configuration;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
+import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.BrowseSection;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.AddDeviceView;
@@ -42,6 +43,8 @@ import java.security.Provider;
 import java.security.Security;
 
 public class MainApplication extends MultiDexApplication implements Configuration.Provider { // fix: Didn't find class "com.google.firebase.provider.FirebaseInitProvider"
+    private static final String DEFAULT_LANGUAGE = "es";
+
     static {
         // fix YouTube bandwidth throttling (best - false)???
         // false is better for streams (less buffering)
@@ -83,8 +86,26 @@ public class MainApplication extends MultiDexApplication implements Configuratio
             }
         }
 
+        setupDefaultLanguage();
         setupGlobalExceptionHandler();
         setupViewManager();
+    }
+
+    /**
+     * Spanish is the default UI/content language.<br/>
+     * Applied only while the user hasn't chosen a language yet ('null' means never set; the 'Default' option in the
+     * language dialog stores an empty string, so a deliberate choice is preserved).
+     */
+    private void setupDefaultLanguage() {
+        try {
+            GlobalPreferences prefs = GlobalPreferences.instance(this);
+
+            if (prefs != null && prefs.getPreferredLanguage() == null) {
+                prefs.setPreferredLanguage(DEFAULT_LANGUAGE);
+            }
+        } catch (Throwable e) {
+            // Not critical: fallback to the system language
+        }
     }
 
     /**

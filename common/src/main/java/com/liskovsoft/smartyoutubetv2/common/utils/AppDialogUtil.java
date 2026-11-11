@@ -80,6 +80,7 @@ public class AppDialogUtil {
     private static final int PLAYER_ENGINE_ID = 147;
     private static final int IGNORE_DURATION_ID = 148;
     private static final int SLEEP_TIMER_ID = 149;
+    private static final int SLEEP_COUNTDOWN_ID = 150;
     private static final int SUBTITLE_STYLES_ID = 45;
     private static final int SUBTITLE_SIZE_ID = 46;
     private static final int SUBTITLE_POSITION_ID = 47;
@@ -940,6 +941,33 @@ public class AppDialogUtil {
         }
 
         return OptionCategory.from(SLEEP_TIMER_ID, OptionCategory.TYPE_RADIO_LIST, title, options);
+    }
+
+    /**
+     * Countdown timer: stop the playback in N minutes (unlike the sleep timer above it ignores the remote usage).
+     */
+    public static OptionCategory createSleepCountdownCategory(Context context) {
+        PlayerData playerData = PlayerData.instance(context);
+
+        long remainingMs = playerData.getSleepCountdownEndMs() - System.currentTimeMillis();
+        boolean isActive = playerData.getSleepCountdownEndMs() > 0 && remainingMs > 0;
+        String title = context.getString(R.string.sleep_countdown);
+
+        if (isActive) {
+            title += " (" + context.getString(R.string.sleep_countdown_remaining, (remainingMs + 59_999) / 60_000) + ")";
+        }
+
+        List<OptionItem> options = new ArrayList<>();
+
+        for (int minutes : new int[] {0, 15, 30, 45, 60, 90, 120}) {
+            options.add(UiOptionItem.from(
+                    minutes == 0 ? context.getString(R.string.option_disabled)
+                            : context.getString(R.string.screen_dimming_timeout_min, String.valueOf(minutes)),
+                    option -> playerData.setSleepCountdownMinutes(minutes),
+                    minutes == 0 && !isActive));
+        }
+
+        return OptionCategory.from(SLEEP_COUNTDOWN_ID, OptionCategory.TYPE_RADIO_LIST, title, options);
     }
 
     public static OptionItem createSubscriptionsBackupButton(Context context) {

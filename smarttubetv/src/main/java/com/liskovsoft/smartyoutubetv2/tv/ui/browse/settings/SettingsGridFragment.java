@@ -133,17 +133,20 @@ public class SettingsGridFragment extends GridFragment implements SettingsSectio
                 if (password == null) {
                     ((SettingsItem) item).onClick.run();
                 } else {
-                    SimpleEditDialog.showPassword(
-                            getContext(),
-                            getContext().getString(R.string.enter_settings_password),
-                            null,
-                            newValue -> {
-                                if (Utils.passwordMatch(password, newValue)) {
-                                    ((SettingsItem) item).onClick.run();
-                                    return true;
-                                }
-                                return false;
-                            });
+                    SimpleEditDialog.OnChange onChange = newValue -> {
+                        if (Utils.passwordMatch(password, newValue)) {
+                            ((SettingsItem) item).onClick.run();
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    // Numeric keypad for PINs; legacy text passwords still get the full keyboard
+                    if (password.matches("\\d+")) {
+                        SimpleEditDialog.showPin(getContext(), getContext().getString(R.string.enter_settings_password), null, onChange);
+                    } else {
+                        SimpleEditDialog.showPassword(getContext(), getContext().getString(R.string.enter_settings_password), null, onChange);
+                    }
                 }
 
                 // Close PIP inside Settings section

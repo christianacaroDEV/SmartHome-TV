@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 
 import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
+import com.liskovsoft.mediaserviceinterfaces.data.MediaItem;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.locale.LocaleUtility;
 import com.liskovsoft.sharedutils.mylogger.Log;
@@ -52,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.reactivex.Observable;
@@ -59,6 +61,7 @@ import io.reactivex.disposables.Disposable;
 
 public class BrowsePresenter extends BasePresenter<BrowseView> implements SectionPresenter, VideoGroupPresenter, AccountChangeListener {
     private static final String TAG = BrowsePresenter.class.getSimpleName();
+    private static final int CONTINUE_WATCHING_TIMEOUT_SEC = 6;
     @SuppressLint("StaticFieldLeak")
     private static BrowsePresenter sInstance;
     private final List<BrowseSection> mSections;
@@ -212,8 +215,51 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
     }
 
+    /**
+     * Puts a "Continue watching" row (recent history) at the very top of the Home section.<br/>
+     * The row is optional: if the history can't be loaded (not signed in, network error, slow response)
+     * the Home is shown as usual.
+     */
+    private Observable<List<MediaGroup>> withContinueWatchingRow(Observable<List<MediaGroup>> home) {
+        Observable<List<MediaGroup>> continueRow = getContentService().getHistoryObserve()
+                .take(1)
+                .timeout(CONTINUE_WATCHING_TIMEOUT_SEC, TimeUnit.SECONDS)
+                .filter(group -> group != null && !group.isEmpty())
+                .map(group -> {
+                    List<MediaGroup> rows = new ArrayList<>();
+                    rows.add(new TitledMediaGroup(group, getContext().getString(R.string.continue_watching)));
+                    return rows;
+                })
+                .onErrorResumeNext(Observable.<List<MediaGroup>>empty());
+
+        return Observable.concat(continueRow, home);
+    }
+
+    /**
+     * Same group but with a custom row title.
+     */
+    private static final class TitledMediaGroup implements MediaGroup {
+        private final MediaGroup mBase;
+        private final String mTitle;
+
+        TitledMediaGroup(MediaGroup base, String title) {
+            mBase = base;
+            mTitle = title;
+        }
+
+        @Override public int getType() { return mBase.getType(); }
+        @Override public List<MediaItem> getMediaItems() { return mBase.getMediaItems(); }
+        @Override public String getTitle() { return mTitle; }
+        @Override public String getChannelId() { return mBase.getChannelId(); }
+        @Override public String getParams() { return mBase.getParams(); }
+        @Override public String getReloadPageKey() { return mBase.getReloadPageKey(); }
+        @Override public String getNextPageKey() { return mBase.getNextPageKey(); }
+        @Override public String getChannelUrl() { return mBase.getChannelUrl(); }
+        @Override public boolean isEmpty() { return mBase.isEmpty(); }
+    }
+
     private void initRowAndGridMapping() {
-        mRowMapping.put(MediaGroup.TYPE_HOME, getContentService().getHomeObserve());
+        mRowMapping.put(MediaGroup.TYPE_HOME, withContinueWatchingRow(getContentService().getHomeObserve()));
         mRowMapping.put(MediaGroup.TYPE_TRENDING, getContentService().getTrendingObserve());
         mRowMapping.put(MediaGroup.TYPE_KIDS_HOME, getContentService().getKidsHomeObserve());
         mRowMapping.put(MediaGroup.TYPE_SPORTS, getContentService().getSportsObserve());
