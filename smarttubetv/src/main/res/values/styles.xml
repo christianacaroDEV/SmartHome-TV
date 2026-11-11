@@ -248,4 +248,35 @@
         <item name="cardSelectedBackground">@color/card_selected_background_white_grey</item>
     </style>
     <!--  End Color scheme: Dark Blue (OLED)  -->
+
+    <!--  Color scheme: SmartHome (navy / blue / cyan)  -->
+    <style name="App.Theme.SmartHome.Player" parent="App.Theme.Leanback.Player">
+        <item name="playbackProgressPrimaryColor">@color/sh_accent</item>
+        <item name="playbackProgressSecondaryColor">@color/sh_accent_light</item>
+        <item name="playbackControlsIconHighlightColor">@color/sh_accent_cyan</item>
+        <item name="cardProgressStyle">@style/ProgressBarHorizontal.SmartHome</item>
+        <item name="shelfBackground">@color/sh_shelf_background</item>
+        <item name="cardDefaultBackground">@color/sh_card_background</item>
+        <item name="cardSelectedBackground">@color/sh_card_selected_background</item>
+        <item name="android:colorAccent" tools:targetApi="21">@color/sh_accent</item>
+    </style>
+    <style name="App.Theme.SmartHome.Browse" parent="App.Theme.Leanback.Browse">
+        <item name="android:windowBackground">@drawable/smarthome_background</item>
+        <item name="brandColor">@color/sh_brand_background</item>
+        <item name="brandAccentColor">@color/sh_accent</item>
+        <item name="cardProgressStyle">@style/ProgressBarHorizontal.SmartHome</item>
+        <item name="shelfBackground">@color/sh_shelf_background</item>
+        <item name="cardDefaultBackground">@color/sh_card_background</item>
+        <item name="cardSelectedBackground">@color/sh_card_selected_background</item>
+        <item name="appLogo">@mipmap/app_logo</item>
+        <item name="android:colorAccent" tools:targetApi="21">@color/sh_accent</item>
+    </style>
+    <style name="App.Theme.SmartHome.Preferences" parent="App.Theme.Leanback.Preferences">
+        <item name="android:colorPrimary" tools:targetApi="21">@color/sh_brand_background</item>
+        <item name="android:colorAccent" tools:targetApi="21">@color/sh_accent</item>
+    </style>
+    <style name="ProgressBarHorizontal.SmartHome" parent="@android:style/Widget.ProgressBar.Horizontal">
+        <item name="android:progressDrawable">@drawable/progress_bar_smarthome</item>
+    </style>
+    <!--  End Color scheme: SmartHome  -->
 </resources>

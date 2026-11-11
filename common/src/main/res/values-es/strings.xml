@@ -767,4 +767,5 @@
     <string name="continue_watching">Continuar viendo</string>
     <string name="splash_tagline">Inteligencia Artificial · Llevándote al futuro</string>
     <string name="splash_loading">Cargando…</string>
+    <string name="color_scheme_smarthome">SmartHome (Azul marino)</string>
 </resources>

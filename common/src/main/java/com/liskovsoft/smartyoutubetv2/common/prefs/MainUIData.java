@@ -100,6 +100,10 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     private int mCardTitleLinesNum;
     private float mUIScale;
     private float mVideoGridScale;
+    /**
+     * Index of the 'SmartHome' scheme in {@link #mColorSchemes} (the last one). Used for new users only.
+     */
+    private static final int DEFAULT_COLOR_SCHEME_INDEX = 8;
     private final List<ColorScheme> mColorSchemes = new ArrayList<>();
     private int mColorSchemeIndex;
     private int mChannelCategorySorting;
@@ -421,6 +425,13 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
                 "App.Theme.Leanback.Blue.OLED.Browse",
                 "App.Theme.Leanback.Blue.Preferences",
                 mContext));
+        // NOTE: keep it the LAST one: the index is stored in the user prefs (see DEFAULT_COLOR_SCHEME_INDEX)
+        mColorSchemes.add(new ColorScheme(
+                R.string.color_scheme_smarthome,
+                "App.Theme.SmartHome.Player",
+                "App.Theme.SmartHome.Browse",
+                "App.Theme.SmartHome.Preferences",
+                mContext));
     }
 
     private void restoreState() {
@@ -431,7 +442,7 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
         //mIsCardAnimatedPreviewsEnabled = Helpers.parseBoolean(split, 0, true);
         mVideoGridScale = Helpers.parseFloat(split, 1, 1.0f); // 4 cards in a row
         mUIScale = Helpers.parseFloat(split, 2, 1.0f);
-        mColorSchemeIndex = Helpers.parseInt(split, 3, 1);
+        mColorSchemeIndex = Helpers.parseInt(split, 3, DEFAULT_COLOR_SCHEME_INDEX);
         mIsCardMultilineTitleEnabled = Helpers.parseBoolean(split, 4, true);
         mChannelCategorySorting = Helpers.parseInt(split, 5, CHANNEL_SORTING_LAST_VIEWED);
         mPlaylistsStyle = Helpers.parseInt(split, 6, PLAYLISTS_STYLE_GRID);
