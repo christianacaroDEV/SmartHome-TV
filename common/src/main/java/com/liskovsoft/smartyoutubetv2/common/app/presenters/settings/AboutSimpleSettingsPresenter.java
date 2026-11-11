@@ -9,8 +9,6 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
-import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.ATVBridgePresenter;
-import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AmazonBridgePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AppUpdatePresenter;
 
 public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
@@ -37,7 +35,6 @@ public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
 
         appendUpdateCheckButton(settingsPresenter);
 
-        appendInstallBridge(settingsPresenter);
 
         settingsPresenter.showDialog(mainTitle);
     }
@@ -56,23 +53,6 @@ public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
         settingsPresenter.appendSingleButton(updateCheckOption);
     }
 
-    private void appendInstallBridge(AppDialogPresenter settingsPresenter) {
-        OptionItem installBridgeOption = UiOptionItem.from(
-                getContext().getString(R.string.enable_voice_search),
-                option -> startBridgePresenter());
-
-        settingsPresenter.appendSingleButton(installBridgeOption);
-    }
-
-    private void startBridgePresenter() {
-        MessageHelpers.showLongMessage(getContext(), R.string.enable_voice_search_desc);
-
-        ATVBridgePresenter atvPresenter = ATVBridgePresenter.instance(getContext());
-        atvPresenter.runBridgeInstaller(true);
-        atvPresenter.unhold();
-
-        AmazonBridgePresenter amazonPresenter = AmazonBridgePresenter.instance(getContext());
-        amazonPresenter.runBridgeInstaller(true);
-        amazonPresenter.unhold();
-    }
+    // NOTE: The "enable voice search" bridge button was removed on purpose: it downloaded and installed an APK
+    // from the original project's releases. See ATVBridgePresenter/AmazonBridgePresenter (now unused).
 }
