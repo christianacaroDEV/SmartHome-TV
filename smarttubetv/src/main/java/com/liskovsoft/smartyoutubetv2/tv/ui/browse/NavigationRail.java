@@ -32,7 +32,7 @@ class NavigationRail {
     private static final int MAX_VISIBLE_ITEMS = 9;
     private static final int ITEM_SIZE_DP = 40;
     private static final int ITEM_GAP_DP = 8;
-    private static final int ICON_PADDING_DP = 8;
+    private static final int ICON_PADDING_DP = 4; // icons are normalized: the glyph fills ~78% of its canvas
     private static final float UNSELECTED_ALPHA = 0.55f;
     private final Context mContext;
     private final float mDensity;
