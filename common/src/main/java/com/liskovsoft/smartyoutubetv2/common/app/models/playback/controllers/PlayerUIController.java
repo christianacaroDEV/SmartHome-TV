@@ -34,6 +34,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.VideoMe
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AutoFrameRateSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.track.SubtitleTrack;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
@@ -374,7 +375,8 @@ public class PlayerUIController extends BasePlayerController {
         }
         getPlayer().setButtonState(R.id.action_thumbs_up, metadata.getLikeStatus() == MediaItemMetadata.LIKE_STATUS_LIKE ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
         getPlayer().setButtonState(R.id.action_thumbs_down, metadata.getLikeStatus() == MediaItemMetadata.LIKE_STATUS_DISLIKE ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
-        if (getPlayerTweaksData().isRealChannelIconEnabled()) {
+        // Mobile: the watch page always shows the channel avatar (like YouTube)
+        if (getPlayerTweaksData().isRealChannelIconEnabled() || DeviceMode.isMobile(getContext())) {
             getPlayer().setChannelIcon(metadata.getAuthorImageUrl());
         }
         setPlaylistAddButtonStateCached();

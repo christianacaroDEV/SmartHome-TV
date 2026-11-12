@@ -56,6 +56,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     public static final int STATE_FULLSCREEN = 3;
     private static final int MINI_HEIGHT_DP = 64;
     private static final int LOAD_MORE_THRESHOLD = 4;
+    private static final Object INFO_HEADER = new Object();
 
     private final Activity mActivity;
     private final FrameLayout mRoot;
@@ -86,7 +87,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mBottomNav = bottomNav;
 
         mSheet = new FrameLayout(activity);
-        mSheet.setBackgroundResource(R.drawable.zemix21_background);
+        mSheet.setBackgroundResource(R.drawable.bluetube_background);
         mSheet.setClickable(true); // the home screen behind must not get the touches
         mSheet.setVisibility(View.GONE);
         mSheet.setElevation(dp(8));
@@ -96,6 +97,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mList = new RecyclerView(activity);
         mList.setLayoutManager(new LinearLayoutManager(activity));
         mList.setAdapter(mAdapter);
+        if (mList.getItemAnimator() instanceof androidx.recyclerview.widget.SimpleItemAnimator) {
+            // The info block is refreshed in place (likes, subscribe...): no blink
+            ((androidx.recyclerview.widget.SimpleItemAnimator) mList.getItemAnimator()).setSupportsChangeAnimations(false);
+        }
         mList.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -470,6 +475,14 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         setState(STATE_HIDDEN);
     }
 
+    @Override
+    public void onInfoChanged() {
+        // Likes, subscribe state, avatar, metadata: refresh only the info block
+        if (mAdapter.getItemCount() > 0 && mVideo != null) {
+            mAdapter.notifyItemChanged(0);
+        }
+    }
+
     // ---------------------------------------------------------------------------------------------
     // List (title + suggestions)
     // ---------------------------------------------------------------------------------------------
@@ -484,8 +497,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         List<Object> items = new ArrayList<>();
 
         if (mVideo != null) {
-            items.add(new CharSequence[] {mVideo.getTitleFull() != null ? mVideo.getTitleFull() : mVideo.getTitle(),
-                    mVideo.getSecondTitleFull() != null ? mVideo.getSecondTitleFull() : mVideo.getSecondTitle()});
+            items.add(INFO_HEADER); // title, channel, actions, description
         }
 
         for (List<Video> videos : mGroups.values()) {
@@ -545,18 +557,9 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 return new VideoHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false));
             }
 
-            LinearLayout box = new LinearLayout(parent.getContext());
-            box.setOrientation(LinearLayout.VERTICAL);
-            box.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            box.setPadding(dp(14), dp(12), dp(14), dp(16));
-            TextView title = createText(18, Color.WHITE, true);
-            title.setMaxLines(3);
-            box.addView(title);
-            TextView subtitle = createText(13, Color.parseColor("#9FB3D9"), false);
-            subtitle.setPadding(0, dp(6), 0, 0);
-            subtitle.setMaxLines(3);
-            box.addView(subtitle);
-            return new RecyclerView.ViewHolder(box) {
+            MobileWatchInfoView info = new MobileWatchInfoView(mActivity, mPlayer);
+            info.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            return new RecyclerView.ViewHolder(info) {
             };
         }
 
@@ -567,10 +570,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
             if (holder instanceof VideoHolder) {
                 ((VideoHolder) holder).bind((Video) item);
             } else {
-                CharSequence[] info = (CharSequence[]) item;
-                LinearLayout box = (LinearLayout) holder.itemView;
-                ((TextView) box.getChildAt(0)).setText(info[0]);
-                ((TextView) box.getChildAt(1)).setText(info[1]);
+                ((MobileWatchInfoView) holder.itemView).bind(mVideo);
             }
         }
     }

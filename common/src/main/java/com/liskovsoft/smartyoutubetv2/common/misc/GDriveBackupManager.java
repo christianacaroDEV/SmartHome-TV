@@ -57,8 +57,8 @@ public class GDriveBackupManager {
         mSharedPrefs = String.format("%s/%s", mRootDir, SHARED_PREFS_SUBDIR);
         mFilesDir = String.format("%s/%s", mRootDir, FILES_SUBDIR);
         mDataDirs = new String[] { mSharedPrefs, mFilesDir };
-        mBackupDir = String.format("Zemix21Backup/%s", context.getPackageName());
-        mRootBackupDir = "Zemix21Backup";
+        mBackupDir = String.format("BlueTubeBackup/%s", context.getPackageName());
+        mRootBackupDir = "BlueTubeBackup";
         mSignInService = GoogleSignInService.instance();
     }
 

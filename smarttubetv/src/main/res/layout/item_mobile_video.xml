@@ -41,7 +41,7 @@
             android:layout_height="3dp"
             android:layout_gravity="bottom"
             android:max="100"
-            android:progressDrawable="@drawable/progress_bar_zemix21"
+            android:progressDrawable="@drawable/progress_bar_bluetube"
             android:visibility="gone" />
     </FrameLayout>
 

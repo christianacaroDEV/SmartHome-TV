@@ -765,9 +765,20 @@
     <string name="sleep_countdown">Apagar reproducción en</string>
     <string name="sleep_countdown_remaining">quedan %1$d min</string>
     <string name="continue_watching">Continuar viendo</string>
-    <string name="splash_tagline">Inteligencia Artificial · Llevándote al futuro</string>
+    <string name="splash_tagline">Mira lo que amas, sin límites</string>
+    <string-array name="splash_taglines">
+        <item>Mira lo que amas, sin límites</item>
+        <item>@@greeting@@ · ¿Qué vemos hoy?</item>
+        <item>Tus videos favoritos, a un toque</item>
+        <item>Del celular a la TV, justo donde lo dejaste</item>
+        <item>Música, series y más, siempre contigo</item>
+        <item>Inteligencia Artificial · Llevándote al futuro</item>
+    </string-array>
+    <string name="splash_greeting_morning">Buenos días</string>
+    <string name="splash_greeting_afternoon">Buenas tardes</string>
+    <string name="splash_greeting_night">Buenas noches</string>
     <string name="splash_loading">Cargando…</string>
-    <string name="color_scheme_zemix21">Zemix21 (Azul marino)</string>
+    <string name="color_scheme_bluetube">BlueTube (Azul marino)</string>
     <string name="home_search_hint">Buscar videos…</string>
     <string name="home_greeting_subtitle">¿Qué quieres ver hoy?</string>
     <string name="greeting_morning">Buenos días</string>
@@ -789,11 +800,20 @@
     <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
     <string name="mobile_pin">Fijar</string>
     <string name="mobile_unpin">Toca para desbloquear</string>
+    <string name="mobile_watch_subscribe">Suscribirse</string>
+    <string name="mobile_watch_subscribed">Suscrito</string>
+    <string name="mobile_watch_like">Me gusta</string>
+    <string name="mobile_watch_share">Compartir</string>
+    <string name="mobile_watch_save">Guardar</string>
+    <string name="mobile_watch_repeat">Repetir</string>
+    <string name="mobile_watch_more">…más</string>
+    <string name="mobile_watch_less">Mostrar menos</string>
+    <string name="mobile_watch_description">Descripción</string>
     <string name="mobile_signin_title">Añadir cuenta</string>
     <string name="mobile_signin_subtitle">Inicia sesión con tu cuenta de Google para ver tus suscripciones, historial y recomendaciones.</string>
     <string name="mobile_signin_step1">Toca \"Abrir la página de activación\"</string>
     <string name="mobile_signin_step2">Elige tu cuenta de Google y confirma este código</string>
-    <string name="mobile_signin_step3">Vuelve aquí: Zemix21 se conecta solo</string>
+    <string name="mobile_signin_step3">Vuelve aquí: BlueTube se conecta solo</string>
     <string name="mobile_signin_code_label">Tu código</string>
     <string name="mobile_signin_open">Abrir la página de activación</string>
     <string name="mobile_signin_copy">Copiar código</string>

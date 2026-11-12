@@ -14,7 +14,7 @@ public final class DeviceMode {
     public static final int MODE_AUTO = 0;
     public static final int MODE_MOBILE = 1;
     public static final int MODE_TV = 2;
-    private static final String PREFS_NAME = "zemix21_defaults";
+    private static final String PREFS_NAME = "bluetube_defaults";
     private static final String KEY_MODE = "device_mode";
     private static Boolean sIsMobile;
 

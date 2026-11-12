@@ -158,7 +158,7 @@ public class DialServer {
                 "CACHE-CONTROL: max-age=1800\r\n" +
                 "EXT:\r\n" +
                 "LOCATION: http://" + ip + ":" + HTTP_PORT + "/dd.xml\r\n" +
-                "SERVER: Linux/" + Build.VERSION.RELEASE + " UPnP/1.0 Zemix21/1.0\r\n" +
+                "SERVER: Linux/" + Build.VERSION.RELEASE + " UPnP/1.0 BlueTube/1.0\r\n" +
                 "ST: " + DIAL_ST + "\r\n" +
                 "USN: uuid:" + mUdn + "::" + DIAL_ST + "\r\n" +
                 "BOOTID.UPNP.ORG: 1\r\n" +
@@ -279,7 +279,7 @@ public class DialServer {
                 "  <device>\n" +
                 "    <deviceType>urn:dial-multiscreen-org:device:dial:1</deviceType>\n" +
                 "    <friendlyName>" + escapeXml(mFriendlyName) + "</friendlyName>\n" +
-                "    <manufacturer>Zemix21</manufacturer>\n" +
+                "    <manufacturer>BlueTube</manufacturer>\n" +
                 "    <modelName>" + escapeXml(Build.MODEL) + "</modelName>\n" +
                 "    <UDN>uuid:" + mUdn + "</UDN>\n" +
                 "  </device>\n" +

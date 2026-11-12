@@ -111,7 +111,7 @@ public class MobileSignInActivity extends MotherActivity implements SignInView {
 
     private View createContent() {
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundResource(R.drawable.zemix21_background);
+        scroll.setBackgroundResource(R.drawable.bluetube_background);
         scroll.setFillViewport(true);
 
         LinearLayout page = new LinearLayout(this);

@@ -20,7 +20,13 @@ public class MobilePlayerView extends EmbedPlayerView {
         void onSuggestionsCleared();
         void onLoading(boolean loading);
         void onFinished();
+        /**
+         * Like/subscribe states, channel avatar or the video metadata (views, likes, description...) changed.
+         */
+        void onInfoChanged();
     }
+
+    private String mChannelIconUrl;
 
     private Listener mListener;
     // The controllers store the state of the player buttons here (e.g. subtitles on/off)
@@ -115,7 +121,24 @@ public class MobilePlayerView extends EmbedPlayerView {
 
     @Override
     public void setButtonState(int buttonId, int buttonState) {
-        mButtonStates.put(buttonId, buttonState);
+        Integer old = mButtonStates.put(buttonId, buttonState);
+
+        if ((old == null || old != buttonState) && mListener != null) {
+            mListener.onInfoChanged();
+        }
+    }
+
+    @Override
+    public void setChannelIcon(String iconUrl) {
+        mChannelIconUrl = iconUrl;
+
+        if (mListener != null) {
+            mListener.onInfoChanged();
+        }
+    }
+
+    public String getChannelIconUrl() {
+        return mChannelIconUrl;
     }
 
     @Override

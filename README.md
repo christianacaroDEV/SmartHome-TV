@@ -1,6 +1,6 @@
-# Zemix21
+# BlueTube
 
-**Zemix21** is an Android app for watching online video, designed for **Android TV** (remote control) and **Android phones/tablets** (touch, portrait and landscape).
+**BlueTube** is an Android app for watching online video, designed for **Android TV** (remote control) and **Android phones/tablets** (touch, portrait and landscape).
 
 ## Features
 - Android TV interface with sidebar, rows and a full-screen player.
@@ -17,4 +17,4 @@ git submodule update --init --recursive
 ```
 
 ## Credits and license
-Zemix21 is based on the open-source project **SmartTube** by Yuriy Liskov (MIT License). The original copyright and license notice is kept in [LICENSE](LICENSE), as the license requires.
+BlueTube is based on the open-source project **SmartTube** by Yuriy Liskov (MIT License). The original copyright and license notice is kept in [LICENSE](LICENSE), as the license requires.

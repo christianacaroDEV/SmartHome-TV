@@ -1,10 +1,10 @@
 <resources>
     <string translatable="false" name="app_name">LeanbackAssistant</string>
-    <string translatable="false" name="search_authority">com.zemix21.tv</string>
+    <string translatable="false" name="search_authority">com.bluetube.tv</string>
 
     <string name="search_hint">Search for Videos</string>
-    <string name="search_label">Zemix21</string>
-    <string name="settings_description">Zemix21 Videos</string>
+    <string name="search_label">BlueTube</string>
+    <string name="settings_description">BlueTube Videos</string>
     <string name="cant_play_video">Can\'t play this video</string>
     <string name="header_subscriptions">Subscriptions</string>
     <string name="header_history">History</string>

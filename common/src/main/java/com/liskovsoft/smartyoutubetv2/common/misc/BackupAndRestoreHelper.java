@@ -24,7 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class BackupAndRestoreHelper implements OnResult {
-    public static final String BACKUP_FOLDER_NAME = "Zemix21Backup";
+    public static final String BACKUP_FOLDER_NAME = "BlueTubeBackup";
     private static final int REQ_PICK_FILES = 1001;
     private final Context mContext;
     private Runnable mOnSuccess;

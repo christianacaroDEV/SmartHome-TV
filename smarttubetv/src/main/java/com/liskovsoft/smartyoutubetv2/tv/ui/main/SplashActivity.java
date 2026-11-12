@@ -3,6 +3,14 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.main;
 import android.animation.Animator;
 import android.animation.ObjectAnimator;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.widget.TextView;
+
+import java.util.Calendar;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -30,6 +38,8 @@ public class SplashActivity extends MotherActivity implements SplashView {
      */
     private static boolean sShowBrandedSplash = true;
     private static final long SPLASH_DURATION_MS = 2_400;
+    private static final String TAGLINE_PREFS = "bluetube_defaults";
+    private static final String KEY_TAGLINE_INDEX = "splash_tagline_index";
     private static final int BAR_WIDTH_DP = 280;
     private static final int BAR_FILL_WIDTH_DP = 120;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -88,7 +98,8 @@ public class SplashActivity extends MotherActivity implements SplashView {
             v.setTranslationY(20 * density);
         }
         title.animate().alpha(1f).translationY(0).setStartDelay(350).setDuration(600).start();
-        tagline.animate().alpha(1f).translationY(0).setStartDelay(600).setDuration(600).start();
+        tagline.animate().alpha(1f).translationY(0).setStartDelay(600).setDuration(400).start();
+        typeTagline((TextView) tagline, nextTagline(), 650);
         loading.animate().alpha(1f).translationY(0).setStartDelay(800).setDuration(500).start();
 
         // Glow: slow "breathing"
@@ -110,6 +121,50 @@ public class SplashActivity extends MotherActivity implements SplashView {
         mAnimators.add(sweep);
     }
 
+    /**
+     * A different phrase on every launch (in order, the first launch shows the default one).
+     * "@@greeting@@" becomes good morning/afternoon/evening depending on the time.
+     */
+    private String nextTagline() {
+        String[] taglines = getResources().getStringArray(R.array.splash_taglines);
+
+        if (taglines.length == 0) {
+            return getString(R.string.splash_tagline);
+        }
+
+        SharedPreferences prefs = getSharedPreferences(TAGLINE_PREFS, MODE_PRIVATE);
+        int index = prefs.getInt(KEY_TAGLINE_INDEX, 0) % taglines.length;
+        prefs.edit().putInt(KEY_TAGLINE_INDEX, index + 1).apply();
+
+        int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        int greeting = hour >= 5 && hour < 12 ? R.string.splash_greeting_morning
+                : hour >= 12 && hour < 19 ? R.string.splash_greeting_afternoon : R.string.splash_greeting_night;
+
+        return taglines[index].replace("@@greeting@@", getString(greeting));
+    }
+
+    /**
+     * Typewriter effect: the phrase is written letter by letter.
+     */
+    private void typeTagline(TextView view, String text, long startDelayMs) {
+        // The whole phrase is always there (so the centered text doesn't move), the part not typed yet is transparent
+        view.setText(typed(text, 0));
+        long perChar = Math.max(18, Math.min(45, 1_300 / Math.max(1, text.length())));
+
+        for (int i = 1; i <= text.length(); i++) {
+            final int length = i;
+            mHandler.postDelayed(() -> view.setText(typed(text, length)), startDelayMs + perChar * i);
+        }
+    }
+
+    private static CharSequence typed(String text, int length) {
+        SpannableString result = new SpannableString(text);
+        if (length < text.length()) {
+            result.setSpan(new ForegroundColorSpan(Color.TRANSPARENT), length, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return result;
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -122,7 +177,7 @@ public class SplashActivity extends MotherActivity implements SplashView {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mHandler.removeCallbacks(mStartApp);
+        mHandler.removeCallbacksAndMessages(null); // start + typewriter steps
         for (Animator animator : mAnimators) {
             animator.cancel();
         }

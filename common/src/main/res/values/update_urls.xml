@@ -2,6 +2,6 @@
 <resources>
     <string-array name="update_urls">
         <!-- NOTE: Real urls moved to the flavor's folder -->
-        <!--<item>https://github.com/christianacaroDEV/SmartHome-TV/releases/download/latest/zemix21_beta.json</item>-->
+        <!--<item>https://github.com/christianacaroDEV/SmartHome-TV/releases/download/latest/bluetube_beta.json</item>-->
     </string-array>
 </resources>

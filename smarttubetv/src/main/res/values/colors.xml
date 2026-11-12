@@ -69,7 +69,7 @@
     <color name="lb_speech_orb_not_recording_pulsed">@color/orb_bright_color</color>
     <color name="lb_speech_orb_not_recording_icon">@color/orb_icon_color</color>
 
-    <!-- Zemix21 color scheme (navy / blue / cyan) -->
+    <!-- BlueTube color scheme (navy / blue / cyan) -->
     <color name="sh_shelf_background">#060E22</color>
     <color name="sh_brand_background">#0B1A3A</color>
     <color name="sh_card_background">#0F1C3A</color>

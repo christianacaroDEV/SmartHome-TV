@@ -58,7 +58,7 @@ public class MobileAccountActivity extends MotherActivity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundResource(R.drawable.zemix21_background);
+        root.setBackgroundResource(R.drawable.bluetube_background);
 
         // Top bar
         LinearLayout bar = new LinearLayout(this);
