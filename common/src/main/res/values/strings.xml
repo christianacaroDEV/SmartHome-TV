@@ -783,4 +783,8 @@
     <string name="mobile_close">Close</string>
     <string name="mobile_minimize">Minimize</string>
     <string name="mobile_fullscreen">Full screen</string>
+    <string name="mobile_me">Me</string>
+    <string name="mobile_sign_out">Sign out</string>
+    <string name="mobile_background_audio">Background playback</string>
+    <string name="mobile_background_audio_desc">Keep the audio playing when the screen is locked</string>
 </resources>

@@ -783,4 +783,8 @@
     <string name="mobile_close">Cerrar</string>
     <string name="mobile_minimize">Minimizar</string>
     <string name="mobile_fullscreen">Pantalla completa</string>
+    <string name="mobile_me">Yo</string>
+    <string name="mobile_sign_out">Cerrar sesión</string>
+    <string name="mobile_background_audio">Reproducción en segundo plano</string>
+    <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
 </resources>

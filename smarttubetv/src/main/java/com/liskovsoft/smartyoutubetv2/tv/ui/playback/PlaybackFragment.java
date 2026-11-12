@@ -1,5 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.playback;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
+import com.liskovsoft.smartyoutubetv2.common.misc.MobileSettings;
 import android.media.session.PlaybackState;
 import android.os.Build.VERSION;
 import android.os.Bundle;
@@ -217,6 +220,13 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public void onStop() {
         super.onStop();
 
+        // Mobile mode, 'Background playback' switch: keep the audio running when the screen is locked or the app is left
+        if (getContext() != null && MobileSettings.isBackgroundAudioEnabled(getContext()) && DeviceMode.isMobile(getContext())
+                && mPlayer != null && mPlayer.getPlayWhenReady() && !isInPIPMode()) {
+            blockEngine(true);
+            BackgroundPlaybackService.start(getContext());
+        }
+
         if (Util.SDK_INT > 23) {
             maybeReleasePlayer();
         }
@@ -235,6 +245,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         showHideWidgets(true); // PIP mode fix
         blockEngine(false); // reset bg mode
+
+        if (getContext() != null) {
+            BackgroundPlaybackService.stop(getContext());
+        }
         //ExoPlayerInitializer.enableAudioFocus(mPlayer, true); // Restore focus after PIP
     }
 

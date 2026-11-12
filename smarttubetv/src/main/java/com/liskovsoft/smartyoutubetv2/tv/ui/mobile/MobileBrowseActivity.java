@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.mobile;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -133,11 +134,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         });
 
         findViewById(R.id.mobile_btn_search).setOnClickListener(v -> SearchPresenter.instance(this).startSearch(null));
-        mAccountButton.setOnClickListener(v -> AccountSelectionPresenter.instance(this).nextAccountOrDialog());
-        mAccountButton.setOnLongClickListener(v -> {
-            AccountSettingsPresenter.instance(this).show();
-            return true;
-        });
+        mAccountButton.setOnClickListener(v -> startActivity(new Intent(this, MobileAccountActivity.class)));
 
         MediaServiceManager.instance().addAccountListener(this);
         updateAccountButton();

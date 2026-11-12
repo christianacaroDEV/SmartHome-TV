@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.main;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.MobileSettings;
 import android.content.SharedPreferences;
 import android.os.Build.VERSION;
 
@@ -95,6 +96,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
 
         setupDefaultLanguage();
         setupDefaultClockFormat();
+        MobileSettings.applyCompactPlayerButtonsOnce(this);
         setupGlobalExceptionHandler();
         setupViewManager();
     }
