@@ -99,6 +99,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         setupDefaultLanguage();
         setupDefaultClockFormat();
         MobileSettings.applyCompactPlayerButtonsOnce(this);
+        MobileSettings.applyNormalQualityOnce(this);
         setupGlobalExceptionHandler();
         setupViewManager();
     }

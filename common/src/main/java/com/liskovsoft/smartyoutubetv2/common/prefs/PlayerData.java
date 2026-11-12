@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.common.prefs;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Build;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.os.Build.VERSION;
 
 import androidx.annotation.NonNull;
@@ -49,6 +50,7 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
     private boolean mIsRemainingTimeEnabled;
     private int mBackgroundMode;
     private FormatItem mVideoFormat;
+    private final boolean mIsMobile;
     private FormatItem mTempVideoFormat;
     private FormatItem mAudioFormat;
     private FormatItem mSubtitleFormat;
@@ -130,6 +132,7 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
     }
 
     private PlayerData(Context context) {
+        mIsMobile = DeviceMode.isMobile(context);
         mPrefs = AppPrefs.instance(context);
         mPrefs.addListener(this);
         initSubtitleStyles();
@@ -739,6 +742,11 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
     }
 
     public FormatItem getDefaultVideoFormat() {
+        if (mIsMobile) {
+            // Phones/tablets: normal quality (720p) by default, it saves mobile data. The user can still pick any other.
+            return FormatItem.VIDEO_HD_AVC_30;
+        }
+
         FormatItem formatItem = mDefaultVideoFormats.get(Build.MODEL);
 
         if (formatItem == null) {

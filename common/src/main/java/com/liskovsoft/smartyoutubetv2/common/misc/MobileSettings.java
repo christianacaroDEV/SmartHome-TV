@@ -4,6 +4,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AppUpdatePre
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
+import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 
 /**
@@ -14,6 +16,7 @@ public final class MobileSettings {
     private static final String PREFS_NAME = "zemix21_defaults";
     private static final String KEY_BACKGROUND_AUDIO = "mobile_background_audio";
     private static final String KEY_COMPACT_BUTTONS_APPLIED = "mobile_compact_buttons_applied";
+    private static final String KEY_NORMAL_QUALITY_APPLIED = "mobile_normal_quality_applied";
     /**
      * The few player buttons that make sense on a small screen. Everything else is reachable from the
      * quality (HQ) dialog, and the user can still enable more buttons in the settings.
@@ -65,6 +68,27 @@ public final class MobileSettings {
         data.setPlayerButtonDisabled(all & ~COMPACT_PLAYER_BUTTONS);
         data.setPlayerButtonEnabled(COMPACT_PLAYER_BUTTONS);
         prefs.edit().putBoolean(KEY_COMPACT_BUTTONS_APPLIED, true).apply();
+    }
+
+    /**
+     * Once per install (phones only): installs that still have the old TV default (4K/1080p) get the normal
+     * quality (720p). After that the quality stays whatever the user picks.
+     */
+    public static void applyNormalQualityOnce(Context context) {
+        SharedPreferences prefs = getPrefs(context);
+
+        if (prefs.getBoolean(KEY_NORMAL_QUALITY_APPLIED, false) || !DeviceMode.isMobile(context)) {
+            return;
+        }
+
+        PlayerData data = PlayerData.instance(context);
+        FormatItem current = data.getFormat(FormatItem.TYPE_VIDEO);
+
+        if (current == null || current.equals(FormatItem.VIDEO_4K_VP9_60) || current.equals(FormatItem.VIDEO_FHD_VP9_60)) {
+            data.setFormat(data.getDefaultVideoFormat());
+        }
+
+        prefs.edit().putBoolean(KEY_NORMAL_QUALITY_APPLIED, true).apply();
     }
 
     private static SharedPreferences getPrefs(Context context) {

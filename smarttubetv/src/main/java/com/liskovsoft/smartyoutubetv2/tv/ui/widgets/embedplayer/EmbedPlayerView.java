@@ -351,7 +351,11 @@ public class EmbedPlayerView extends PlayerView implements PlaybackView {
 
     @Override
     public void setFormat(FormatItem option) {
-        // NOP. Use internal selection
+        // Card previews: NOP, they use their own fixed low quality.
+        // Full player mode (mobile in-app player): follow the quality the user picked (or the default one).
+        if (mQuality == QUALITY_AUTO && mExoPlayerController != null) {
+            mExoPlayerController.selectFormat(option);
+        }
     }
 
     @Override
