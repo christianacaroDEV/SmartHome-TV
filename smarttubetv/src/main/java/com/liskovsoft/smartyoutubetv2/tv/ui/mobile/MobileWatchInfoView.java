@@ -55,6 +55,8 @@ public class MobileWatchInfoView extends LinearLayout {
     private Video mVideo;
     private boolean mExpanded;
     private String mLoadedAvatar;
+    private String mLikeVideoKey;
+    private boolean mLikedAtLoad;
 
     public MobileWatchInfoView(Context context, MobilePlayerView player) {
         super(context);
@@ -99,7 +101,7 @@ public class MobileWatchInfoView extends LinearLayout {
         mSubscribe = text(14, Color.BLACK, true);
         mSubscribe.setGravity(Gravity.CENTER);
         mSubscribe.setPadding(dp(16), 0, dp(16), 0);
-        mSubscribe.setOnClickListener(v -> press(R.id.action_subscribe));
+        mSubscribe.setOnClickListener(v -> onSubscribeClicked());
         channel.addView(mSubscribe, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)));
         addView(channel);
 
@@ -195,7 +197,7 @@ public class MobileWatchInfoView extends LinearLayout {
 
         boolean liked = mPlayer.getButtonState(R.id.action_thumbs_up) == BUTTON_ON;
         boolean disliked = mPlayer.getButtonState(R.id.action_thumbs_down) == BUTTON_ON;
-        mLike.setText(!TextUtils.isEmpty(video.likeCount) ? video.likeCount : getContext().getString(R.string.mobile_watch_like));
+        mLike.setText(likeText(video, liked));
         mLike.setCompoundDrawablesWithIntrinsicBounds(tinted(R.drawable.ic_m_thumb_up, liked), null, null, null);
         mDislike.setColorFilter(disliked ? ACCENT : Color.WHITE);
 
@@ -256,6 +258,49 @@ public class MobileWatchInfoView extends LinearLayout {
 
         mExpanded = !mExpanded;
         bind(mVideo);
+    }
+
+    /**
+     * Like YouTube: unsubscribing asks first ("Unsubscribe from X?"), subscribing is immediate.
+     */
+    private void onSubscribeClicked() {
+        if (mPlayer.getButtonState(R.id.action_subscribe) != BUTTON_ON) {
+            press(R.id.action_subscribe);
+            return;
+        }
+
+        String channel = mVideo != null ? authorOf(mVideo) : null;
+        new android.app.AlertDialog.Builder(getContext(), android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setMessage(getContext().getString(R.string.mobile_unsubscribe_confirm, channel != null ? channel : ""))
+                .setNegativeButton(R.string.mobile_cancel, null)
+                .setPositiveButton(R.string.mobile_unsubscribe, (dialog, which) -> press(R.id.action_subscribe))
+                .show();
+    }
+
+    /**
+     * The like count follows the button: +1 when the user likes, -1 when the like is removed
+     * (only for exact counts like "804"; "6.1K" stays as it is, like on YouTube).
+     */
+    private String likeText(Video video, boolean liked) {
+        if (TextUtils.isEmpty(video.likeCount)) {
+            return getContext().getString(R.string.mobile_watch_like);
+        }
+
+        String key = video.videoId != null ? video.videoId : String.valueOf(video.hashCode());
+
+        if (!key.equals(mLikeVideoKey)) {
+            mLikeVideoKey = key;
+            mLikedAtLoad = liked; // the state YouTube reported together with the count
+        }
+
+        String digits = video.likeCount.replaceAll("[.,\\s\\u00A0]", "");
+
+        if (!digits.matches("\\d{1,9}")) {
+            return video.likeCount;
+        }
+
+        long count = Long.parseLong(digits) + (liked == mLikedAtLoad ? 0 : liked ? 1 : -1);
+        return java.text.NumberFormat.getIntegerInstance().format(Math.max(0, count));
     }
 
     private void press(int buttonId) {

@@ -75,7 +75,7 @@ public final class MobileTopics {
         List<Integer> result = new ArrayList<>();
         List<String> saved = new ArrayList<>();
 
-        for (String part : prefs(context).getString(KEY_TOPICS, "").split(",")) {
+        for (String part : prefs(context).getString(MobileProfiles.key(context, KEY_TOPICS), "").split(",")) {
             saved.add(part.trim());
         }
 
@@ -98,14 +98,14 @@ public final class MobileTopics {
             selectedKeys.add(keys[index]);
         }
 
-        prefs(context).edit().putString(KEY_TOPICS, TextUtils.join(",", selectedKeys)).putBoolean(KEY_TOPICS_ASKED, true).apply();
+        prefs(context).edit().putString(MobileProfiles.key(context, KEY_TOPICS), TextUtils.join(",", selectedKeys)).putBoolean(MobileProfiles.key(context, KEY_TOPICS_ASKED), true).apply();
     }
 
     /**
      * The topics were never asked (first use of the app).
      */
     public static boolean shouldAsk(Context context) {
-        return !prefs(context).getBoolean(KEY_TOPICS_ASKED, false);
+        return !prefs(context).getBoolean(MobileProfiles.key(context, KEY_TOPICS_ASKED), false);
     }
 
     /**
@@ -214,7 +214,7 @@ public final class MobileTopics {
         buttons.setPadding(0, dp(density, 12), 0, 0);
         TextView skip = button(activity, R.string.mobile_topics_skip, false, density);
         skip.setOnClickListener(v -> {
-            prefs(activity).edit().putBoolean(KEY_TOPICS_ASKED, true).apply();
+            prefs(activity).edit().putBoolean(MobileProfiles.key(activity, KEY_TOPICS_ASKED), true).apply();
             dialog.dismiss();
         });
         buttons.addView(skip);
@@ -339,7 +339,7 @@ public final class MobileTopics {
             }
         }
 
-        prefs(context).edit().putString(KEY_WATCH_LATER, result.toString()).apply();
+        prefs(context).edit().putString(MobileProfiles.key(context, KEY_WATCH_LATER), result.toString()).apply();
 
         if (YouTubeSignInService.instance().isSigned()) {
             MediaServiceManager.instance().addRemoveFromWatchLaterPlaylist(video, !removed);
@@ -372,7 +372,7 @@ public final class MobileTopics {
 
     private static JSONArray loadWatchLater(Context context) {
         try {
-            return new JSONArray(prefs(context).getString(KEY_WATCH_LATER, "[]"));
+            return new JSONArray(prefs(context).getString(MobileProfiles.key(context, KEY_WATCH_LATER), "[]"));
         } catch (JSONException e) {
             return new JSONArray();
         }

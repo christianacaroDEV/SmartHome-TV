@@ -39,6 +39,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.search.vineyard.Tag;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.SearchView;
 import com.liskovsoft.smartyoutubetv2.common.misc.MotherActivity;
+import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil;
 
@@ -331,6 +332,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mLastRawVideo = null;
         mAutoLoadCount = 0;
         mLastQuery = query.trim();
+        setSearchHidden(mLastQuery, false); // searching it again brings it back to the history
         mIsLoading = true;
         mFilters.setVisibility(View.VISIBLE);
         mPresenter.setFilters(mFilters.getTypeOptions(), mFilters.getDurationOptions(), mFilters.getUploadDateOptions());
@@ -354,6 +356,33 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mAdapter.setItems(new ArrayList<Object>(mTags));
     }
 
+    private static final String KEY_HIDDEN_SEARCHES = "mobile_hidden_searches";
+
+    private static String normalize(String tag) {
+        return tag.trim().toLowerCase();
+    }
+
+    private android.content.SharedPreferences getSearchPrefs() {
+        return getApplicationContext().getSharedPreferences("bluetube_defaults", Context.MODE_PRIVATE);
+    }
+
+    private java.util.Set<String> getHiddenSearches() {
+        return new java.util.HashSet<>(getSearchPrefs().getStringSet(MobileProfiles.key(this, KEY_HIDDEN_SEARCHES), new java.util.HashSet<>()));
+    }
+
+    private void setSearchHidden(String tag, boolean hidden) {
+        if (tag == null || tag.trim().isEmpty()) {
+            return;
+        }
+
+        java.util.Set<String> set = getHiddenSearches();
+        boolean changed = hidden ? set.add(normalize(tag)) : set.remove(normalize(tag));
+
+        if (changed) {
+            getSearchPrefs().edit().putStringSet(MobileProfiles.key(this, KEY_HIDDEN_SEARCHES), set).apply();
+        }
+    }
+
     private void loadSuggestions() {
         if (mTagsProvider == null) {
             return;
@@ -369,7 +398,14 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             mTags.clear();
 
             if (results != null) {
-                mTags.addAll(results);
+                // The account history lives on YouTube and can't be edited from here,
+                // so the searches the user removed are hidden locally (per profile)
+                java.util.Set<String> hidden = getHiddenSearches();
+                for (Tag result : results) {
+                    if (result.tag == null || !hidden.contains(normalize(result.tag))) {
+                        mTags.add(result);
+                    }
+                }
             }
 
             mAdapter.setItems(new ArrayList<Object>(mTags));
@@ -543,18 +579,32 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             fill.setAlpha(0.8f);
             row.addView(fill);
 
+            ImageButton remove = new ImageButton(context);
+            remove.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
+            remove.setBackground(null);
+            remove.setPadding(dp(14), dp(14), dp(14), dp(14));
+            remove.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            remove.setImageResource(R.drawable.ic_m_close);
+            remove.setAlpha(0.8f);
+            remove.setContentDescription(context.getString(R.string.remove_from_search_history));
+            row.addView(remove);
+
             return row;
         }
     }
 
     private class TagHolder extends RecyclerView.ViewHolder {
+        private final ImageView mIcon;
         private final TextView mText;
-        private final View mFill;
+        private final ImageButton mFill;
+        private final ImageButton mRemove;
 
         TagHolder(LinearLayout row) {
             super(row);
+            mIcon = (ImageView) row.getChildAt(0);
             mText = (TextView) row.getChildAt(1);
-            mFill = row.getChildAt(2);
+            mFill = (ImageButton) row.getChildAt(2);
+            mRemove = (ImageButton) row.getChildAt(3);
         }
 
         void bind(Tag tag) {
@@ -566,6 +616,16 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             itemView.setOnLongClickListener(v -> {
                 mPresenter.onTagLongClicked(tag);
                 return true;
+            });
+            // Empty field = the user's own search history: a clock icon and an X to remove that search (like YouTube).
+            // While typing = suggestions: a magnifier icon and the arrow to put the text in the field.
+            boolean isHistory = TextUtils.isEmpty(mPendingQuery == null ? null : mPendingQuery.trim());
+            mIcon.setImageResource(isHistory ? R.drawable.ic_m_history : R.drawable.ic_m_search);
+            mRemove.setVisibility(isHistory ? View.VISIBLE : View.GONE);
+            mRemove.setOnClickListener(v -> {
+                MediaServiceManager.instance().removeSearchTag(tag.tag);
+                setSearchHidden(tag.tag, true);
+                removeSearchTag(tag);
             });
             // Put the suggestion in the field without searching, to keep typing
             mFill.setOnClickListener(v -> {

@@ -823,6 +823,16 @@
     <string name="mobile_cd_play_pause">Reproducir o pausar</string>
     <string name="mobile_cd_next">Siguiente</string>
     <string name="mobile_cd_fullscreen">Pantalla completa</string>
+    <string name="mobile_unsubscribe_confirm">¿Anular la suscripción a %s?</string>
+    <string name="mobile_unsubscribe">Anular suscripción</string>
+    <string name="mobile_cancel">Cancelar</string>
+    <string name="mobile_profile_default">Principal</string>
+    <string name="mobile_profile_who">¿Quién está viendo?</string>
+    <string name="mobile_profile_hint">Cada perfil tiene sus propios Favoritos y Ver más tarde. Mantén presionado para borrar uno.</string>
+    <string name="mobile_profile_add">Agregar perfil</string>
+    <string name="mobile_profile_name_hint">Nombre</string>
+    <string name="mobile_profile_delete">Borrar</string>
+    <string name="mobile_profile_delete_confirm">¿Borrar el perfil %s y sus favoritos?</string>
     <string name="mobile_topics_title">Favoritos</string>
     <string name="mobile_topics_pick_title">¿Qué te gusta ver?</string>
     <string name="mobile_topics_pick_subtitle">Elige tus temas favoritos y te sugerimos videos de cada uno.</string>

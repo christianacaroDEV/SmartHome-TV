@@ -111,6 +111,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private Video mLastScrollEndVideo;
     private boolean mIsFirstResume = true;
     private SwipeRefreshLayout mRefresh;
+    private TextView mProfileButton;
     private boolean mIsLoading;
     private boolean mTopicsLoading;
     private int mTopicsPending;
@@ -244,6 +245,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
         findViewById(R.id.mobile_btn_search).setOnClickListener(v -> SearchPresenter.instance(this).startSearch(null));
         mAccountButton.setOnClickListener(v -> startActivity(new Intent(this, MobileAccountActivity.class)));
+        addProfileButton();
 
         MediaServiceManager.instance().addAccountListener(this);
         updateAccountButton();
@@ -260,7 +262,19 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mPresenter.setView(this);
         mPresenter.onViewInitialized();
 
-        // First use: ask the favorite topics (once), then show them
+        // Several family profiles: "Who's watching?" first. Then, for a profile without topics yet, its favorite topics.
+        if (savedInstanceState == null && MobileProfiles.hasSeveral(this)) {
+            mFeed.postDelayed(() -> {
+                if (!isFinishing()) {
+                    MobileProfiles.showPicker(this, true, this::onProfileChanged);
+                }
+            }, 600);
+        } else {
+            askTopicsIfNeeded();
+        }
+    }
+
+    private void askTopicsIfNeeded() {
         if (MobileTopics.shouldAsk(this)) {
             mFeed.postDelayed(() -> {
                 if (!isFinishing() && mIsResumed && MobileTopics.shouldAsk(this)) {
@@ -268,6 +282,51 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 }
             }, 3_000);
         }
+    }
+
+    /**
+     * Another family member: its own Favorites and Watch later.
+     */
+    private void onProfileChanged() {
+        updateProfileButton();
+        mContents.remove(MY_TOPICS_ID);
+
+        if (mCurrentSectionId == MY_TOPICS_ID) {
+            loadMyTopics();
+        }
+
+        askTopicsIfNeeded();
+    }
+
+    private void updateProfileButton() {
+        if (mProfileButton == null) {
+            return;
+        }
+
+        MobileProfiles.Profile profile = MobileProfiles.getCurrent(this);
+        mProfileButton.setText(MobileProfiles.initial(profile.name));
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(profile.color);
+        mProfileButton.setBackground(circle);
+        mProfileButton.setContentDescription(profile.name);
+    }
+
+    /**
+     * Small circle with the initial of the current profile, left of the account button: tap = "Who's watching?".
+     */
+    private void addProfileButton() {
+        ViewGroup topBar = (ViewGroup) mAccountButton.getParent();
+        mProfileButton = new TextView(this);
+        mProfileButton.setTextColor(Color.WHITE);
+        mProfileButton.setTextSize(15);
+        mProfileButton.setTypeface(null, android.graphics.Typeface.BOLD);
+        mProfileButton.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(32), dp(32));
+        params.setMargins(dp(4), 0, dp(6), 0);
+        topBar.addView(mProfileButton, topBar.indexOfChild(mAccountButton), params);
+        mProfileButton.setOnClickListener(v -> MobileProfiles.showPicker(this, true, this::onProfileChanged));
+        updateProfileButton();
     }
 
     private boolean openInApp(Video video) {

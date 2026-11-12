@@ -70,6 +70,11 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private final MobilePlayerView mPlayer;
     private final ProgressBar mLoading;
     private final MobileControlsView mControls;
+    private final MobileMediaSession mMediaSession;
+    private final TextView mShortsInfo;
+    private boolean mShortsMode;
+    private float mShortsDownY;
+    private float mShortsDownX;
     private final LinearLayout mMiniBar;
     private final TextView mMiniTitle;
     private final TextView mMiniSubtitle;
@@ -143,6 +148,29 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mPlayerHolder.setBackgroundColor(Color.BLACK);
         mPlayer = new MobilePlayerView(activity);
         mPlayer.setListener(this);
+        // Lock screen / notification / headphones controls
+        mMediaSession = new MobileMediaSession(activity, mPlayer, new MobileMediaSession.Callback() {
+            @Override
+            public void onNext() {
+                PlaybackPresenter.instance(mActivity).onNextClicked();
+            }
+
+            @Override
+            public void onPrevious() {
+                PlaybackPresenter presenter = PlaybackPresenter.instance(mActivity);
+                presenter.onPreviousClicked();
+            }
+
+            @Override
+            public void onPlayPause() {
+                mPlayer.post(MobileWatchSheet.this::togglePlay);
+            }
+
+            @Override
+            public boolean isPlaying() {
+                return MobileWatchSheet.this.isPlaying();
+            }
+        });
         mPlayer.setBackgroundColor(Color.BLACK);
         mPlayerHolder.addView(mPlayer, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         mLoading = new ProgressBar(activity);
@@ -173,6 +201,13 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         });
         mPlayerHolder.addView(mControls, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         mLoading.bringToFront();
+        // Shorts: channel + title over a dark gradient at the bottom
+        mShortsInfo = createText(15, Color.WHITE, true);
+        mShortsInfo.setMaxLines(3);
+        mShortsInfo.setPadding(dp(16), dp(40), dp(16), dp(28));
+        mShortsInfo.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[] {0xCC000000, 0x00000000}));
+        mShortsInfo.setVisibility(View.GONE);
+        mPlayerHolder.addView(mShortsInfo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         mSheet.addView(mPlayerHolder);
 
         // Re-layout whenever the real size changes (rotation, split screen...)
@@ -193,13 +228,18 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         }
 
         mVideo = video;
+        // Shorts: full screen vertical, swipe up/down for the next/previous one (like YouTube)
+        mShortsMode = video.isShorts && !isLandscape();
         clearSuggestionsList();
         restartSuggestionsTimeout();
         mAdapter.setItems(buildItems());
         mPlayer.openVideo(video);
         mList.scrollToPosition(0);
         setState(isLandscape() ? STATE_FULLSCREEN : STATE_EXPANDED);
-        mControls.flash();
+        if (!mShortsMode) {
+            mControls.flash();
+        }
+        updateShortsInfo();
     }
 
     public int getState() {
@@ -227,6 +267,11 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     public boolean onBackPressed() {
         if (mState != STATE_MINI && mControls.isLocked()) {
             return true; // locked ("Fijar"): BACK does nothing until unlocked
+        }
+
+        if (mShortsMode && mState == STATE_EXPANDED) {
+            close(); // leaving the Shorts player stops it, like YouTube
+            return true;
         }
 
         if (mState == STATE_FULLSCREEN) {
@@ -261,6 +306,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     }
 
     public void close() {
+        mMediaSession.setActive(false);
         mPlayer.release();
         setState(STATE_HIDDEN);
         mVideo = null;
@@ -270,6 +316,8 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         if (mOrientationListener != null) {
             mOrientationListener.disable();
         }
+
+        mMediaSession.release();
 
         mPlayer.release();
     }
@@ -348,7 +396,11 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 sheetParams.bottomMargin = 0;
                 listParams.topMargin = videoHeight;
                 mMiniBar.setVisibility(View.GONE);
-                if (mControls.isLocked()) {
+                if (mShortsMode) {
+                    // Shorts: the whole screen is the video
+                    holderParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                    mList.setVisibility(View.GONE);
+                } else if (mControls.isLocked()) {
                     // Locked in portrait: only the video, centered, nothing else to tap
                     holderParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, videoHeight, Gravity.CENTER);
                     mList.setVisibility(View.GONE);
@@ -359,13 +411,16 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         }
 
         // Black page behind a locked portrait video, the app background otherwise
-        if (mState == STATE_EXPANDED && mControls.isLocked()) {
+        if (mState == STATE_EXPANDED && (mControls.isLocked() || mShortsMode)) {
             mSheet.setBackgroundColor(Color.BLACK);
         } else {
             mSheet.setBackgroundResource(R.drawable.bluetube_background);
         }
 
-        mControls.setMode(mState == STATE_MINI, mState == STATE_FULLSCREEN, mVideo != null ? mVideo.getTitle() : null);
+        // Shorts: no control panel (tap = pause, swipe = next/previous), only the thin progress line
+        boolean shorts = mShortsMode && mState == STATE_EXPANDED;
+        mControls.setMode(mState == STATE_MINI || shorts, mState == STATE_FULLSCREEN, mVideo != null ? mVideo.getTitle() : null);
+        mShortsInfo.setVisibility(shorts ? View.VISIBLE : View.GONE);
 
         mSheet.setTranslationY(0);
         mSheet.setLayoutParams(sheetParams);
@@ -447,6 +502,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private void togglePlay() {
         mPlayer.setPlayWhenReady(!mPlayer.getPlayWhenReady());
         updatePlayPauseIcon();
+        com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService.refresh();
     }
 
     private void updatePlayPauseIcon() {
@@ -464,6 +520,9 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         }
 
         mVideo = video;
+        updateShortsInfo();
+        mMediaSession.setVideo(video);
+        mMediaSession.setActive(true);
         mMiniTitle.setText(video.getTitle());
         mMiniSubtitle.setText(video.getSecondTitle());
         mAdapter.setItems(buildItems());
@@ -513,6 +572,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
     @Override
     public void onFinished() {
+        mMediaSession.setActive(false);
         setState(STATE_HIDDEN);
     }
 
@@ -766,6 +826,61 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     // Gestures: drag the video down (minimize / leave full screen) or up (full screen)
     // ---------------------------------------------------------------------------------------------
 
+    /**
+     * Shorts gestures: swipe up = next short, swipe down = previous one, tap = pause/play.
+     */
+    private boolean onShortsTouch(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mShortsDownY = event.getRawY();
+                mShortsDownX = event.getRawX();
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                mPlayerHolder.setTranslationY((event.getRawY() - mShortsDownY) * 0.35f); // follows the finger a little
+                return true;
+            case MotionEvent.ACTION_UP:
+                float dy = event.getRawY() - mShortsDownY;
+                float dx = event.getRawX() - mShortsDownX;
+                mPlayerHolder.animate().translationY(0).setDuration(150).start();
+                float threshold = mPlayerHolder.getHeight() * 0.12f;
+                PlaybackPresenter presenter = PlaybackPresenter.instance(mActivity);
+
+                if (dy < -threshold && Math.abs(dy) > Math.abs(dx)) {
+                    presenter.onNextClicked();
+                } else if (dy > threshold && Math.abs(dy) > Math.abs(dx)) {
+                    // "previous" restarts a video watched for more than 10 s: then a second one goes back
+                    boolean restartsFirst = mPlayer.getPositionMs() > 10_000;
+                    presenter.onPreviousClicked();
+                    if (restartsFirst) {
+                        presenter.onPreviousClicked();
+                    }
+                } else if (Math.abs(dy) < dp(12) && Math.abs(dx) < dp(12)) {
+                    togglePlay();
+                }
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                mPlayerHolder.animate().translationY(0).setDuration(150).start();
+                return true;
+        }
+
+        return true;
+    }
+
+    /**
+     * Channel and title of the short, over the bottom of the video.
+     */
+    private void updateShortsInfo() {
+        if (mVideo == null) {
+            return;
+        }
+
+        String author = mVideo.author != null ? mVideo.author : mVideo.getAuthor();
+        if (author != null && author.contains("\u2022")) {
+            author = author.split("\u2022")[0].trim();
+        }
+        mShortsInfo.setText(author != null ? "@" + author.replace("@", "") + "\n" + mVideo.getTitle() : mVideo.getTitle());
+    }
+
     private class PlayerHolder extends FrameLayout {
         private final int mTouchSlop;
         private float mDownX;
@@ -781,6 +896,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         public boolean onInterceptTouchEvent(MotionEvent event) {
             if (mState == STATE_MINI) {
                 return event.getActionMasked() == MotionEvent.ACTION_UP; // a tap on the mini player expands it
+            }
+
+            if (mShortsMode && mState == STATE_EXPANDED) {
+                return true; // Shorts: every touch is a swipe or a tap of the Shorts player itself
             }
 
             if (mControls.isLocked()) {
@@ -814,6 +933,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                     setState(STATE_EXPANDED);
                 }
                 return true;
+            }
+
+            if (mShortsMode && mState == STATE_EXPANDED) {
+                return onShortsTouch(event);
             }
 
             float dy = event.getRawY() - mDownY;

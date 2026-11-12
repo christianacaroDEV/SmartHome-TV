@@ -824,6 +824,16 @@
     <string name="mobile_cd_play_pause">Play or pause</string>
     <string name="mobile_cd_next">Next</string>
     <string name="mobile_cd_fullscreen">Full screen</string>
+    <string name="mobile_unsubscribe_confirm">Unsubscribe from %s?</string>
+    <string name="mobile_unsubscribe">Unsubscribe</string>
+    <string name="mobile_cancel">Cancel</string>
+    <string name="mobile_profile_default">Main</string>
+    <string name="mobile_profile_who">Who is watching?</string>
+    <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>
+    <string name="mobile_profile_add">Add profile</string>
+    <string name="mobile_profile_name_hint">Name</string>
+    <string name="mobile_profile_delete">Delete</string>
+    <string name="mobile_profile_delete_confirm">Delete the profile %s and its favorites?</string>
     <string name="mobile_topics_title">Favorites</string>
     <string name="mobile_topics_pick_title">What do you like to watch?</string>
     <string name="mobile_topics_pick_subtitle">Pick your favorite topics and we\'ll suggest videos for each one.</string>

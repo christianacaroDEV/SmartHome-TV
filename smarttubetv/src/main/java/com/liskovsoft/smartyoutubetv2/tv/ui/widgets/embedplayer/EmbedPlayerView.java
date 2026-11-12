@@ -373,6 +373,13 @@ public class EmbedPlayerView extends PlayerView implements PlaybackView {
         return mExoPlayerController.getSubtitleFormat();
     }
 
+    /**
+     * The ExoPlayer instance (null until the first video is opened). Used by the mobile media session.
+     */
+    public SimpleExoPlayer getExoPlayer() {
+        return mPlayer;
+    }
+
     @Override
     public boolean isEngineInitialized() {
         return mPlayer != null;
