@@ -70,7 +70,7 @@ class MobileWatchPanel {
         mContent = activity.findViewById(android.R.id.content);
 
         mList = new RecyclerView(activity);
-        mList.setBackgroundResource(R.drawable.smarthome_background);
+        mList.setBackgroundResource(R.drawable.zemix21_background);
         mList.setLayoutManager(new LinearLayoutManager(activity));
         mList.setAdapter(mAdapter);
         mList.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);

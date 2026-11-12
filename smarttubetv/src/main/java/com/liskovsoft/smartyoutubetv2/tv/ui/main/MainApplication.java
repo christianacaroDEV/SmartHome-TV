@@ -50,7 +50,7 @@ import java.security.Security;
 
 public class MainApplication extends MultiDexApplication implements Configuration.Provider { // fix: Didn't find class "com.google.firebase.provider.FirebaseInitProvider"
     private static final String DEFAULT_LANGUAGE = "es";
-    private static final String DEFAULTS_MARKER_PREFS = "smarthome_defaults";
+    private static final String DEFAULTS_MARKER_PREFS = "zemix21_defaults";
     private static final String CLOCK_24H_APPLIED_KEY = "clock_24h_applied";
 
     static {

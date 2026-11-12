@@ -11,7 +11,7 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
  * they never change by themselves, only when the user flips them.
  */
 public final class MobileSettings {
-    private static final String PREFS_NAME = "smarthome_defaults";
+    private static final String PREFS_NAME = "zemix21_defaults";
     private static final String KEY_BACKGROUND_AUDIO = "mobile_background_audio";
     private static final String KEY_COMPACT_BUTTONS_APPLIED = "mobile_compact_buttons_applied";
     /**

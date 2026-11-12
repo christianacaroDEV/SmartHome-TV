@@ -110,15 +110,10 @@ import okhttp3.Response;
 
 public class Utils {
     public static final String[] KNOWN_PACKAGES = {
-            "com.liskovsoft.smarttubetv.beta",
-            "com.teamsmart.videomanager.tv",
-            "org.smarttube.beta",
-            "org.smarttube.stable",
-            "app.smarttube.fdroid",
-            "com.smarthome.tv",
-            "com.smarthome.tv.beta",
-            "com.smarthome.tv.stable",
-            "com.smarthome.tv.fdroid",
+            "com.zemix21.tv",
+            "com.zemix21.tv.beta",
+            "com.zemix21.tv.stable",
+            "com.zemix21.tv.fdroid",
     };
     public static final String[] BACKUP_PREFS = {
             "yt_service_prefs.xml",
@@ -131,7 +126,7 @@ public class Utils {
             "yt_service_prefs",
             "global_prefs"
     };
-    private static final String SUPER_PASSWD = "smarttube";
+    private static final String SUPER_PASSWD = "zemix21";
     private static final int RANDOM_FAIL_REPEAT_TIMES = 10;
     private static final String REMOTE_CONTROL_RECEIVER_CLASS_NAME = "com.liskovsoft.smartyoutubetv2.common.misc.RemoteControlReceiver";
     private static final String UPDATE_CHANNELS_RECEIVER_CLASS_NAME = "com.liskovsoft.leanbackassistant.channels.UpdateChannelsReceiver";

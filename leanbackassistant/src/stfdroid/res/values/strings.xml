@@ -1,5 +1,5 @@
 <resources translatable="false">
-    <string name="search_label">SmartHome TV</string>
-    <string name="settings_description">SmartHome TV Videos</string>
-    <string name="search_authority">com.smarthome.tv.fdroid.search_provider</string>
+    <string name="search_label">Zemix21</string>
+    <string name="settings_description">Zemix21 Videos</string>
+    <string name="search_authority">com.zemix21.tv.fdroid.search_provider</string>
 </resources>

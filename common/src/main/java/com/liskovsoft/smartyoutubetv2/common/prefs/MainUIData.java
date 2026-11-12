@@ -101,7 +101,7 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     private float mUIScale;
     private float mVideoGridScale;
     /**
-     * Index of the 'SmartHome' scheme in {@link #mColorSchemes} (the last one). Used for new users only.
+     * Index of the 'Zemix21' scheme in {@link #mColorSchemes} (the last one). Used for new users only.
      */
     private static final int DEFAULT_COLOR_SCHEME_INDEX = 8;
     private final List<ColorScheme> mColorSchemes = new ArrayList<>();
@@ -427,10 +427,10 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
                 mContext));
         // NOTE: keep it the LAST one: the index is stored in the user prefs (see DEFAULT_COLOR_SCHEME_INDEX)
         mColorSchemes.add(new ColorScheme(
-                R.string.color_scheme_smarthome,
-                "App.Theme.SmartHome.Player",
-                "App.Theme.SmartHome.Browse",
-                "App.Theme.SmartHome.Preferences",
+                R.string.color_scheme_zemix21,
+                "App.Theme.Zemix21.Player",
+                "App.Theme.Zemix21.Browse",
+                "App.Theme.Zemix21.Preferences",
                 mContext));
     }
 

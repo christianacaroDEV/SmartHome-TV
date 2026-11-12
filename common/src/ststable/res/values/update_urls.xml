@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="update_urls">
-        <item>https://github.com/christianacaroDEV/SmartHome-TV/releases/download/latest/smarthome_stable.json</item>
+        <item>https://github.com/christianacaroDEV/SmartHome-TV/releases/download/latest/zemix21_stable.json</item>
     </string-array>
 </resources>

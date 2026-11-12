@@ -69,7 +69,7 @@ public class VideoContentProvider extends ContentProvider {
 
         // Init the global ctx in case the app isn't started yet
         // Testing. Stop the app and run:
-        // adb shell content query --uri content://com.smarthome.tv.stable/search/search_suggest_query/test
+        // adb shell content query --uri content://com.zemix21.tv.stable/search/search_suggest_query/test
         GlobalPreferences.instance(getContext());
 
         return true;

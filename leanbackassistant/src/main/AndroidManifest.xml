@@ -43,7 +43,7 @@
         </activity>
 
         <provider android:name=".search.VideoContentProvider"
-                  android:authorities="com.smarthome.tv"
+                  android:authorities="com.zemix21.tv"
                   android:exported="true"
                   android:initOrder="1999999999"
                   tools:ignore="ExportedContentProvider" />

@@ -30,12 +30,12 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-// Firebase/Crashlytics is applied only when google-services.json belongs to THIS app (package 'com.smarthome.tv*').
+// Firebase/Crashlytics is applied only when google-services.json belongs to THIS app (package 'com.zemix21.tv*').
 // The bundled google-services.json comes from the upstream project (old package names) and would fail the build
 // ('No matching client found for package name') and send crash reports to someone else's Firebase project.
 // To enable Crashlytics, replace google-services.json with the one from your own Firebase project.
 def googleServicesFile = new File("${projectDir}/google-services.json")
-def hasOwnGoogleServices = googleServicesFile.exists() && googleServicesFile.text.contains('"package_name": "com.smarthome.tv')
+def hasOwnGoogleServices = googleServicesFile.exists() && googleServicesFile.text.contains('"package_name": "com.zemix21.tv')
 
 // The first letter of the flavor name must be in uppercase
 if (hasOwnGoogleServices && (getGradle().getStartParameter().getTaskRequests().toString().contains("Stbeta") ||
@@ -61,7 +61,7 @@ android {
     
     defaultConfig {
         // values linked with applicationId: searchable.searchSuggestAuthority, searchable.searchSuggestIntentData, VideoContract.CONTENT_AUTHORITY
-        applicationId "com.smarthome.tv"
+        applicationId "com.zemix21.tv"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
         versionCode 2462
@@ -130,7 +130,7 @@ android {
     // https://stackoverflow.com/questions/18332474/how-to-set-versionname-in-apk-filename-using-gradle
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def project = "SmartHomeTV"
+            def project = "Zemix21"
             def flavor = variant.productFlavors[-1].name.substring(2) // remove st prefix
             def buildType = variant.buildType.name.take(1)
             def version = variant.versionName
@@ -167,15 +167,15 @@ android {
     // NOTE: The main goal of prefixing a flavor is to group flavors' folders together
     productFlavors {
         stbeta {
-            applicationId "com.smarthome.tv.beta"
+            applicationId "com.zemix21.tv.beta"
             targetSdkVersion project.properties.compileSdkVersion
         }
         ststable {
-            applicationId "com.smarthome.tv.stable"
+            applicationId "com.zemix21.tv.stable"
             targetSdkVersion project.properties.compileSdkVersion
         }
         stfdroid {
-            applicationId "com.smarthome.tv.fdroid"
+            applicationId "com.zemix21.tv.fdroid"
             minSdkVersion 21
             targetSdkVersion project.properties.compileSdkVersion
 
