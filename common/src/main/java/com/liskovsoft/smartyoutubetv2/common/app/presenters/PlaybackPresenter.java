@@ -109,8 +109,29 @@ public class PlaybackPresenter extends BasePresenter<PlaybackView> implements Pl
         openVideo(video);
     }
 
+    /**
+     * Mobile mode: the home screen plays the videos itself (in-app player like YouTube) instead of
+     * starting the full screen player activity.
+     */
+    public interface InAppPlayerHost {
+        /**
+         * @return true if the video was opened by the host
+         */
+        boolean openInApp(Video video);
+    }
+
+    private static InAppPlayerHost sInAppPlayerHost;
+
+    public static void setInAppPlayerHost(InAppPlayerHost host) {
+        sInAppPlayerHost = host;
+    }
+
     public void openVideo(Video video) {
         if (video == null) {
+            return;
+        }
+
+        if (sInAppPlayerHost != null && sInAppPlayerHost.openInApp(video)) {
             return;
         }
 

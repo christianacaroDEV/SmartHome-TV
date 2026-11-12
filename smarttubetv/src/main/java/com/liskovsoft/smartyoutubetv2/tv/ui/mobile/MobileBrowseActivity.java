@@ -1,5 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.mobile;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.MobileSettings;
+import com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -70,6 +73,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     };
 
     private BrowsePresenter mPresenter;
+    private MobileWatchSheet mWatchSheet;
+    private boolean mIsResumed;
     private RecyclerView mFeed;
     private FeedAdapter mAdapter;
     private LinearLayout mChips;
@@ -139,14 +144,75 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         MediaServiceManager.instance().addAccountListener(this);
         updateAccountButton();
 
+        // In-app player (expanded / mini / full screen), like YouTube. Every "play video" action of the app comes here.
+        mWatchSheet = new MobileWatchSheet(this, mBottomNav);
+        PlaybackPresenter.setInAppPlayerHost(this::openInApp);
+
         mPresenter = BrowsePresenter.instance(this);
         mPresenter.setView(this);
         mPresenter.onViewInitialized();
     }
 
+    private boolean openInApp(Video video) {
+        if (isDestroyed() || isFinishing() || mWatchSheet == null) {
+            return false;
+        }
+
+        // e.g. a search result: bring the home screen (and its player) to the front
+        if (!mIsResumed) {
+            Intent intent = new Intent(this, MobileBrowseActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
+        }
+
+        mWatchSheet.open(video);
+        return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mWatchSheet != null && mWatchSheet.onBackPressed()) {
+            return; // full screen -> expanded -> mini
+        }
+
+        super.onBackPressed();
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (mWatchSheet != null) {
+            mWatchSheet.onConfigurationChanged(newConfig);
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        BackgroundPlaybackService.stop(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        if (mWatchSheet == null || !mWatchSheet.isPlaying()) {
+            return;
+        }
+
+        // Leaving the app (or locking the screen): keep the audio only if the user enabled it
+        if (MobileSettings.isBackgroundAudioEnabled(this)) {
+            BackgroundPlaybackService.start(this);
+        } else {
+            mWatchSheet.pause();
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        mIsResumed = true;
 
         if (!mIsFirstResume && mPresenter != null) {
             mPresenter.onViewResumed();
@@ -158,6 +224,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     @Override
     protected void onPause() {
         super.onPause();
+        mIsResumed = false;
 
         if (mPresenter != null) {
             mPresenter.onViewPaused();
@@ -167,6 +234,12 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
+        PlaybackPresenter.setInAppPlayerHost(null);
+
+        if (mWatchSheet != null) {
+            mWatchSheet.release();
+        }
 
         MediaServiceManager.instance().removeAccountListener(this);
 

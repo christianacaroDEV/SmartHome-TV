@@ -311,7 +311,10 @@ public class MotherActivity extends FragmentActivity {
         initDpi();
     }
 
-    private void applyFullscreenModeIfNeeded() {
+    /**
+     * Re-applies the app's own system bars mode (e.g. after a full screen video changed the flags).
+     */
+    public void applyFullscreenModeIfNeeded() {
         if (mIsFullscreenModeEnabled) {
             // Most of the fullscreen tweaks could be performed in styles but not all.
             // E.g. Hide bottom navigation bar (couldn't be done in styles).

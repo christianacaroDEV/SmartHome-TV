@@ -37,6 +37,10 @@ public class EmbedPlayerView extends PlayerView implements PlaybackView {
     private static final String TAG = EmbedPlayerView.class.getSimpleName();
     public static final int QUALITY_LOW = 0;
     public static final int QUALITY_NORMAL = 1;
+    /**
+     * Full player quality (user preferences, all subtitles): used by the mobile in-app player
+     */
+    public static final int QUALITY_AUTO = 2;
     private SimpleExoPlayer mPlayer;
     private ExoPlayerInitializer mPlayerInitializer;
     private ExoPlayerController mExoPlayerController;
@@ -550,9 +554,11 @@ public class EmbedPlayerView extends PlayerView implements PlaybackView {
         //mPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
 
         mExoPlayerController.setPlayer(mPlayer);
-        mExoPlayerController.selectFormat(mQuality == QUALITY_LOW ? FormatItem.VIDEO_SUB_SD_AVC_30 : FormatItem.VIDEO_SD_AVC_30);
-        // Don't use subs! Not efficient. High cpu load. Cause input lags.
-        mExoPlayerController.selectFormat(FormatItem.SUBTITLE_NONE);
+        if (mQuality != QUALITY_AUTO) {
+            mExoPlayerController.selectFormat(mQuality == QUALITY_LOW ? FormatItem.VIDEO_SUB_SD_AVC_30 : FormatItem.VIDEO_SD_AVC_30);
+            // Don't use subs! Not efficient. High cpu load. Cause input lags.
+            mExoPlayerController.selectFormat(FormatItem.SUBTITLE_NONE);
+        }
         if (mIsMute) {
             mExoPlayerController.setVolume(0);
         }
