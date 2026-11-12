@@ -131,7 +131,10 @@ public class HQDialogController extends BasePlayerController {
         }
 
         List<OptionItem> options = new java.util.ArrayList<>();
-        options.add(UiOptionItem.from(getContext().getString(R.string.mobile_quality_auto),
+        // "Automatic (recommended)" + what it means on this device, e.g. "Up to 720p"
+        String autoLimit = defaultFormat != null && qualityOf(defaultFormat) > 0
+                ? getContext().getString(R.string.mobile_quality_up_to, qualityLabel(qualityOf(defaultFormat), is60fps(defaultFormat))) : null;
+        options.add(UiOptionItem.from(getContext().getString(R.string.mobile_quality_auto), autoLimit,
                 option -> applySimpleQuality(defaultFormat), isAuto));
 
         for (Map.Entry<Integer, FormatItem> entry : byQuality.entrySet()) {

@@ -838,6 +838,7 @@
     </plurals>
     <string name="mobile_quality">Quality</string>
     <string name="mobile_quality_auto">Auto (recommended)</string>
+    <string name="mobile_quality_up_to">Up to %s, depending on the video</string>
     <string name="mobile_profile_default">Main</string>
     <string name="mobile_profile_who">Who is watching?</string>
     <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>

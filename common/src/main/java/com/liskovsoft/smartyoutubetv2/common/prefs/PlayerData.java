@@ -754,9 +754,9 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
                 formatItem = FormatItem.VIDEO_SD_AVC_30;
             } else if (VERSION.SDK_INT <= 23 && DeviceHelpers.isVP9ResolutionSupported(1080)) {
                 formatItem = FormatItem.VIDEO_FHD_VP9_60;
-            } else if (DeviceHelpers.isVP9ResolutionSupported(2160)) {
-                formatItem = FormatItem.VIDEO_4K_VP9_60;
             } else if (DeviceHelpers.isVP9ResolutionSupported(1080)) {
+                // BlueTube: "Automatic" never goes above 1080p60. Many TVs report 4K support but stutter with
+                // 4K 60fps; 4K stays one tap away in the Quality menu.
                 formatItem = FormatItem.VIDEO_FHD_VP9_60;
             }
         }
