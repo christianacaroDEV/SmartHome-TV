@@ -361,6 +361,14 @@ public class MotherActivity extends FragmentActivity {
         return true;
     }
 
+    /**
+     * Dialogs (side panels) get a close button (X) at the top-right corner, over the panel title,
+     * instead of the back arrow which looks like it belongs to the screen behind the dialog.
+     */
+    protected boolean isMobileDialog() {
+        return false;
+    }
+
     private void addMobileBackButton() {
         View content = findViewById(android.R.id.content);
 
@@ -374,9 +382,10 @@ public class MotherActivity extends FragmentActivity {
 
         ImageButton button = new ImageButton(this);
         button.setTag(MOBILE_BACK_BUTTON_TAG);
-        button.setImageResource(R.drawable.ic_nav_back);
+        boolean isDialog = isMobileDialog();
+        button.setImageResource(isDialog ? R.drawable.ic_nav_close : R.drawable.ic_nav_back);
         button.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
-        button.setContentDescription(getString(R.string.mobile_back));
+        button.setContentDescription(getString(isDialog ? R.string.mobile_close : R.string.mobile_back));
         int padding = Math.round(size * 0.22f);
         button.setPadding(padding, padding, padding, padding);
 
@@ -386,9 +395,15 @@ public class MotherActivity extends FragmentActivity {
         background.setStroke(Math.round(density), 0x33FFFFFF);
         button.setBackground(background);
 
-        button.setOnClickListener(v -> onBackPressed());
+        button.setOnClickListener(v -> {
+            if (isDialog) {
+                finish(); // closes the whole dialog (BACK goes one level up inside nested dialogs)
+            } else {
+                onBackPressed();
+            }
+        });
 
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.TOP | (isDialog ? Gravity.END : Gravity.START));
         params.setMargins(margin, margin, margin, margin);
         ((ViewGroup) content).addView(button, params);
     }

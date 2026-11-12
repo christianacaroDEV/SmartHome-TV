@@ -1,5 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.dialogs;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
+import android.view.View;
+import android.view.MotionEvent;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Build.VERSION;
@@ -34,6 +37,33 @@ public class AppDialogActivity extends MotherActivity {
 
         mGlobalKeyTranslator = new PlayerKeyTranslator(this);
         mGlobalKeyTranslator.apply();
+    }
+
+    @Override
+    protected boolean isMobileDialog() {
+        return true;
+    }
+
+    /**
+     * Mobile mode: a tap on the dimmed area outside of the panel closes the dialog.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (DeviceMode.isMobile(this) && event.getAction() == MotionEvent.ACTION_UP && mFragment != null && !mFragment.isOverlay()) {
+            View panel = findViewById(R.id.main_frame);
+
+            if (panel != null) {
+                int[] location = new int[2];
+                panel.getLocationOnScreen(location);
+
+                if (event.getRawX() < location[0]) {
+                    finish();
+                    return true;
+                }
+            }
+        }
+
+        return super.dispatchTouchEvent(event);
     }
 
     @Override

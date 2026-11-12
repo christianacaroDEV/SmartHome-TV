@@ -177,6 +177,14 @@
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
             android:screenOrientation="unspecified"/>
 
+        <!-- Search of the mobile mode -->
+        <activity
+            android:name="com.liskovsoft.smartyoutubetv2.tv.ui.mobile.MobileSearchActivity"
+            android:launchMode="singleInstance"
+            android:windowSoftInputMode="stateVisible|adjustResize"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
+            android:screenOrientation="unspecified"/>
+
         <activity
             android:name="com.liskovsoft.smartyoutubetv2.tv.ui.channel.ChannelActivity"
             android:launchMode="singleInstance"

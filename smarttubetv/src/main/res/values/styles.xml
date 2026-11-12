@@ -281,4 +281,10 @@
         <item name="android:progressDrawable">@drawable/progress_bar_smarthome</item>
     </style>
     <!--  End Color scheme: SmartHome  -->
+
+    <!-- Mobile search: the keyboard must be able to resize the window (not fullscreen) -->
+    <style name="App.Theme.Mobile.Search" parent="App.Theme.SmartHome.Browse">
+        <item name="android:windowFullscreen">false</item>
+        <item tools:targetApi="19" name="android:windowTranslucentNavigation">false</item>
+    </style>
 </resources>

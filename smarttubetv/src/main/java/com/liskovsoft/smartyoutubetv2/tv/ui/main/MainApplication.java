@@ -5,6 +5,7 @@ import android.os.Build.VERSION;
 
 import android.app.Activity;
 import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
+import com.liskovsoft.smartyoutubetv2.tv.ui.mobile.MobileSearchActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mobile.MobileBrowseActivity;
 import androidx.annotation.NonNull;
 import androidx.multidex.MultiDexApplication;
@@ -159,7 +160,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         viewManager.register(BrowseView.class, browseClass); // no parent, because it's root activity
         viewManager.register(PlaybackView.class, PlaybackActivity.class, browseClass);
         viewManager.register(AppDialogView.class, dialogClass, browseClass);
-        viewManager.register(SearchView.class, SearchTagsActivity.class, browseClass);
+        viewManager.register(SearchView.class, DeviceMode.isMobile(this) ? MobileSearchActivity.class : SearchTagsActivity.class, browseClass);
         viewManager.register(SignInView.class, SignInActivity.class, browseClass);
         viewManager.register(AddDeviceView.class, AddDeviceActivity.class, browseClass);
         viewManager.register(ChannelView.class, ChannelActivity.class, browseClass);
