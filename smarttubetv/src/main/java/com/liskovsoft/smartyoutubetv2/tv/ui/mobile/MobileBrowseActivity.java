@@ -250,7 +250,11 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
         // In-app player (expanded / mini / full screen), like YouTube. Every "play video" action of the app comes here.
         mWatchSheet = new MobileWatchSheet(this, mBottomNav);
+        final int feedPaddingBottom = mFeed.getPaddingBottom();
+        mWatchSheet.setOnStateChangedListener((state, miniHeight) -> mFeed.setPadding(mFeed.getPaddingLeft(), mFeed.getPaddingTop(),
+                mFeed.getPaddingRight(), feedPaddingBottom + (state == MobileWatchSheet.STATE_MINI ? miniHeight : 0)));
         PlaybackPresenter.setInAppPlayerHost(this::openInApp);
+        setOnAppHiddenListener(this::onAppHidden);
 
         mPresenter = BrowsePresenter.instance(this);
         mPresenter.setView(this);
@@ -288,7 +292,17 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             return; // full screen -> expanded -> mini
         }
 
-        super.onBackPressed();
+        // Like YouTube: from another tab BACK goes to Home first
+        if (!mSections.isEmpty() && mCurrentSectionId != mSections.get(0).getId()) {
+            selectSectionInternal(mSections.get(0).getId());
+            return;
+        }
+
+        // Home: send the app to the background instead of destroying it (the mini player and the audio survive,
+        // like Android 12+ does by itself; on Android 11 and older finishing the root activity killed the video)
+        if (!moveTaskToBack(true)) {
+            super.onBackPressed();
+        }
     }
 
     @Override
@@ -322,13 +336,24 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     protected void onStop() {
         super.onStop();
 
+        // Another screen of the app is on top (search, account, a channel...): keep playing, like YouTube
+        if (isAppVisible()) {
+            BackgroundPlaybackService.stop(this);
+        }
+    }
+
+    /**
+     * The whole app went to the background (home button, screen locked), from this screen or any other one.
+     * Keep the audio only if the user enabled it. The keep-alive service was started in onPause while the app
+     * was still visible (Android 12+ doesn't allow starting it from the background).
+     */
+    private void onAppHidden() {
         if (mWatchSheet == null || !mWatchSheet.isPlaying()) {
             return;
         }
 
-        // Leaving the app (or locking the screen): keep the audio only if the user enabled it
         if (MobileSettings.isBackgroundAudioEnabled(this)) {
-            BackgroundPlaybackService.start(this);
+            BackgroundPlaybackService.start(this); // no-op if already running; tried in case onPause didn't
         } else {
             mWatchSheet.pause();
         }
@@ -338,6 +363,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     protected void onResume() {
         super.onResume();
         mIsResumed = true;
+        BackgroundPlaybackService.stop(this);
 
         if (!mIsFirstResume && mPresenter != null && mCurrentSectionId != MY_TOPICS_ID) {
             mPresenter.onViewResumed();
@@ -355,6 +381,13 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onPause();
         mIsResumed = false;
 
+        // Background playback: start the keep-alive service while the app is still visible (Android 12+ rule).
+        // If the app stays in the foreground (a dialog, search...) onStart/onResume stops it again.
+        if (mWatchSheet != null && mWatchSheet.isPlaying() && !isChangingConfigurations()
+                && MobileSettings.isBackgroundAudioEnabled(this)) {
+            BackgroundPlaybackService.start(this);
+        }
+
         if (mPresenter != null) {
             mPresenter.onViewPaused();
         }
@@ -365,6 +398,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onDestroy();
 
         PlaybackPresenter.setInAppPlayerHost(null);
+        setOnAppHiddenListener(null);
         disposeTopicActions();
 
         if (mWatchSheet != null) {

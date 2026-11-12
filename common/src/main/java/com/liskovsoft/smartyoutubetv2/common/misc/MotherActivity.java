@@ -247,6 +247,44 @@ public class MotherActivity extends FragmentActivity {
         mScreensaverManager.resume();
     }
 
+    /**
+     * How many screens of the app are visible right now (started and not stopped). 0 = the app is in the background.
+     */
+    private static int sStartedCount;
+
+    public static boolean isAppVisible() {
+        return sStartedCount > 0;
+    }
+
+    /**
+     * Called when the last visible screen of the app goes away (home button, screen locked...).
+     */
+    public interface OnAppHiddenListener {
+        void onAppHidden();
+    }
+
+    private static OnAppHiddenListener sOnAppHiddenListener;
+
+    public static void setOnAppHiddenListener(OnAppHiddenListener listener) {
+        sOnAppHiddenListener = listener;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        sStartedCount++;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        sStartedCount = Math.max(0, sStartedCount - 1);
+
+        if (sStartedCount == 0 && !isChangingConfigurations() && sOnAppHiddenListener != null) {
+            sOnAppHiddenListener.onAppHidden();
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();

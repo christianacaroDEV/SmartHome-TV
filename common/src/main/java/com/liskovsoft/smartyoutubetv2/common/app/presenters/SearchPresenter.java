@@ -298,6 +298,15 @@ public class SearchPresenter extends BasePresenter<SearchView> implements VideoG
         }
     }
 
+    /**
+     * Mobile search filter chips: type, duration and upload date (SearchOptions flags, 0 = any).
+     */
+    public void setFilters(int typeOptions, int durationOptions, int uploadDateOptions) {
+        mTypeOptions = typeOptions;
+        mDurationOptions = durationOptions;
+        mUploadDateOptions = uploadDateOptions;
+    }
+
     public void onSearchSettingsClicked() {
         if (getView() == null) {
             return;

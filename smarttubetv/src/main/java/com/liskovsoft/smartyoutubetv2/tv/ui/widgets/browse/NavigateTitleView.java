@@ -186,6 +186,22 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         syncHeaderExtras();
     }
 
+    /**
+     * Phones (channel page and other TV screens still used there): the TV header buttons collide with the title
+     * on a narrow screen and the app has its own search/account buttons, so only the title stays.
+     */
+    private void hideTvButtonsOnPhones() {
+        if (!com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode.isMobile(getContext())) {
+            return;
+        }
+
+        for (View view : new View[] {mSearchPill, mSearchOrbView, mAccountView, mLanguageView, mExitPip, mPipTitle, mGreetingGroup}) {
+            if (view != null) {
+                view.setVisibility(View.GONE);
+            }
+        }
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -246,6 +262,8 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
                 updateGreeting();
             }
         }
+
+        hideTvButtonsOnPhones();
     }
 
     private void updateGreeting() {

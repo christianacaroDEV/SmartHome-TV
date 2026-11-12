@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
@@ -69,6 +70,10 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
     private final LinkedHashMap<Integer, List<Video>> mResultGroups = new LinkedHashMap<>();
     private final Set<Video> mResultUnique = new HashSet<>();
     private boolean mShowingResults;
+    private MobileSearchFilters mFilters;
+    private Video mLastRawVideo;
+    private int mAutoLoadCount;
+    private String mLastQuery;
     private boolean mIgnoreTextChange;
     private Video mLastScrollEndVideo;
     private String mPendingQuery = "";
@@ -94,6 +99,11 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mClearButton = findViewById(R.id.mobile_search_clear);
         mProgress = findViewById(R.id.mobile_search_progress);
         mList = findViewById(R.id.mobile_search_list);
+
+        // Filter chips under the search field (results only)
+        mFilters = new MobileSearchFilters(this, this::onFiltersChanged);
+        mFilters.setVisibility(View.GONE);
+        ((ViewGroup) mList.getParent().getParent()).addView(mFilters, 1);
 
         mAdapter = new ListAdapter();
         mList.setLayoutManager(new LinearLayoutManager(this));
@@ -135,7 +145,9 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             }
         });
         mField.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+            // Keyboard search key, or Enter on hardware/Bluetooth keyboards and some third party keyboards
+            if (actionId == EditorInfo.IME_ACTION_SEARCH
+                    || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN)) {
                 submit(mField.getText().toString());
                 return true;
             }
@@ -196,11 +208,20 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         for (Video video : group.getVideos()) {
             if (video != null && mResultUnique.add(video)) {
                 videos.add(video);
+                mLastRawVideo = video;
             }
         }
 
         if (mShowingResults) {
-            mAdapter.setItems(buildResultItems());
+            List<Object> items = buildResultItems();
+            mAdapter.setItems(items);
+
+            // "Over N minutes" drops many results on the phone: fetch more pages until the screen is filled
+            if (mFilters.filtersOnPhone() && items.size() < 8 && mAutoLoadCount < 6 && mLastRawVideo != null) {
+                mAutoLoadCount++;
+                Video last = mLastRawVideo;
+                mHandler.post(() -> mPresenter.onScrollEnd(last));
+            }
         }
     }
 
@@ -307,13 +328,26 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mShowingResults = true;
         mResultGroups.clear();
         mResultUnique.clear();
+        mLastRawVideo = null;
+        mAutoLoadCount = 0;
+        mLastQuery = query.trim();
         mIsLoading = true;
+        mFilters.setVisibility(View.VISIBLE);
+        mPresenter.setFilters(mFilters.getTypeOptions(), mFilters.getDurationOptions(), mFilters.getUploadDateOptions());
         mAdapter.setItems(buildResultItems());
-        mPresenter.onSearch(query.trim());
+        mPresenter.onSearch(mLastQuery);
+    }
+
+    private void onFiltersChanged() {
+        if (mShowingResults && mLastQuery != null) {
+            submit(mLastQuery);
+            mList.scrollToPosition(0);
+        }
     }
 
     private void showSuggestionsMode(String query) {
         mShowingResults = false;
+        mFilters.setVisibility(View.GONE);
         mPendingQuery = query;
         mHandler.removeCallbacks(mLoadSuggestions);
         mHandler.postDelayed(mLoadSuggestions, SUGGESTIONS_DELAY_MS);
@@ -346,7 +380,11 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         List<Object> items = new ArrayList<>();
 
         for (List<Video> videos : mResultGroups.values()) {
-            items.addAll(videos);
+            for (Video video : videos) {
+                if (mFilters.accepts(video)) {
+                    items.add(video);
+                }
+            }
         }
 
         if (items.isEmpty() && mIsLoading) {
@@ -366,7 +404,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             return;
         }
 
-        Video last = mAdapter.getLastVideo();
+        Video last = mLastRawVideo != null ? mLastRawVideo : mAdapter.getLastVideo();
 
         if (last != null && last != mLastScrollEndVideo) {
             mLastScrollEndVideo = last;

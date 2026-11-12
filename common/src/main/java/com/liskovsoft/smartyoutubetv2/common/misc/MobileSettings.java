@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
+import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 
@@ -17,6 +18,7 @@ public final class MobileSettings {
     private static final String KEY_BACKGROUND_AUDIO = "mobile_background_audio";
     private static final String KEY_COMPACT_BUTTONS_APPLIED = "mobile_compact_buttons_applied";
     private static final String KEY_NORMAL_QUALITY_APPLIED = "mobile_normal_quality_applied";
+    private static final String KEY_MOBILE_MENU_APPLIED = "mobile_menu_applied";
     /**
      * The few player buttons that make sense on a small screen. Everything else is reachable from the
      * quality (HQ) dialog, and the user can still enable more buttons in the settings.
@@ -89,6 +91,20 @@ public final class MobileSettings {
         }
 
         prefs.edit().putBoolean(KEY_NORMAL_QUALITY_APPLIED, true).apply();
+    }
+
+    /**
+     * Once per install (phones only): the video menu also offers "Share" and "Watch later", like YouTube.
+     */
+    public static void applyMobileMenuOnce(Context context) {
+        SharedPreferences prefs = getPrefs(context);
+
+        if (prefs.getBoolean(KEY_MOBILE_MENU_APPLIED, false) || !DeviceMode.isMobile(context)) {
+            return;
+        }
+
+        MainUIData.instance(context).setMenuItemEnabled(MainUIData.MENU_ITEM_SHARE_LINK | MainUIData.MENU_ITEM_ADD_TO_WATCH_LATER);
+        prefs.edit().putBoolean(KEY_MOBILE_MENU_APPLIED, true).apply();
     }
 
     private static SharedPreferences getPrefs(Context context) {

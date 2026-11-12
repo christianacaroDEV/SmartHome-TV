@@ -57,6 +57,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private static final int MINI_HEIGHT_DP = 64;
     private static final int LOAD_MORE_THRESHOLD = 4;
     private static final Object INFO_HEADER = new Object();
+    private static final Object CHAPTERS_HEADER = new Object();
     private static final long SUGGESTIONS_TIMEOUT_MS = 8_000;
     private boolean mSuggestionsTimedOut;
     private final Runnable mSuggestionsTimeout = this::onSuggestionsTimeout;
@@ -277,9 +278,26 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     // States
     // ---------------------------------------------------------------------------------------------
 
+    /**
+     * The screen behind leaves room for the mini player (its lists can scroll to the last item).
+     */
+    public interface OnStateChangedListener {
+        void onStateChanged(int state, int miniHeightPx);
+    }
+
+    private OnStateChangedListener mOnStateChangedListener;
+
+    public void setOnStateChangedListener(OnStateChangedListener listener) {
+        mOnStateChangedListener = listener;
+    }
+
     private void setState(int state) {
         int oldState = mState;
         mState = state;
+
+        if (mOnStateChangedListener != null && oldState != state) {
+            mOnStateChangedListener.onStateChanged(state, dp(MINI_HEIGHT_DP));
+        }
 
         if (state == STATE_FULLSCREEN && !isLandscape()) {
             requestOrientation(true);
@@ -537,6 +555,13 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         boolean hasVideos = false;
 
         for (List<Video> videos : mGroups.values()) {
+            // Chapters of the current video: a compact list under a "Chapters" title, not big video cards
+            if (!videos.isEmpty() && videos.get(0).isChapter) {
+                items.add(CHAPTERS_HEADER);
+                items.addAll(videos);
+                continue;
+            }
+
             items.addAll(videos);
             hasVideos |= !videos.isEmpty();
         }
@@ -587,6 +612,12 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         @Override
         public int getItemViewType(int position) {
             Object item = mItems.get(position);
+            if (item == CHAPTERS_HEADER) {
+                return 4;
+            }
+            if (item instanceof Video && ((Video) item).isChapter) {
+                return 3;
+            }
             return item == MobileSkeleton.ITEM ? 2 : item instanceof Video ? 1 : 0;
         }
 
@@ -616,6 +647,19 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 return MobileSkeleton.createHolder(parent);
             }
 
+            if (viewType == 3) {
+                return new ChapterHolder(parent);
+            }
+
+            if (viewType == 4) {
+                TextView header = createText(17, Color.WHITE, true);
+                header.setText(R.string.chapters);
+                header.setPadding(dp(14), dp(14), dp(14), dp(6));
+                header.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                return new RecyclerView.ViewHolder(header) {
+                };
+            }
+
             if (viewType == 1) {
                 return new VideoHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false));
             }
@@ -630,11 +674,52 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             Object item = mItems.get(position);
 
-            if (holder instanceof VideoHolder) {
+            if (holder instanceof ChapterHolder) {
+                ((ChapterHolder) holder).bind((Video) item);
+            } else if (holder instanceof VideoHolder) {
                 ((VideoHolder) holder).bind((Video) item);
             } else if (holder.itemView instanceof MobileWatchInfoView) {
                 ((MobileWatchInfoView) holder.itemView).bind(mVideo);
             }
+        }
+    }
+
+    /**
+     * One chapter: small thumbnail, name and start time. Tap = jump to that moment.
+     */
+    private class ChapterHolder extends RecyclerView.ViewHolder {
+        private final ImageView mThumb;
+        private final TextView mTitle;
+        private final TextView mTime;
+
+        ChapterHolder(ViewGroup parent) {
+            super(new LinearLayout(parent.getContext()));
+            LinearLayout row = (LinearLayout) itemView;
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(14), dp(6), dp(14), dp(6));
+            row.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            mThumb = new ImageView(parent.getContext());
+            mThumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            mThumb.setBackgroundColor(0xFF16264A);
+            row.addView(mThumb, new LinearLayout.LayoutParams(dp(112), dp(63)));
+            LinearLayout texts = new LinearLayout(parent.getContext());
+            texts.setOrientation(LinearLayout.VERTICAL);
+            texts.setPadding(dp(12), 0, 0, 0);
+            mTitle = createText(15, Color.WHITE, true);
+            mTitle.setMaxLines(2);
+            texts.addView(mTitle);
+            mTime = createText(13, 0xFF7FB6FF, false);
+            texts.addView(mTime);
+            row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+
+        void bind(Video chapter) {
+            mTitle.setText(chapter.getTitle());
+            mTime.setText(chapter.badge);
+            if (!mActivity.isDestroyed()) {
+                Glide.with(mActivity).load(chapter.cardImageUrl).apply(ViewUtil.glideOptions()).into(mThumb);
+            }
+            itemView.setOnClickListener(v -> PlaybackPresenter.instance(mActivity).onSuggestionItemClicked(chapter));
         }
     }
 

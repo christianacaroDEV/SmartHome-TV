@@ -161,6 +161,14 @@ public class ChannelHeaderPresenter extends RowPresenter {
         SearchOrbView searchSettingsOrbView = searchBar.findViewById(R.id.search_settings_orb);
         String channelName = provider.getChannelTitle();
         searchBar.setTitle(channelName != null ? channelName : context.getString(R.string.content_type_channel));
+
+        // Phones: the TV search/voice/settings orbs collide with the channel name on a narrow screen (the app has
+        // its own search), so only the channel name stays
+        if (com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode.isMobile(context)) {
+            searchOrbView.setVisibility(View.GONE);
+            speechOrbView.setVisibility(View.GONE);
+            searchSettingsOrbView.setVisibility(View.GONE);
+        }
         switch (SearchData.instance(context).getSpeechRecognizerType()) {
             case SearchData.SPEECH_RECOGNIZER_SYSTEM:
                 // NOP

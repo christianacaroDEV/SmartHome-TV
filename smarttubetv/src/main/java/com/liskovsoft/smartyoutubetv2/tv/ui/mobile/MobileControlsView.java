@@ -109,7 +109,7 @@ public class MobileControlsView extends FrameLayout {
         mTopRow = top;
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(dp(4), dp(4), dp(4), 0);
-        ImageButton minimize = iconButton(R.drawable.ic_m_expand_more, 44);
+        ImageButton minimize = iconButton(R.drawable.ic_m_expand_more, 44, R.string.mobile_cd_minimize);
         minimize.setOnClickListener(v -> mCallback.onMinimizeClicked());
         top.addView(minimize);
         mTitle = new TextView(context);
@@ -118,16 +118,16 @@ public class MobileControlsView extends FrameLayout {
         mTitle.setMaxLines(1);
         mTitle.setEllipsize(TextUtils.TruncateAt.END);
         top.addView(mTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        mSubtitles = iconButton(R.drawable.ic_m_cc, 44);
+        mSubtitles = iconButton(R.drawable.ic_m_cc, 44, R.string.mobile_cd_subtitles);
         mSubtitles.setOnClickListener(v -> pressButton(R.id.lb_control_closed_captioning));
         top.addView(mSubtitles);
-        ImageButton speed = iconButton(R.drawable.ic_m_speed, 44);
+        ImageButton speed = iconButton(R.drawable.ic_m_speed, 44, R.string.mobile_cd_speed);
         speed.setOnClickListener(v -> pressButton(R.id.action_video_speed));
         top.addView(speed);
-        ImageButton quality = iconButton(R.drawable.ic_m_settings, 44);
+        ImageButton quality = iconButton(R.drawable.ic_m_settings, 44, R.string.mobile_cd_quality);
         quality.setOnClickListener(v -> pressButton(R.id.lb_control_high_quality));
         top.addView(quality);
-        mLock = iconButton(R.drawable.ic_m_lock, 44);
+        mLock = iconButton(R.drawable.ic_m_lock, 44, R.string.mobile_pin);
         mLock.setOnClickListener(v -> setLocked(true));
         top.addView(mLock);
         panel.addView(top, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
@@ -135,13 +135,13 @@ public class MobileControlsView extends FrameLayout {
         // Center row: previous | play/pause | next
         LinearLayout center = new LinearLayout(context);
         center.setGravity(Gravity.CENTER);
-        ImageButton previous = iconButton(R.drawable.ic_m_skip_prev, 52);
+        ImageButton previous = iconButton(R.drawable.ic_m_skip_prev, 52, R.string.mobile_cd_previous);
         previous.setOnClickListener(v -> {
             PlaybackPresenter.instance(getContext()).onPreviousClicked();
             scheduleAutoHide();
         });
         center.addView(previous);
-        mPlayPause = iconButton(R.drawable.ic_m_pause, 72);
+        mPlayPause = iconButton(R.drawable.ic_m_pause, 72, R.string.mobile_cd_play_pause);
         GradientDrawable round = new GradientDrawable();
         round.setShape(GradientDrawable.OVAL);
         round.setColor(0x66000000);
@@ -150,7 +150,7 @@ public class MobileControlsView extends FrameLayout {
         playParams.setMargins(dp(28), 0, dp(28), 0);
         mPlayPause.setOnClickListener(v -> togglePlay());
         center.addView(mPlayPause);
-        ImageButton next = iconButton(R.drawable.ic_m_skip_next, 52);
+        ImageButton next = iconButton(R.drawable.ic_m_skip_next, 52, R.string.mobile_cd_next);
         next.setOnClickListener(v -> {
             PlaybackPresenter.instance(getContext()).onNextClicked();
             scheduleAutoHide();
@@ -168,7 +168,7 @@ public class MobileControlsView extends FrameLayout {
         mTime.setTextColor(Color.WHITE);
         mTime.setTextSize(13);
         timeRow.addView(mTime, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        mFullscreen = iconButton(R.drawable.ic_m_fullscreen, 44);
+        mFullscreen = iconButton(R.drawable.ic_m_fullscreen, 44, R.string.mobile_cd_fullscreen);
         mFullscreen.setOnClickListener(v -> mCallback.onFullscreenClicked());
         timeRow.addView(mFullscreen);
         bottom.addView(timeRow);
@@ -421,8 +421,9 @@ public class MobileControlsView extends FrameLayout {
                 : String.format(Locale.US, "%d:%02d", minutes, seconds);
     }
 
-    private ImageButton iconButton(int iconResId, int sizeDp) {
+    private ImageButton iconButton(int iconResId, int sizeDp, int descriptionResId) {
         ImageButton button = new ImageButton(getContext());
+        button.setContentDescription(getContext().getString(descriptionResId)); // read by TalkBack
         button.setImageResource(iconResId);
         button.setBackground(null);
         button.setScaleType(ImageView.ScaleType.FIT_CENTER);
