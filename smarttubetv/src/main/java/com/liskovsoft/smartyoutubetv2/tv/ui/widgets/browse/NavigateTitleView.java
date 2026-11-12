@@ -67,8 +67,10 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
     private Drawable mSearchPillBackground;
     private int mSearchPillPaddingEnd;
     private boolean mIsSidebarOpen;
+    private boolean mIsCompact;
     private View mGreetingGroup;
     private TextView mGreetingTitle;
+    private static final int COMPACT_MAX_WIDTH_DP = 720;
     private boolean mInitDone;
     private int mFlags = FULL_VIEW_VISIBLE;
     private int mIconWidth;
@@ -174,14 +176,31 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         }
 
         if (mIsGlobalClockEnabled) {
-            mGlobalClock.setVisibility(mBrandingVisibility);
+            mGlobalClock.setVisibility(mIsCompact ? View.GONE : mBrandingVisibility);
         }
 
         if (mIsGlobalClockEnabled) {
-            mGlobalDate.setVisibility(mBrandingVisibility);
+            mGlobalDate.setVisibility(mIsCompact ? View.GONE : mBrandingVisibility);
         }
 
         syncHeaderExtras();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+
+        // Narrow screens (a phone held vertically): keep only the essentials (search + account + logo)
+        boolean compact = w / getResources().getDisplayMetrics().density < COMPACT_MAX_WIDTH_DP;
+
+        if (compact != mIsCompact) {
+            mIsCompact = compact;
+
+            if (mInitDone) {
+                // The clock is re-shown by the regular visibility logic when the screen gets wide again
+                updateComponentsVisibility(mFlags);
+            }
+        }
     }
 
     /**
@@ -221,7 +240,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         if (mGreetingGroup != null) {
             // The greeting would collide with the title of the background video
             boolean isPipShown = mExitPip != null && mExitPip.getVisibility() == View.VISIBLE;
-            mGreetingGroup.setVisibility(isPipShown || mIsSidebarOpen ? View.GONE : mSearchVisibility);
+            mGreetingGroup.setVisibility(isPipShown || mIsSidebarOpen || mIsCompact ? View.GONE : mSearchVisibility);
 
             if (mGreetingGroup.getVisibility() == View.VISIBLE) {
                 updateGreeting();

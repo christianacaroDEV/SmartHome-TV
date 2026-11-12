@@ -70,11 +70,8 @@ public class MotherActivity extends FragmentActivity {
         //if (VERSION.SDK_INT != 26) {
         //    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //}
-        // Mobile mode (phones/tablets): the UI is designed for a wide screen. Lock to landscape (both directions).
-        // NOTE: skipped on api 26: 'Only fullscreen opaque activities can request orientation'
-        if (DeviceMode.isMobile(this) && VERSION.SDK_INT != 26) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-        }
+        // Mobile mode (phones/tablets): both orientations are supported (follow the user's auto-rotate setting).
+        // The UI adapts to the narrow portrait screen (compact header etc.), see DeviceMode.
 
         super.onCreate(savedInstanceState);
 
