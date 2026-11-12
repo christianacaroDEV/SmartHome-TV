@@ -781,4 +781,6 @@
     <string name="mobile_back">Atrás</string>
     <string name="mobile_voice_unavailable">La búsqueda por voz no está disponible en este dispositivo</string>
     <string name="mobile_close">Cerrar</string>
+    <string name="mobile_minimize">Minimizar</string>
+    <string name="mobile_fullscreen">Pantalla completa</string>
 </resources>

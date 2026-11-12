@@ -838,6 +838,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public void setVideo(Video video) {
         mExoPlayerController.setVideo(video);
 
+        if (getActivity() instanceof PlaybackActivity) {
+            ((PlaybackActivity) getActivity()).onMobileVideoChanged(video);
+        }
+
         if (mPlayerGlue != null && video != null) {
             // Preserve player formatting
             mPlayerGlue.setTitle(video.getTitleFull() != null ? video.getTitleFull() : "...");
@@ -1364,6 +1368,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void updateSuggestions(VideoGroup group) {
+        // Mobile portrait: the suggestions are shown below the video by the watch panel
+        if (getActivity() instanceof PlaybackActivity && ((PlaybackActivity) getActivity()).onMobileSuggestions(group)) {
+            return;
+        }
+
         if (mRowsAdapter == null) {
             Log.e(TAG, "Related videos row not initialized yet.");
             return;
@@ -1550,6 +1559,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void clearSuggestions() {
+        if (getActivity() instanceof PlaybackActivity) {
+            ((PlaybackActivity) getActivity()).onMobileSuggestionsCleared();
+        }
+
         if (mRowsAdapter != null && mRowsAdapter.size() > 1) {
             mRowsAdapter.removeItems(SUGGESTIONS_START_INDEX, mRowsAdapter.size() - 1);
         }

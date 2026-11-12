@@ -1,5 +1,11 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.playback;
 
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
+import android.util.Rational;
+import android.content.res.Configuration;
+import android.content.pm.ActivityInfo;
 import android.annotation.TargetApi;
 import android.app.PictureInPictureParams;
 import android.os.Build;
@@ -35,6 +41,7 @@ public class PlaybackActivity extends LeanbackActivity {
     private static final float GAMEPAD_TRIGGER_INTENSITY_OFF = 0.45f;
     private boolean gamepadTriggerPressed = false;
     private PlaybackFragment mPlaybackFragment;
+    private MobileWatchPanel mMobilePanel;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,6 +52,84 @@ public class PlaybackActivity extends LeanbackActivity {
         if (fragment instanceof PlaybackFragment) {
             mPlaybackFragment = (PlaybackFragment) fragment;
         }
+
+        if (DeviceMode.isMobile(this)) {
+            mMobilePanel = new MobileWatchPanel(this);
+        }
+    }
+
+    @Override
+    protected boolean showsMobileBackButton() {
+        return false; // the watch panel has its own minimize button
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (mMobilePanel != null) {
+            mMobilePanel.onConfigurationChanged();
+        }
+    }
+
+    // ---- Mobile watch page (see MobileWatchPanel)
+
+    void onMobileVideoChanged(Video video) {
+        if (mMobilePanel != null) {
+            mMobilePanel.setVideo(video);
+        }
+    }
+
+    void onMobileSuggestionsCleared() {
+        if (mMobilePanel != null) {
+            mMobilePanel.clearSuggestions();
+        }
+    }
+
+    /**
+     * @return true if the suggestions are shown by the portrait panel (the TV style rows should be skipped)
+     */
+    boolean onMobileSuggestions(VideoGroup group) {
+        if (mMobilePanel == null) {
+            return false;
+        }
+
+        mMobilePanel.updateSuggestions(group);
+
+        return mMobilePanel.isPortraitPanelShown();
+    }
+
+    /**
+     * Minimize button: the video continues in a floating window (picture-in-picture) over the previous screen.
+     */
+    void minimizeToPip() {
+        if (!Helpers.isPictureInPictureSupported(this)) {
+            onBackPressed();
+            return;
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                PictureInPictureParams.Builder params = new PictureInPictureParams.Builder();
+                params.setAspectRatio(new Rational(16, 9));
+                enterPictureInPictureMode(params.build());
+            } else {
+                enterPictureInPictureMode();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Can't enter PIP: " + e.getMessage());
+            onBackPressed();
+        }
+    }
+
+    /**
+     * Full screen button: portrait <-> landscape. The chosen orientation stays locked (both directions of the
+     * same axis are allowed) until the button is pressed again: releasing the lock right away would rotate the
+     * screen back, because the phone is still held in the old position.
+     */
+    void toggleOrientation() {
+        boolean portrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+        setRequestedOrientation(portrait ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
     }
 
     @Override
@@ -66,7 +151,10 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (mPlaybackFragment != null) {
+        // Portrait watch page: only the video area controls the player; the list below just scrolls
+        boolean overPanel = mMobilePanel != null && mMobilePanel.isPortraitPanelShown() && event.getY() > mMobilePanel.getVideoAreaHeight();
+
+        if (mPlaybackFragment != null && !overPanel) {
             mPlaybackFragment.onDispatchTouchEvent(event);
         }
 
@@ -248,6 +336,10 @@ public class PlaybackActivity extends LeanbackActivity {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode);
 
         mPlaybackFragment.onPIPChanged(isInPictureInPictureMode);
+
+        if (mMobilePanel != null) {
+            mMobilePanel.onPipChanged(isInPictureInPictureMode);
+        }
     }
 
     /**
