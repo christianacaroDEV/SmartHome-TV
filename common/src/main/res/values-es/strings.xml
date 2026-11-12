@@ -778,4 +778,5 @@
     <string name="device_mode_auto">Automático</string>
     <string name="device_mode_mobile">Móvil (táctil, horizontal)</string>
     <string name="device_mode_tv">TV (control remoto)</string>
+    <string name="mobile_back">Atrás</string>
 </resources>

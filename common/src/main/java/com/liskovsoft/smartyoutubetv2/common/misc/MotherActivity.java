@@ -10,7 +10,13 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.KeyCharacterMap.UnavailableException;
 import android.view.KeyEvent;
+import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.graphics.drawable.GradientDrawable;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,6 +47,9 @@ public class MotherActivity extends FragmentActivity {
     private static final String TAG = MotherActivity.class.getSimpleName();
     private static final float DEFAULT_DENSITY = 2.0f; // xhdpi
     private static final float DEFAULT_WIDTH = 1920f; // xhdpi
+    private static final String MOBILE_BACK_BUTTON_TAG = "mobile_back_button";
+    private static final int MOBILE_BACK_BUTTON_SIZE_DP = 52;
+    private static final int MOBILE_BACK_BUTTON_MARGIN_DP = 12;
     private static final float MOBILE_UI_SCALE = 0.8f; // on a 20:9 phone this gives a 16:9-like canvas (1200 x 540 dp)
     private static DisplayMetrics sCachedDisplayMetrics;
     protected static boolean sIsInPipMode;
@@ -333,6 +342,55 @@ public class MotherActivity extends FragmentActivity {
             mOnResults.clear();
             mOnResults = null;
         }
+    }
+
+    @Override
+    public void onContentChanged() {
+        super.onContentChanged();
+
+        if (DeviceMode.isMobile(this) && showsMobileBackButton()) {
+            addMobileBackButton();
+        }
+    }
+
+    /**
+     * Phones have no remote's BACK key and not all of them use the system back gesture:
+     * secondary screens get an on-screen back button. The root screens (browse, splash) override this.
+     */
+    protected boolean showsMobileBackButton() {
+        return true;
+    }
+
+    private void addMobileBackButton() {
+        View content = findViewById(android.R.id.content);
+
+        if (!(content instanceof ViewGroup) || content.findViewWithTag(MOBILE_BACK_BUTTON_TAG) != null) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+        int size = Math.round(MOBILE_BACK_BUTTON_SIZE_DP * density);
+        int margin = Math.round(MOBILE_BACK_BUTTON_MARGIN_DP * density);
+
+        ImageButton button = new ImageButton(this);
+        button.setTag(MOBILE_BACK_BUTTON_TAG);
+        button.setImageResource(R.drawable.ic_nav_back);
+        button.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        button.setContentDescription(getString(R.string.mobile_back));
+        int padding = Math.round(size * 0.22f);
+        button.setPadding(padding, padding, padding, padding);
+
+        GradientDrawable background = new GradientDrawable();
+        background.setShape(GradientDrawable.OVAL);
+        background.setColor(0x99000000);
+        background.setStroke(Math.round(density), 0x33FFFFFF);
+        button.setBackground(background);
+
+        button.setOnClickListener(v -> onBackPressed());
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START);
+        params.setMargins(margin, margin, margin, margin);
+        ((ViewGroup) content).addView(button, params);
     }
 
     @Override

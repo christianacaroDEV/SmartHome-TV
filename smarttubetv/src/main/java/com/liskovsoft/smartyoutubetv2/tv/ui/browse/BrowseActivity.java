@@ -11,6 +11,12 @@ public class BrowseActivity extends LeanbackActivity {
     private static final String TAG = BrowseActivity.class.getSimpleName();
 
     @Override
+    protected boolean showsMobileBackButton() {
+        return false; // root screen
+    }
+
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {

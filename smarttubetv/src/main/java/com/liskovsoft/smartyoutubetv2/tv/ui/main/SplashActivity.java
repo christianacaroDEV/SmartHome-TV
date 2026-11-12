@@ -19,6 +19,12 @@ import java.util.List;
 
 public class SplashActivity extends MotherActivity implements SplashView {
     private static final String TAG = SplashActivity.class.getSimpleName();
+
+    @Override
+    protected boolean showsMobileBackButton() {
+        return false; // root screen
+    }
+
     /**
      * Branded launch screen is shown only on a cold start (once per app process).
      */
