@@ -436,7 +436,7 @@
     <string name="starting_stream">Iniciando el stream…</string>
     <string name="action_playlist_remove">Eliminar de lista</string>
     <string name="signin_view_title">El código de usuario se está cargando...</string>
-    <string name="signin_view_description">Para iniciar sesión introduzca este código en la página %s\nNOTA. Sólo funciona con los navegadores Firefox o Chrome.</string>
+    <string name="signin_view_description">Desde tu celular o computadora entra en %s y escribe este código, o escanea el código QR con la cámara del celular.</string>
     <string name="signin_view_action_text">Hecho</string>
     <string name="require_checked">Requiere \"%s</string>
     <string name="msg_press_again_to_exit">Pulse de nuevo para salir</string>
@@ -596,7 +596,7 @@
     <string name="player_speed_per_channel">Por cada canal</string>
     <string name="disable_popular_searches">Desactivar las búsquedas populares</string>
     <string name="multi_profiles">Usar distintos ajustes para cada cuenta</string>
-    <string name="protect_account_with_password">Proteger este cuenta con contraseña</string>
+    <string name="protect_account_with_password">Proteger esta cuenta con contraseña</string>
     <string name="enter_account_password">Introduzca la contraseña de la cuenta</string>
     <string name="show_connect_messages">Mostrar mensajes de conexión</string>
     <string name="prefer_avc_over_vp9_desc">AVISO: máximo 1080p</string>

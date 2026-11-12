@@ -70,7 +70,11 @@
         <item name="android:windowContentOverlay">@null</item>
     </style>
     <style name="App.Theme.Leanback.GuidedStep" parent="Theme.Leanback.GuidedStep">
-        <item name="android:windowBackground">@color/shelf_background_dark</item>
+        <!-- BlueTube colors on the sign-in / link device screens (they were the plain grey of the original) -->
+        <item name="android:windowBackground">@drawable/bluetube_background</item>
+        <item name="guidedStepBackground">@color/sh_shelf_background</item>
+        <item name="guidedActionsBackground">@color/sh_card_background</item>
+        <item name="guidedActionsBackgroundDark">@color/sh_card_background</item>
         <item name="shelfBackground">@color/shelf_background_dark</item>
         <!-- Disable activity transition animations -->
         <item name="android:windowAnimationStyle">@null</item>
