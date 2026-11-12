@@ -63,6 +63,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
     private ProgressBar mProgress;
     private RecyclerView mList;
     private ListAdapter mAdapter;
+    private boolean mIsLoading;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final List<Tag> mTags = new ArrayList<>();
     private final LinkedHashMap<Integer, List<Video>> mResultGroups = new LinkedHashMap<>();
@@ -243,7 +244,13 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
 
     @Override
     public void showProgressBar(boolean show) {
-        mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+        // Skeleton cards instead of a spinner while the first results load
+        mIsLoading = show;
+        mProgress.setVisibility(View.GONE);
+
+        if (mShowingResults) {
+            mAdapter.setItems(buildResultItems());
+        }
     }
 
     @Override
@@ -300,7 +307,8 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mShowingResults = true;
         mResultGroups.clear();
         mResultUnique.clear();
-        mAdapter.setItems(new ArrayList<>());
+        mIsLoading = true;
+        mAdapter.setItems(buildResultItems());
         mPresenter.onSearch(query.trim());
     }
 
@@ -339,6 +347,12 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
 
         for (List<Video> videos : mResultGroups.values()) {
             items.addAll(videos);
+        }
+
+        if (items.isEmpty() && mIsLoading) {
+            for (int i = 0; i < MobileSkeleton.COUNT; i++) {
+                items.add(MobileSkeleton.ITEM);
+            }
         }
 
         return items;
@@ -390,6 +404,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
     private class ListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private static final int TYPE_TAG = 0;
         private static final int TYPE_VIDEO = 1;
+        private static final int TYPE_SKELETON = 2;
         private List<Object> mItems = new ArrayList<>();
 
         void setItems(List<Object> items) {
@@ -409,7 +424,22 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
 
         @Override
         public int getItemViewType(int position) {
-            return mItems.get(position) instanceof Video ? TYPE_VIDEO : TYPE_TAG;
+            Object item = mItems.get(position);
+            return item == MobileSkeleton.ITEM ? TYPE_SKELETON : item instanceof Video ? TYPE_VIDEO : TYPE_TAG;
+        }
+
+        @Override
+        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof MobileSkeleton.Holder) {
+                ((MobileSkeleton.Holder) holder).startPulse();
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof MobileSkeleton.Holder) {
+                ((MobileSkeleton.Holder) holder).stopPulse();
+            }
         }
 
         @Override
@@ -420,6 +450,10 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == TYPE_SKELETON) {
+                return MobileSkeleton.createHolder(parent);
+            }
+
             if (viewType == TYPE_VIDEO) {
                 return new VideoHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false));
             }
@@ -433,7 +467,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
 
             if (holder instanceof VideoHolder) {
                 ((VideoHolder) holder).bind((Video) item);
-            } else {
+            } else if (holder instanceof TagHolder) {
                 ((TagHolder) holder).bind((Tag) item);
             }
         }

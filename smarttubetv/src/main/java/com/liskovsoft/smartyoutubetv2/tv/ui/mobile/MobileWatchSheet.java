@@ -57,6 +57,9 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private static final int MINI_HEIGHT_DP = 64;
     private static final int LOAD_MORE_THRESHOLD = 4;
     private static final Object INFO_HEADER = new Object();
+    private static final long SUGGESTIONS_TIMEOUT_MS = 8_000;
+    private boolean mSuggestionsTimedOut;
+    private final Runnable mSuggestionsTimeout = this::onSuggestionsTimeout;
 
     private final Activity mActivity;
     private final FrameLayout mRoot;
@@ -90,7 +93,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mSheet.setBackgroundResource(R.drawable.bluetube_background);
         mSheet.setClickable(true); // the home screen behind must not get the touches
         mSheet.setVisibility(View.GONE);
-        mSheet.setElevation(dp(8));
+        androidx.core.view.ViewCompat.setElevation(mSheet, dp(8)); // no-op before Android 5
         mRoot.addView(mSheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         // Suggestions (expanded state), below the video
@@ -190,6 +193,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
         mVideo = video;
         clearSuggestionsList();
+        restartSuggestionsTimeout();
         mAdapter.setItems(buildItems());
         mPlayer.openVideo(video);
         mList.scrollToPosition(0);
@@ -480,6 +484,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     @Override
     public void onSuggestionsCleared() {
         clearSuggestionsList();
+        restartSuggestionsTimeout(); // a new video (e.g. next/previous): skeletons until its suggestions arrive
         mAdapter.setItems(buildItems());
     }
 
@@ -505,6 +510,17 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     // List (title + suggestions)
     // ---------------------------------------------------------------------------------------------
 
+    private void onSuggestionsTimeout() {
+        mSuggestionsTimedOut = true; // no suggestions for this video: drop the skeletons
+        mAdapter.setItems(buildItems());
+    }
+
+    private void restartSuggestionsTimeout() {
+        mSuggestionsTimedOut = false;
+        mRoot.removeCallbacks(mSuggestionsTimeout);
+        mRoot.postDelayed(mSuggestionsTimeout, SUGGESTIONS_TIMEOUT_MS);
+    }
+
     private void clearSuggestionsList() {
         mGroups.clear();
         mUnique.clear();
@@ -518,8 +534,18 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
             items.add(INFO_HEADER); // title, channel, actions, description
         }
 
+        boolean hasVideos = false;
+
         for (List<Video> videos : mGroups.values()) {
             items.addAll(videos);
+            hasVideos |= !videos.isEmpty();
+        }
+
+        // Suggestions not here yet: skeleton cards (like the home screen)
+        if (!hasVideos && mVideo != null && !mSuggestionsTimedOut) {
+            for (int i = 0; i < MobileSkeleton.COUNT; i++) {
+                items.add(MobileSkeleton.ITEM);
+            }
         }
 
         return items;
@@ -560,7 +586,22 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
         @Override
         public int getItemViewType(int position) {
-            return mItems.get(position) instanceof Video ? 1 : 0;
+            Object item = mItems.get(position);
+            return item == MobileSkeleton.ITEM ? 2 : item instanceof Video ? 1 : 0;
+        }
+
+        @Override
+        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof MobileSkeleton.Holder) {
+                ((MobileSkeleton.Holder) holder).startPulse();
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof MobileSkeleton.Holder) {
+                ((MobileSkeleton.Holder) holder).stopPulse();
+            }
         }
 
         @Override
@@ -571,6 +612,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            if (viewType == 2) {
+                return MobileSkeleton.createHolder(parent);
+            }
+
             if (viewType == 1) {
                 return new VideoHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false));
             }
@@ -587,7 +632,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
             if (holder instanceof VideoHolder) {
                 ((VideoHolder) holder).bind((Video) item);
-            } else {
+            } else if (holder.itemView instanceof MobileWatchInfoView) {
                 ((MobileWatchInfoView) holder.itemView).bind(mVideo);
             }
         }

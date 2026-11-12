@@ -53,6 +53,7 @@ public class MotherActivity extends FragmentActivity {
     private static DisplayMetrics sCachedDisplayMetrics;
     protected static boolean sIsInPipMode;
     private ScreensaverManager mScreensaverManager;
+    private boolean mWakeUpTouch;
     // Make static in case Don't keep activities enabled in Developer settings
     private static List<OnPermissions> mOnPermissions;
     private static List<OnResult> mOnResults;
@@ -125,8 +126,20 @@ public class MotherActivity extends FragmentActivity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        // Dimmed screen: the whole touch (down...up) only wakes the screen up, it never taps what is behind
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            mWakeUpTouch = mScreensaverManager.isDimmed();
+        }
+
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             mScreensaverManager.enable();
+        }
+
+        if (mWakeUpTouch) {
+            if (event.getActionMasked() == MotionEvent.ACTION_UP || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                mWakeUpTouch = false;
+            }
+            return true;
         }
 
         try {

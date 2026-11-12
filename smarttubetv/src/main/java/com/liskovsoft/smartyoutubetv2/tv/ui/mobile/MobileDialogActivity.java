@@ -491,7 +491,7 @@ public class MobileDialogActivity extends MotherActivity implements AppDialogVie
         float radius = dp(18);
         background.setCornerRadii(new float[] {radius, radius, radius, radius, 0, 0, 0, 0});
         mPanel.setBackground(background);
-        mPanel.setElevation(dp(12));
+        androidx.core.view.ViewCompat.setElevation(mPanel, dp(12)); // no-op before Android 5
 
         // Grab handle
         View handle = new View(this);

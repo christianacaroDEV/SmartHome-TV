@@ -140,8 +140,10 @@ public class PlaybackActivity extends LeanbackActivity {
                 PictureInPictureParams.Builder params = new PictureInPictureParams.Builder();
                 params.setAspectRatio(new Rational(16, 9));
                 enterPictureInPictureMode(params.build());
-            } else {
+            } else if (Build.VERSION.SDK_INT >= 24) {
                 enterPictureInPictureMode();
+            } else {
+                onBackPressed();
             }
         } catch (Exception e) {
             Log.e(TAG, "Can't enter PIP: " + e.getMessage());

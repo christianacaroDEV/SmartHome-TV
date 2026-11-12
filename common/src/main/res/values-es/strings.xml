@@ -800,6 +800,11 @@
     <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
     <string name="mobile_pin">Fijar</string>
     <string name="mobile_unpin">Toca para desbloquear</string>
+    <string name="mobile_empty_subscriptions">Aún no sigues ningún canal. Busca un canal que te guste y toca Suscribirse: sus videos nuevos aparecerán aquí.</string>
+    <string name="mobile_empty_history">Tu historial está vacío. Los videos que veas aparecerán aquí.</string>
+    <string name="mobile_empty_playlists">Aún no tienes listas. Usa Guardar en un video para crear una.</string>
+    <string name="mobile_empty_my_videos">Esta cuenta todavía no tiene videos.</string>
+    <string name="mobile_empty_explore">Explorar videos</string>
     <string name="mobile_topics_title">Favoritos</string>
     <string name="mobile_topics_pick_title">¿Qué te gusta ver?</string>
     <string name="mobile_topics_pick_subtitle">Elige tus temas favoritos y te sugerimos videos de cada uno.</string>

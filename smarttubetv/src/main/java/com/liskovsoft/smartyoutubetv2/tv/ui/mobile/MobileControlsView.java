@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -173,9 +174,11 @@ public class MobileControlsView extends FrameLayout {
         bottom.addView(timeRow);
         mSeekBar = new SeekBar(context);
         mSeekBar.setMax(1000);
-        mSeekBar.setProgressTintList(ColorStateList.valueOf(ACCENT));
-        mSeekBar.setThumbTintList(ColorStateList.valueOf(ACCENT));
-        mSeekBar.setProgressBackgroundTintList(ColorStateList.valueOf(0x66FFFFFF));
+        if (Build.VERSION.SDK_INT >= 21) { // older Android: default colors
+            mSeekBar.setProgressTintList(ColorStateList.valueOf(ACCENT));
+            mSeekBar.setThumbTintList(ColorStateList.valueOf(ACCENT));
+            mSeekBar.setProgressBackgroundTintList(ColorStateList.valueOf(0x66FFFFFF));
+        }
         mSeekBar.setPadding(dp(14), dp(6), dp(14), dp(10));
         mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -205,8 +208,10 @@ public class MobileControlsView extends FrameLayout {
         // Thin progress line (mini player)
         mMiniProgress = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
         mMiniProgress.setMax(1000);
-        mMiniProgress.setProgressTintList(ColorStateList.valueOf(ACCENT));
-        mMiniProgress.setProgressBackgroundTintList(ColorStateList.valueOf(0x33FFFFFF));
+        if (Build.VERSION.SDK_INT >= 21) {
+            mMiniProgress.setProgressTintList(ColorStateList.valueOf(ACCENT));
+            mMiniProgress.setProgressBackgroundTintList(ColorStateList.valueOf(0x33FFFFFF));
+        }
         addView(mMiniProgress, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3), Gravity.BOTTOM));
 
         // "+10 s" / "-10 s" bubble

@@ -9,11 +9,13 @@ import android.content.Intent;
 import android.widget.FrameLayout;
 
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.SimpleItemAnimator;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
+import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -80,10 +82,15 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     // Bottom navigation: section id -> (icon, label)
     private static final int[][] BOTTOM_NAV = {
             {MediaGroup.TYPE_HOME, R.drawable.ic_m_home, R.string.header_home},
-            {MediaGroup.TYPE_SHORTS, R.drawable.ic_m_shorts, R.string.header_shorts},
+            {MobileBrowseActivity.MY_TOPICS_ID, R.drawable.ic_m_star, R.string.mobile_topics_title},
             {MediaGroup.TYPE_SUBSCRIPTIONS, R.drawable.ic_m_subscriptions, R.string.header_subscriptions},
             {MediaGroup.TYPE_HISTORY, R.drawable.ic_m_library, R.string.header_history},
+            {MediaGroup.TYPE_SETTINGS, R.drawable.ic_m_settings, R.string.header_settings},
     };
+    /**
+     * Sections that live in the bottom bar only (not repeated as chips at the top). Shorts stays at the top.
+     */
+    private static final int[] BOTTOM_ONLY = {MobileBrowseActivity.MY_TOPICS_ID, MediaGroup.TYPE_SETTINGS};
 
     private BrowsePresenter mPresenter;
     private MobileWatchSheet mWatchSheet;
@@ -186,7 +193,26 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mAccountButton = findViewById(R.id.mobile_btn_account);
 
         mAdapter = new FeedAdapter();
-        mFeed.setLayoutManager(new LinearLayoutManager(this));
+        // Phone in portrait: one column. Landscape/tablets: a grid of cards (2-3 columns) like YouTube
+        GridLayoutManager grid = new GridLayoutManager(this, feedColumns(getResources().getConfiguration()));
+        grid.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                // Video cards take one cell, titles/buttons/skeletons/settings the whole row
+                return mAdapter.getItemViewType(position) == FeedAdapter.TYPE_VIDEO ? 1 : grid.getSpanCount();
+            }
+        });
+        mFeed.setLayoutManager(grid);
+        mFeed.addItemDecoration(new RecyclerView.ItemDecoration() {
+            @Override
+            public void getItemOffsets(@NonNull android.graphics.Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+                int position = parent.getChildAdapterPosition(view);
+                if (grid.getSpanCount() > 1 && position != RecyclerView.NO_POSITION && mAdapter.getItemViewType(position) == FeedAdapter.TYPE_VIDEO) {
+                    outRect.left = dp(6);
+                    outRect.right = dp(6);
+                }
+            }
+        });
         mFeed.setAdapter(mAdapter);
         if (mFeed.getItemAnimator() instanceof SimpleItemAnimator) {
             // Changed cards are updated in place: no blink
@@ -269,9 +295,21 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
+        if (mFeed != null && mFeed.getLayoutManager() instanceof GridLayoutManager) {
+            ((GridLayoutManager) mFeed.getLayoutManager()).setSpanCount(feedColumns(newConfig));
+            mFeed.invalidateItemDecorations();
+        }
+
         if (mWatchSheet != null) {
             mWatchSheet.onConfigurationChanged(newConfig);
         }
+    }
+
+    /**
+     * About 340dp per card: 1 column on phones in portrait, 2-3 in landscape or on tablets.
+     */
+    private static int feedColumns(android.content.res.Configuration config) {
+        return Math.max(1, Math.min(4, config.screenWidthDp / 340));
     }
 
     @Override
@@ -530,7 +568,34 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             content.stale = false;
         }
         mAdapter.setItems(new ArrayList<>());
+
+        // Signed in and the section simply has nothing yet (new account): a friendly message, not a network error
+        if (YouTubeSignInService.instance().isSigned()) {
+            int emptyMessage = emptyMessageOf(mCurrentSectionId);
+
+            if (emptyMessage != 0) {
+                showMessage(getString(emptyMessage), getString(R.string.mobile_empty_explore),
+                        () -> SearchPresenter.instance(this).startSearch(null));
+                return;
+            }
+        }
+
         showMessage(data.getMessage(), data.getActionText(), data::onAction);
+    }
+
+    private static int emptyMessageOf(int sectionId) {
+        switch (sectionId) {
+            case MediaGroup.TYPE_SUBSCRIPTIONS:
+                return R.string.mobile_empty_subscriptions;
+            case MediaGroup.TYPE_HISTORY:
+                return R.string.mobile_empty_history;
+            case MediaGroup.TYPE_USER_PLAYLISTS:
+                return R.string.mobile_empty_playlists;
+            case MediaGroup.TYPE_MY_VIDEOS:
+                return R.string.mobile_empty_my_videos;
+            default:
+                return 0;
+        }
     }
 
     /**
@@ -915,8 +980,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mChips.removeAllViews();
 
         for (BrowseSection section : mSections) {
-            if (mChips.getChildCount() == 1) {
-                mChips.addView(createMyTopicsChip());
+            if (isBottomOnly(section.getId())) {
+                continue; // Favorites and Settings are in the bottom bar
             }
 
             TextView chip = new TextView(this);
@@ -941,7 +1006,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mBottomNav.removeAllViews();
 
         for (int[] entry : BOTTOM_NAV) {
-            if (indexOfSection(entry[0]) == -1) {
+            if (entry[0] != MY_TOPICS_ID && indexOfSection(entry[0]) == -1) {
                 continue;
             }
 
@@ -949,6 +1014,16 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         }
 
         updateNavigationState();
+    }
+
+    private static boolean isBottomOnly(int sectionId) {
+        for (int id : BOTTOM_ONLY) {
+            if (id == sectionId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private TextView createMyTopicsChip() {

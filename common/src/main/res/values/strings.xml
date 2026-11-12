@@ -801,6 +801,11 @@
     <string name="mobile_background_audio_desc">Keep the audio playing when the screen is locked</string>
     <string name="mobile_pin">Lock</string>
     <string name="mobile_unpin">Tap to unlock</string>
+    <string name="mobile_empty_subscriptions">You do not follow any channel yet. Search for a channel you like and tap Subscribe: its new videos will show up here.</string>
+    <string name="mobile_empty_history">Your history is empty. The videos you watch will show up here.</string>
+    <string name="mobile_empty_playlists">You have no playlists yet. Use Save on a video to create one.</string>
+    <string name="mobile_empty_my_videos">This account has no videos yet.</string>
+    <string name="mobile_empty_explore">Explore videos</string>
     <string name="mobile_topics_title">Favorites</string>
     <string name="mobile_topics_pick_title">What do you like to watch?</string>
     <string name="mobile_topics_pick_subtitle">Pick your favorite topics and we\'ll suggest videos for each one.</string>

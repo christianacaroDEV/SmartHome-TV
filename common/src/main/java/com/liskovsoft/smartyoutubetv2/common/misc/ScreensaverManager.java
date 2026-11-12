@@ -195,6 +195,14 @@ public class ScreensaverManager {
         return mIsScreenOff;
     }
 
+    /**
+     * The screen is dimmed right now (screensaver or screen off overlay visible).
+     */
+    public boolean isDimmed() {
+        View dimContainer = mDimContainer.get();
+        return dimContainer != null && dimContainer.getVisibility() == View.VISIBLE;
+    }
+
     public void setBlocked(boolean blocked) {
         mIsBlocked = blocked;
     }
