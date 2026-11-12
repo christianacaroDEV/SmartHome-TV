@@ -789,4 +789,16 @@
     <string name="mobile_background_audio_desc">Keep the audio playing when the screen is locked</string>
     <string name="mobile_pin">Lock</string>
     <string name="mobile_unpin">Tap to unlock</string>
+    <string name="mobile_signin_title">Add account</string>
+    <string name="mobile_signin_subtitle">Sign in with your Google account to see your subscriptions, history and recommendations.</string>
+    <string name="mobile_signin_step1">Tap \"Open the activation page\"</string>
+    <string name="mobile_signin_step2">Choose your Google account and confirm this code</string>
+    <string name="mobile_signin_step3">Come back here: Zemix21 connects by itself</string>
+    <string name="mobile_signin_code_label">Your code</string>
+    <string name="mobile_signin_open">Open the activation page</string>
+    <string name="mobile_signin_copy">Copy code</string>
+    <string name="mobile_signin_copied">Code copied</string>
+    <string name="mobile_signin_qr">Or scan it with another phone or computer</string>
+    <string name="mobile_signin_waiting">Waiting for the confirmation…</string>
+    <string name="mobile_signin_loading">Getting your code…</string>
 </resources>

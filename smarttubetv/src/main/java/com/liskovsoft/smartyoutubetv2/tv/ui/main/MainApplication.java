@@ -36,6 +36,8 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.channel.ChannelActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.channeluploads.ChannelUploadsActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.dialogs.AppDialogActivity;
+import com.liskovsoft.smartyoutubetv2.tv.ui.mobile.MobileDialogActivity;
+import com.liskovsoft.smartyoutubetv2.tv.ui.mobile.MobileSignInActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.dialogs.AppDialogActivityOpaque;
 import com.liskovsoft.smartyoutubetv2.tv.ui.playback.PlaybackActivity;
 import com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.SearchTagsActivity;
@@ -153,9 +155,10 @@ public class MainApplication extends MultiDexApplication implements Configuratio
     private void setupViewManager() {
         ViewManager viewManager = ViewManager.instance(this);
 
-        Class<? extends AppDialogActivity> dialogClass = getDialogClass();
-        // Phones/tablets use their own touch home screen
-        Class<? extends Activity> browseClass = DeviceMode.isMobile(this) ? MobileBrowseActivity.class : BrowseActivity.class;
+        boolean isMobile = DeviceMode.isMobile(this);
+        // Phones/tablets use their own touch screens (home, dialogs, search, sign in)
+        Class<? extends Activity> dialogClass = isMobile ? MobileDialogActivity.class : getDialogClass();
+        Class<? extends Activity> browseClass = isMobile ? MobileBrowseActivity.class : BrowseActivity.class;
 
         viewManager.setRoot(browseClass);
         viewManager.register(SplashView.class, SplashActivity.class); // no parent, because it's root activity
@@ -163,7 +166,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         viewManager.register(PlaybackView.class, PlaybackActivity.class, browseClass);
         viewManager.register(AppDialogView.class, dialogClass, browseClass);
         viewManager.register(SearchView.class, DeviceMode.isMobile(this) ? MobileSearchActivity.class : SearchTagsActivity.class, browseClass);
-        viewManager.register(SignInView.class, SignInActivity.class, browseClass);
+        viewManager.register(SignInView.class, isMobile ? MobileSignInActivity.class : SignInActivity.class, browseClass);
         viewManager.register(AddDeviceView.class, AddDeviceActivity.class, browseClass);
         viewManager.register(ChannelView.class, ChannelActivity.class, browseClass);
         viewManager.register(ChannelUploadsView.class, ChannelUploadsActivity.class, browseClass);

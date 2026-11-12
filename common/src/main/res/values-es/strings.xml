@@ -789,4 +789,16 @@
     <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
     <string name="mobile_pin">Fijar</string>
     <string name="mobile_unpin">Toca para desbloquear</string>
+    <string name="mobile_signin_title">Añadir cuenta</string>
+    <string name="mobile_signin_subtitle">Inicia sesión con tu cuenta de Google para ver tus suscripciones, historial y recomendaciones.</string>
+    <string name="mobile_signin_step1">Toca \"Abrir la página de activación\"</string>
+    <string name="mobile_signin_step2">Elige tu cuenta de Google y confirma este código</string>
+    <string name="mobile_signin_step3">Vuelve aquí: Zemix21 se conecta solo</string>
+    <string name="mobile_signin_code_label">Tu código</string>
+    <string name="mobile_signin_open">Abrir la página de activación</string>
+    <string name="mobile_signin_copy">Copiar código</string>
+    <string name="mobile_signin_copied">Código copiado</string>
+    <string name="mobile_signin_qr">O escanéalo con otro celular o computadora</string>
+    <string name="mobile_signin_waiting">Esperando la confirmación…</string>
+    <string name="mobile_signin_loading">Obteniendo tu código…</string>
 </resources>
