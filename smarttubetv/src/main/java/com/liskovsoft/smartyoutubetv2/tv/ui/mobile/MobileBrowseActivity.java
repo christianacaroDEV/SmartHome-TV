@@ -135,8 +135,57 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private static final int MY_TOPICS_ID = -2001;
     private static final int WATCH_LATER_GROUP_ID = -2002;
     private static final int TOPIC_GROUP_BASE = -3000;
-    private static final int VIDEOS_PER_TOPIC = 4;
-    private static final Object EDIT_TOPICS = new Object();
+    private static final int VIDEOS_PER_TOPIC = 12;
+    /** Favorites: the chips row on top (one chip per topic + Watch later + Edit) */
+    private static final Object TOPIC_CHIPS = new Object();
+
+    /**
+     * Favorites: a topic (or Watch later) shown as a horizontal carousel of small cards.
+     */
+    private static class CarouselRow {
+        final String title;
+        final GroupContent group;
+        final int size;
+
+        CarouselRow(String title, GroupContent group) {
+            this.title = title;
+            this.group = group;
+            this.size = group.videos.size();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof CarouselRow && TextUtils.equals(title, ((CarouselRow) obj).title);
+        }
+
+        @Override
+        public int hashCode() {
+            return title != null ? title.hashCode() : 0;
+        }
+    }
+
+    /**
+     * "Watch later            3 videos" (no "See more": the carousel already has them all).
+     */
+    private static class CountHeader {
+        final String title;
+        final int count;
+
+        CountHeader(String title, int count) {
+            this.title = title;
+            this.count = count;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof CountHeader && TextUtils.equals(title, ((CountHeader) obj).title) && count == ((CountHeader) obj).count;
+        }
+
+        @Override
+        public int hashCode() {
+            return title != null ? title.hashCode() : 0;
+        }
+    }
 
     /**
      * Title of a "My topics" row, with "See all".
@@ -852,7 +901,27 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         boolean isMyTopics = content == mContents.get(MY_TOPICS_ID);
 
         if (isMyTopics) {
-            items.add(EDIT_TOPICS);
+            // Favorites: chips on top, one carousel per topic, Watch later at the end
+            items.add(TOPIC_CHIPS);
+            GroupContent watchLater = null;
+
+            for (java.util.Map.Entry<Integer, GroupContent> entry : content.groups.entrySet()) {
+                GroupContent group = entry.getValue();
+
+                if (entry.getKey() == WATCH_LATER_GROUP_ID) {
+                    watchLater = group;
+                } else if (!group.videos.isEmpty()) {
+                    items.add(new TopicHeader(group.title, group.query));
+                    items.add(new CarouselRow(group.title, group));
+                }
+            }
+
+            if (watchLater != null && !watchLater.videos.isEmpty()) {
+                items.add(new CountHeader(watchLater.title, watchLater.videos.size()));
+                items.add(new CarouselRow(watchLater.title, watchLater));
+            }
+
+            return items;
         }
 
         // Several groups = rows (home page): show the title of each group
@@ -1327,7 +1396,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         private static final int TYPE_SETTING = 2;
         private static final int TYPE_SKELETON = 3;
         private static final int TYPE_FOOTER = 4;
-        private static final int TYPE_EDIT_TOPICS = 5;
+        private static final int TYPE_CHIPS = 5;
+        private static final int TYPE_CAROUSEL = 6;
+        private static final int TYPE_ROW_HEADER = 7;
         private List<Object> mItems = new ArrayList<>();
 
         /**
@@ -1381,6 +1452,15 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                                 && a.hasNewContent == b.hasNewContent);
                     }
 
+                    if (oldItem instanceof CarouselRow && newItem instanceof CarouselRow) {
+                        return ((CarouselRow) oldItem).group == ((CarouselRow) newItem).group
+                                && ((CarouselRow) oldItem).size == ((CarouselRow) newItem).size;
+                    }
+
+                    if (oldItem == TOPIC_CHIPS) {
+                        return false; // the topics may have changed: rebuild the chips
+                    }
+
                     return oldItem != SKELETON; // skeleton -> skeleton: keep the pulsing view as it is
                 }
             }, false).dispatchUpdatesTo(this);
@@ -1420,8 +1500,16 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 return TYPE_FOOTER;
             }
 
-            if (item == EDIT_TOPICS) {
-                return TYPE_EDIT_TOPICS;
+            if (item == TOPIC_CHIPS) {
+                return TYPE_CHIPS;
+            }
+
+            if (item instanceof CarouselRow) {
+                return TYPE_CAROUSEL;
+            }
+
+            if (item instanceof TopicHeader || item instanceof CountHeader) {
+                return TYPE_ROW_HEADER;
             }
 
             return item instanceof Video ? TYPE_VIDEO : item instanceof SettingsItem ? TYPE_SETTING : TYPE_HEADER;
@@ -1458,8 +1546,12 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                     return new SkeletonHolder(createSkeleton(parent));
                 case TYPE_FOOTER:
                     return new HeaderHolder(createFooter(parent));
-                case TYPE_EDIT_TOPICS:
-                    return new HeaderHolder(createEditTopicsButton(parent));
+                case TYPE_CHIPS:
+                    return new HeaderHolder(createTopicChips(parent));
+                case TYPE_CAROUSEL:
+                    return new CarouselHolder(createCarousel(parent));
+                case TYPE_ROW_HEADER:
+                    return new HeaderHolder(createRowHeader(parent));
                 default:
                     return new HeaderHolder(createHeaderText(parent));
             }
@@ -1473,18 +1565,28 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 ((VideoHolder) holder).bind((Video) item);
             } else if (holder instanceof SettingHolder) {
                 ((SettingHolder) holder).bind((SettingsItem) item);
+            } else if (holder instanceof CarouselHolder) {
+                ((CarouselHolder) holder).bind((CarouselRow) item);
+            } else if (item == TOPIC_CHIPS) {
+                bindTopicChips((LinearLayout) ((android.widget.HorizontalScrollView) holder.itemView).getChildAt(0));
             } else if (item instanceof TopicHeader) {
-                // "Technology            See all ›": opens the full search of the topic
+                // "Technology            See more ›": opens the full search of the topic
                 TopicHeader topic = (TopicHeader) item;
-                TextView header = (TextView) holder.itemView;
-                header.setText(topic.title);
-                Drawable seeAll = ContextCompat.getDrawable(MobileBrowseActivity.this, R.drawable.ic_m_chevron);
-                if (seeAll != null) {
-                    seeAll = seeAll.mutate();
-                    seeAll.setAlpha(170);
-                }
-                header.setCompoundDrawablesWithIntrinsicBounds(null, null, seeAll, null);
-                header.setOnClickListener(v -> SearchPresenter.instance(MobileBrowseActivity.this).startSearch(topic.query));
+                LinearLayout row = (LinearLayout) holder.itemView;
+                ((TextView) row.getChildAt(0)).setText(topic.title);
+                TextView more = (TextView) row.getChildAt(1);
+                more.setText(getString(R.string.mobile_see_more) + " ›");
+                more.setTextColor(0xFF7FB0FF);
+                row.setOnClickListener(v -> MobileSearchActivity.openTopic(MobileBrowseActivity.this, topic.title, topic.query));
+            } else if (item instanceof CountHeader) {
+                CountHeader count = (CountHeader) item;
+                LinearLayout row = (LinearLayout) holder.itemView;
+                ((TextView) row.getChildAt(0)).setText(count.title);
+                TextView more = (TextView) row.getChildAt(1);
+                more.setText(getResources().getQuantityString(R.plurals.mobile_videos_count, count.count, count.count));
+                more.setTextColor(0xFF9FB3D9);
+                row.setOnClickListener(null);
+                row.setClickable(false);
             } else if (item instanceof String) {
                 TextView header = (TextView) holder.itemView;
                 header.setText((String) item);
@@ -1492,6 +1594,96 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 header.setOnClickListener(null);
                 header.setClickable(false);
             }
+        }
+
+        /**
+         * "Topic                See more ›"
+         */
+        private View createRowHeader(ViewGroup parent) {
+            LinearLayout row = new LinearLayout(parent.getContext());
+            row.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(dp(14), dp(14), dp(14), dp(8));
+
+            TextView title = new TextView(parent.getContext());
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(17);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            title.setMaxLines(1);
+            title.setEllipsize(TextUtils.TruncateAt.END);
+            row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+            TextView more = new TextView(parent.getContext());
+            more.setTextSize(13);
+            more.setPadding(dp(12), dp(4), 0, dp(4));
+            row.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            return row;
+        }
+
+        private View createTopicChips(ViewGroup parent) {
+            android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(parent.getContext());
+            scroll.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            scroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout chips = new LinearLayout(parent.getContext());
+            chips.setOrientation(LinearLayout.HORIZONTAL);
+            chips.setPadding(dp(14), dp(6), dp(14), dp(4));
+            scroll.addView(chips);
+            return scroll;
+        }
+
+        /**
+         * All | topic 1 | topic 2 | ... | Watch later | Edit. A topic chip jumps to its row.
+         */
+        private void bindTopicChips(LinearLayout chips) {
+            chips.removeAllViews();
+            chips.addView(createChip(chips, getString(R.string.mobile_all), true, v -> mFeed.smoothScrollToPosition(0)));
+
+            for (Object item : mItems) {
+                if (item instanceof TopicHeader || item instanceof CountHeader) {
+                    String title = item instanceof TopicHeader ? ((TopicHeader) item).title : ((CountHeader) item).title;
+                    chips.addView(createChip(chips, title, false, v -> scrollToItem(item)));
+                }
+            }
+
+            chips.addView(createChip(chips, "✏️ " + getString(R.string.mobile_edit), false, v -> editTopics()));
+        }
+
+        private TextView createChip(ViewGroup parent, String text, boolean selected, View.OnClickListener onClick) {
+            TextView chip = new TextView(parent.getContext());
+            chip.setText(text);
+            chip.setTextSize(13);
+            chip.setTextColor(selected ? Color.WHITE : 0xFFDCE6FA);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(14), 0, dp(14), 0);
+            GradientDrawable shape = new GradientDrawable();
+            shape.setCornerRadius(dp(16));
+            shape.setColor(selected ? ACCENT_COLOR : 0xFF1B2A4F);
+            chip.setBackground(shape);
+            chip.setOnClickListener(onClick);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(32));
+            params.setMargins(0, 0, dp(8), 0);
+            chip.setLayoutParams(params);
+            return chip;
+        }
+
+        private void scrollToItem(Object item) {
+            int position = mItems.indexOf(item);
+
+            if (position != -1 && mFeed.getLayoutManager() instanceof LinearLayoutManager) {
+                ((LinearLayoutManager) mFeed.getLayoutManager()).scrollToPositionWithOffset(position, 0);
+            }
+        }
+
+        private RecyclerView createCarousel(ViewGroup parent) {
+            RecyclerView carousel = new RecyclerView(parent.getContext());
+            carousel.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            carousel.setLayoutManager(new LinearLayoutManager(parent.getContext(), LinearLayoutManager.HORIZONTAL, false));
+            carousel.setPadding(dp(10), 0, dp(10), 0);
+            carousel.setClipToPadding(false);
+            carousel.setNestedScrollingEnabled(false);
+            carousel.setRecycledViewPool(mCarouselPool);
+            return carousel;
         }
 
         private View createEditTopicsButton(ViewGroup parent) {
@@ -1601,6 +1793,74 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
             return row;
         }
+    }
+
+    private final RecyclerView.RecycledViewPool mCarouselPool = new RecyclerView.RecycledViewPool();
+
+    /**
+     * One row of Favorites: small cards that slide sideways (about two and a half cards per screen).
+     */
+    private class CarouselHolder extends RecyclerView.ViewHolder {
+        private final RecyclerView mCarousel;
+        private final SmallCardAdapter mCards = new SmallCardAdapter();
+
+        CarouselHolder(RecyclerView carousel) {
+            super(carousel);
+            mCarousel = carousel;
+            mCarousel.setAdapter(mCards);
+        }
+
+        void bind(CarouselRow row) {
+            boolean sameRow = mCards.mRow != null && TextUtils.equals(mCards.mRow.title, row.title);
+            mCards.mRow = row;
+            mCards.notifyDataSetChanged();
+
+            if (!sameRow) {
+                mCarousel.scrollToPosition(0);
+            }
+        }
+    }
+
+    private class SmallCardAdapter extends RecyclerView.Adapter<VideoHolder> {
+        CarouselRow mRow;
+
+        @NonNull
+        @Override
+        public VideoHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View card = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false);
+            card.setLayoutParams(new RecyclerView.LayoutParams(smallCardWidth(), ViewGroup.LayoutParams.WRAP_CONTENT));
+            card.setPadding(dp(4), 0, dp(4), dp(4));
+            TextView title = card.findViewById(R.id.mobile_item_title);
+            title.setTextSize(13);
+            TextView subtitle = card.findViewById(R.id.mobile_item_subtitle);
+            subtitle.setTextSize(11);
+            subtitle.setMaxLines(1);
+            View text = (View) title.getParent().getParent();
+            text.setPadding(dp(2), dp(6), 0, 0);
+            View more = card.findViewById(R.id.mobile_item_more);
+            more.getLayoutParams().width = dp(28);
+            more.getLayoutParams().height = dp(28);
+            more.setPadding(dp(5), dp(5), dp(5), dp(5));
+            return new VideoHolder(card);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull VideoHolder holder, int position) {
+            holder.bind(mRow.group.videos.get(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return mRow != null ? mRow.group.videos.size() : 0;
+        }
+    }
+
+    /**
+     * About 2.4 cards on a phone in portrait; never larger than 220dp on wide screens.
+     */
+    private int smallCardWidth() {
+        int screen = getResources().getDisplayMetrics().widthPixels;
+        return Math.min(Math.round(screen / 2.4f), dp(220));
     }
 
     private static class HeaderHolder extends RecyclerView.ViewHolder {

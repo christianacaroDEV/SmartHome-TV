@@ -261,18 +261,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     /**
-     * Favorites (TV): "Watch later" of the account, then one row per favorite topic of the current profile.
+     * Favorites (TV): one row per favorite topic of the current profile, then "Watch later" of the account.
      */
     private Observable<List<MediaGroup>> createFavoritesRows() {
         List<Observable<List<MediaGroup>>> rows = new ArrayList<>();
-
-        if (getSignInService().isSigned()) {
-            rows.add(getContentService().getChannelObserve(BlueTubeSync.WATCH_LATER_BROWSE_ID)
-                    .take(1)
-                    .map(groups -> firstRow(groups, getContext().getString(R.string.mobile_watch_later)))
-                    .filter(list -> !list.isEmpty())
-                    .onErrorResumeNext(Observable.<List<MediaGroup>>empty()));
-        }
 
         List<Integer> topics = BlueTubeSync.getSelectedTopics(getContext());
         String[] labels = BlueTubeSync.getTopicLabels(getContext());
@@ -287,6 +279,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             rows.add(getContentService().getSearchObserve(queries[topic])
                     .take(1)
                     .map(groups -> firstRow(groups, label))
+                    .filter(list -> !list.isEmpty())
+                    .onErrorResumeNext(Observable.<List<MediaGroup>>empty()));
+        }
+
+        // Watch later at the end, after the topics (same order as the phone)
+        if (getSignInService().isSigned()) {
+            rows.add(getContentService().getChannelObserve(BlueTubeSync.WATCH_LATER_BROWSE_ID)
+                    .take(1)
+                    .map(groups -> firstRow(groups, getContext().getString(R.string.mobile_watch_later)))
                     .filter(list -> !list.isEmpty())
                     .onErrorResumeNext(Observable.<List<MediaGroup>>empty()));
         }

@@ -13,6 +13,7 @@ import android.view.KeyEvent;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.ViewGroup;
 import android.graphics.drawable.GradientDrawable;
 import android.widget.FrameLayout;
@@ -366,10 +367,48 @@ public class MotherActivity extends FragmentActivity {
      * Re-applies the app's own system bars mode (e.g. after a full screen video changed the flags).
      */
     public void applyFullscreenModeIfNeeded() {
+        if (DeviceMode.isMobile(this)) {
+            // Phones: the status bar stays visible and the app starts below it, like YouTube. Many phones have the
+            // camera in the middle of the top edge: drawn there, the header/player controls ended up under it.
+            // (The watch page hides the bars itself only in full screen.)
+            showMobileSystemBars();
+            return;
+        }
+
         if (mIsFullscreenModeEnabled) {
             // Most of the fullscreen tweaks could be performed in styles but not all.
             // E.g. Hide bottom navigation bar (couldn't be done in styles).
             Helpers.makeActivityFullscreen2(this);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void showMobileSystemBars() {
+        android.view.Window window = getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        // The TV theme draws the app under translucent bars: on phones the content goes between them instead
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+
+        View content = findViewById(android.R.id.content);
+        if (content != null && !content.getFitsSystemWindows()) {
+            content.setFitsSystemWindows(true);
+            androidx.core.view.ViewCompat.requestApplyInsets(content);
+        }
+
+        if (VERSION.SDK_INT >= 30) {
+            window.setDecorFitsSystemWindows(true);
+            android.view.WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.show(android.view.WindowInsets.Type.systemBars());
+            }
+        }
+
+        window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+
+        if (VERSION.SDK_INT >= 21) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(0xFF0A1530); // the BlueTube header color
+            window.setNavigationBarColor(0xFF07101F);
         }
     }
 

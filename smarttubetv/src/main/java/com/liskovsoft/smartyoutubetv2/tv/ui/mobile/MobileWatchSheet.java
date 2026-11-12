@@ -476,6 +476,28 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private void setSystemBarsHidden(boolean hidden) {
         View decor = mActivity.getWindow().getDecorView();
 
+        // The app content sits between the status and navigation bars (camera cutouts): in full screen the video
+        // takes the whole screen instead (except the cutout itself, like YouTube)
+        View content = mActivity.findViewById(android.R.id.content);
+        if (content != null) {
+            content.setFitsSystemWindows(!hidden);
+            if (hidden) {
+                content.setPadding(0, 0, 0, 0);
+            } else {
+                androidx.core.view.ViewCompat.requestApplyInsets(content);
+            }
+        }
+
+        if (hidden && android.os.Build.VERSION.SDK_INT >= 30) {
+            // Android 11+: the window keeps the bar margins unless told otherwise
+            mActivity.getWindow().setDecorFitsSystemWindows(false);
+            android.view.WindowInsetsController controller = mActivity.getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.systemBars());
+                controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+
         if (hidden) {
             if (mSavedSystemUi == -1) {
                 mSavedSystemUi = decor.getSystemUiVisibility(); // the app's own flags, restored when leaving full screen

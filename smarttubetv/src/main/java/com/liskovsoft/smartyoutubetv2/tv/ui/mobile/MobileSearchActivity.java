@@ -78,6 +78,10 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
     private boolean mIgnoreTextChange;
     private Video mLastScrollEndVideo;
     private String mPendingQuery = "";
+    /** Set by {@link #openTopic}: the next search is a Favorites topic list */
+    private static String sTopicTitle;
+    private boolean mTopicMode;
+    private boolean mTopicTagRemoved;
     private final Runnable mLoadSuggestions = this::loadSuggestions;
 
     @Override
@@ -199,6 +203,12 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
             return;
         }
 
+        if (mTopicMode && !mTopicTagRemoved && mLastQuery != null) {
+            // Opening a topic is not a search of the user: keep it out of the search history
+            mTopicTagRemoved = true;
+            MediaServiceManager.instance().removeSearchTag(mLastQuery);
+        }
+
         List<Video> videos = mResultGroups.get(group.getId());
 
         if (videos == null) {
@@ -275,8 +285,40 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         }
     }
 
+    /**
+     * Favorites "See more": the videos of a topic as a list (title + videos), not as a search screen.
+     */
+    public static void openTopic(Context context, String title, String query) {
+        sTopicTitle = title;
+        SearchPresenter.instance(context).startSearch(query);
+    }
+
+    private void enterTopicMode(String title) {
+        mTopicMode = true;
+        mTopicTagRemoved = false;
+        hideKeyboard();
+        mField.setFocusable(false);
+        mField.setFocusableInTouchMode(false);
+        mField.setCursorVisible(false);
+        mField.setLongClickable(false);
+        mField.setTypeface(null, android.graphics.Typeface.BOLD);
+        mField.setBackground(null);
+        ((View) mField.getParent()).setBackground(null);
+        findViewById(R.id.mobile_search_mic).setVisibility(View.GONE);
+    }
+
     @Override
     public void startSearch(String searchText) {
+        if (sTopicTitle != null && !TextUtils.isEmpty(searchText)) {
+            String title = sTopicTitle;
+            sTopicTitle = null;
+            enterTopicMode(title);
+            submit(searchText);
+            setFieldText(title); // the topic name as the title of the list
+            mClearButton.setVisibility(View.GONE);
+            return;
+        }
+
         if (TextUtils.isEmpty(searchText)) {
             // Empty search: show the history and open the keyboard
             showSuggestionsMode(mField.getText().toString());
@@ -334,7 +376,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mLastQuery = query.trim();
         setSearchHidden(mLastQuery, false); // searching it again brings it back to the history
         mIsLoading = true;
-        mFilters.setVisibility(View.VISIBLE);
+        mFilters.setVisibility(mTopicMode ? View.GONE : View.VISIBLE);
         mPresenter.setFilters(mFilters.getTypeOptions(), mFilters.getDurationOptions(), mFilters.getUploadDateOptions());
         mAdapter.setItems(buildResultItems());
         mPresenter.onSearch(mLastQuery);
@@ -417,7 +459,12 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
 
         for (List<Video> videos : mResultGroups.values()) {
             for (Video video : videos) {
-                if (mFilters.accepts(video)) {
+                if (mTopicMode) {
+                    // A topic list: only real videos (no channels, playlists or shorts), like a playlist
+                    if (video != null && video.videoId != null && !video.isShorts && !video.isChannel() && !video.isPlaylistAsChannel()) {
+                        items.add(video);
+                    }
+                } else if (mFilters.accepts(video)) {
                     items.add(video);
                 }
             }

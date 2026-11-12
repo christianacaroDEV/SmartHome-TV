@@ -18,6 +18,7 @@ import java.util.Set;
 
 public class HQDialogController extends BasePlayerController {
     private static final String TAG = HQDialogController.class.getSimpleName();
+    private static final int QUALITY_ID = 131;
     private static final int VIDEO_FORMATS_ID = 132;
     private static final int AUDIO_FORMATS_ID = 133;
     // NOTE: using map, because same item could be changed time to time
@@ -46,6 +47,7 @@ public class HQDialogController extends BasePlayerController {
     private void onHighQualityClicked() {
         fitVideoIntoDialog();
 
+        addSimpleQualityCategory();
         addQualityCategories();
         addAudioLanguage();
         addPresetsCategory();
@@ -84,6 +86,109 @@ public class HQDialogController extends BasePlayerController {
                 OptionCategory.TYPE_RADIO_LIST,
                 audioFormatsTitle,
                 UiOptionItem.from(audioFormats, this::selectFormatOption, getContext().getString(R.string.option_disabled))));
+    }
+
+    /**
+     * BlueTube: "Quality" like YouTube, first in the dialog: Automatic (the default quality) or one entry per
+     * resolution the video has (up to 4K/8K). The technical "Video formats" list stays below for advanced users.
+     */
+    private void addSimpleQualityCategory() {
+        if (getPlayer() == null) {
+            return;
+        }
+
+        List<FormatItem> formats = getPlayer().getVideoFormats();
+
+        if (formats == null || formats.isEmpty()) {
+            return;
+        }
+
+        FormatItem defaultFormat = getPlayerData().getDefaultVideoFormat();
+        FormatItem saved = getPlayerData().getFormat(FormatItem.TYPE_VIDEO);
+        boolean isAuto = saved == null || saved.equals(defaultFormat);
+        java.util.TreeMap<Integer, FormatItem> byQuality = new java.util.TreeMap<>(java.util.Collections.reverseOrder());
+        int selectedQuality = -1;
+
+        for (FormatItem format : formats) {
+            int quality = qualityOf(format);
+
+            if (quality <= 0) {
+                continue;
+            }
+
+            if (format.isSelected()) {
+                selectedQuality = quality;
+            }
+
+            FormatItem best = byQuality.get(quality);
+            // Up to 1080p the AVC stream is lighter for phones and old TVs; above that only VP9/AV1 exist
+            if (best == null || (quality <= 1080 && isAvc(format) && !isAvc(best))) {
+                byQuality.put(quality, format);
+            }
+        }
+
+        List<OptionItem> options = new java.util.ArrayList<>();
+        options.add(UiOptionItem.from(getContext().getString(R.string.mobile_quality_auto),
+                option -> applySimpleQuality(defaultFormat), isAuto));
+
+        for (Map.Entry<Integer, FormatItem> entry : byQuality.entrySet()) {
+            FormatItem format = entry.getValue();
+            options.add(UiOptionItem.from(qualityLabel(entry.getKey()),
+                    option -> applySimpleQuality(format), !isAuto && entry.getKey() == selectedQuality));
+        }
+
+        addCategoryInt(OptionCategory.from(QUALITY_ID, OptionCategory.TYPE_RADIO_LIST,
+                getContext().getString(R.string.mobile_quality), options));
+    }
+
+    private void applySimpleQuality(FormatItem format) {
+        if (getPlayer() == null || format == null) {
+            return;
+        }
+
+        getPlayer().setFormat(format);
+        persistFormat(format); // also for the next videos, until the user picks another one
+
+        if (!getPlayer().containsMedia()) {
+            getPlayer().reloadPlayback();
+        }
+
+        mAppDialogPresenter.closeDialog();
+        getPlayer().showOverlay(false);
+    }
+
+    /**
+     * The short side of the picture: a vertical 1080x1920 video is "1080p", like YouTube shows it.
+     */
+    private static int qualityOf(FormatItem format) {
+        if (format == null) {
+            return -1;
+        }
+
+        int width = format.getWidth();
+        int height = format.getHeight();
+        return width > 0 && height > 0 ? Math.min(width, height) : height;
+    }
+
+    private static boolean isAvc(FormatItem format) {
+        CharSequence title = format.getTitle();
+        return title != null && title.toString().contains("avc");
+    }
+
+    private static String qualityLabel(int quality) {
+        String label = quality + "p";
+
+        if (quality >= 4320) {
+            return label + " (8K)";
+        } else if (quality >= 2160) {
+            return label + " (4K)";
+        } else if (quality >= 1440) {
+            return label + " (2K)";
+        } else if (quality >= 720) {
+            return label + " HD";
+        }
+
+        return label;
     }
 
     private void selectFormatOption(OptionItem option) {
