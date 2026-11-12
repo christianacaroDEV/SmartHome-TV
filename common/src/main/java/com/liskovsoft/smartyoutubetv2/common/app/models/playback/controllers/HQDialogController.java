@@ -116,14 +116,17 @@ public class HQDialogController extends BasePlayerController {
                 continue;
             }
 
+            // One entry per resolution AND frame rate: "1080p60" and "1080p" are different options (like YouTube)
+            int key = quality * 2 + (is60fps(format) ? 1 : 0);
+
             if (format.isSelected()) {
-                selectedQuality = quality;
+                selectedQuality = key;
             }
 
-            FormatItem best = byQuality.get(quality);
+            FormatItem best = byQuality.get(key);
             // Up to 1080p the AVC stream is lighter for phones and old TVs; above that only VP9/AV1 exist
             if (best == null || (quality <= 1080 && isAvc(format) && !isAvc(best))) {
-                byQuality.put(quality, format);
+                byQuality.put(key, format);
             }
         }
 
@@ -133,7 +136,7 @@ public class HQDialogController extends BasePlayerController {
 
         for (Map.Entry<Integer, FormatItem> entry : byQuality.entrySet()) {
             FormatItem format = entry.getValue();
-            options.add(UiOptionItem.from(qualityLabel(entry.getKey()),
+            options.add(UiOptionItem.from(qualityLabel(entry.getKey() / 2, entry.getKey() % 2 == 1),
                     option -> applySimpleQuality(format), !isAuto && entry.getKey() == selectedQuality));
         }
 
@@ -175,8 +178,15 @@ public class HQDialogController extends BasePlayerController {
         return title != null && title.toString().contains("avc");
     }
 
-    private static String qualityLabel(int quality) {
-        String label = quality + "p";
+    /**
+     * 50/60 fps streams (sports, games...): the rest are 24/25/30 fps.
+     */
+    private static boolean is60fps(FormatItem format) {
+        return format.getFrameRate() >= 48;
+    }
+
+    private static String qualityLabel(int quality, boolean is60fps) {
+        String label = quality + "p" + (is60fps ? "60" : "");
 
         if (quality >= 4320) {
             return label + " (8K)";
