@@ -10,6 +10,9 @@ import androidx.annotation.Nullable;
 import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaItem;
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeTvProfiles;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.locale.LocaleUtility;
 import com.liskovsoft.sharedutils.mylogger.Log;
@@ -127,6 +130,11 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         updateSections();
 
+        if (!DeviceMode.isMobile(getContext())) {
+            // TV: profiles and favorites of the account, then "Who is watching?"
+            BlueTubeTvProfiles.onTvStart(getContext(), this::onFavoritesChanged);
+        }
+
         // Move default focus
         int selectedSectionIndex = findSectionIndex(mCurrentSection != null ? mCurrentSection.getId() : mBootstrapSectionId);
         mBootstrapSectionId = -1;
@@ -212,6 +220,12 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         mSectionsMapping.put(MediaGroup.TYPE_NOTIFICATIONS, new BrowseSection(MediaGroup.TYPE_NOTIFICATIONS, getContext().getString(R.string.header_notifications), BrowseSection.TYPE_GRID, R.drawable.icon_notification, false));
         mSectionsMapping.put(MediaGroup.TYPE_PLAYBACK_QUEUE, new BrowseSection(MediaGroup.TYPE_PLAYBACK_QUEUE, getContext().getString(R.string.playback_queue_category_title), BrowseSection.TYPE_GRID, R.drawable.icon_queue, false));
 
+        if (!DeviceMode.isMobile(getContext())) {
+            // TV: the Favorites of the phone (same account = same profiles, topics and Watch later)
+            mSectionsMapping.put(BlueTubeSync.FAVORITES_SECTION_ID, new BrowseSection(BlueTubeSync.FAVORITES_SECTION_ID,
+                    getContext().getString(R.string.mobile_topics_title), BrowseSection.TYPE_ROW, R.drawable.icon_favorites, false));
+        }
+
         if (getSidebarService().isSettingsSectionEnabled()) {
             mSectionsMapping.put(MediaGroup.TYPE_SETTINGS, new BrowseSection(MediaGroup.TYPE_SETTINGS, getContext().getString(R.string.header_settings), BrowseSection.TYPE_SETTINGS_GRID, R.drawable.icon_settings));
         }
@@ -240,20 +254,98 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         return Observable.concat(continueRow, home);
     }
 
+    private void onFavoritesChanged() {
+        if (getView() != null && mCurrentSection != null && mCurrentSection.getId() == BlueTubeSync.FAVORITES_SECTION_ID) {
+            refresh(false);
+        }
+    }
+
+    /**
+     * Favorites (TV): "Watch later" of the account, then one row per favorite topic of the current profile.
+     */
+    private Observable<List<MediaGroup>> createFavoritesRows() {
+        List<Observable<List<MediaGroup>>> rows = new ArrayList<>();
+
+        if (getSignInService().isSigned()) {
+            rows.add(getContentService().getChannelObserve(BlueTubeSync.WATCH_LATER_BROWSE_ID)
+                    .take(1)
+                    .map(groups -> firstRow(groups, getContext().getString(R.string.mobile_watch_later)))
+                    .filter(list -> !list.isEmpty())
+                    .onErrorResumeNext(Observable.<List<MediaGroup>>empty()));
+        }
+
+        List<Integer> topics = BlueTubeSync.getSelectedTopics(getContext());
+        String[] labels = BlueTubeSync.getTopicLabels(getContext());
+        String[] queries = BlueTubeSync.getTopicQueries(getContext());
+
+        for (int topic : topics) {
+            if (topic >= labels.length || topic >= queries.length) {
+                continue;
+            }
+
+            String label = labels[topic];
+            rows.add(getContentService().getSearchObserve(queries[topic])
+                    .take(1)
+                    .map(groups -> firstRow(groups, label))
+                    .filter(list -> !list.isEmpty())
+                    .onErrorResumeNext(Observable.<List<MediaGroup>>empty()));
+        }
+
+        return Observable.concat(rows);
+    }
+
+    /**
+     * Only real videos (no channels, playlists or shorts) of the first non-empty group, with a custom title.
+     */
+    private static List<MediaGroup> firstRow(List<MediaGroup> groups, String title) {
+        List<MediaGroup> result = new ArrayList<>();
+
+        if (groups == null) {
+            return result;
+        }
+
+        for (MediaGroup group : groups) {
+            if (group == null || group.getMediaItems() == null) {
+                continue;
+            }
+
+            List<MediaItem> videos = new ArrayList<>();
+
+            for (MediaItem item : group.getMediaItems()) {
+                if (item != null && item.getVideoId() != null && !item.isShorts()) {
+                    videos.add(item);
+                }
+            }
+
+            if (!videos.isEmpty()) {
+                result.add(new TitledMediaGroup(group, title, videos));
+                break;
+            }
+        }
+
+        return result;
+    }
+
     /**
      * Same group but with a custom row title.
      */
     private static final class TitledMediaGroup implements MediaGroup {
         private final MediaGroup mBase;
         private final String mTitle;
+        private final List<MediaItem> mItems;
 
         TitledMediaGroup(MediaGroup base, String title) {
+            this(base, title, null);
+        }
+
+        TitledMediaGroup(MediaGroup base, String title, List<MediaItem> items) {
             mBase = base;
             mTitle = title;
+            mItems = items;
         }
 
         @Override public int getType() { return mBase.getType(); }
-        @Override public List<MediaItem> getMediaItems() { return mBase.getMediaItems(); }
+        @Override public List<MediaItem> getMediaItems() { return mItems != null ? mItems : mBase.getMediaItems(); }
         @Override public String getTitle() { return mTitle; }
         @Override public String getChannelId() { return mBase.getChannelId(); }
         @Override public String getParams() { return mBase.getParams(); }
@@ -273,6 +365,8 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         mRowMapping.put(MediaGroup.TYPE_MUSIC, getContentService().getMusicObserve());
         mRowMapping.put(MediaGroup.TYPE_GAMING, getContentService().getGamingObserve());
         mRowMapping.put(MediaGroup.TYPE_USER_PLAYLISTS, getContentService().getPlaylistRowsObserve());
+        // built on every visit: the profile or its topics may have changed
+        mRowMapping.put(BlueTubeSync.FAVORITES_SECTION_ID, Observable.defer(this::createFavoritesRows));
 
         mGridMapping.put(MediaGroup.TYPE_SHORTS, getContentService().getShortsObserve());
         mGridMapping.put(MediaGroup.TYPE_SUBSCRIPTIONS, getContentService().getSubscriptionsObserve());
@@ -356,10 +450,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         int bootSectionId = getSidebarService().getBootSectionId();
 
-        // Empty Home on first run fix. Switch to something non-empty.
-        if (!getSignInService().isSigned() && VideoStateService.instance(getContext()).isEmpty()) {
-            bootSectionId = MediaGroup.TYPE_MUSIC;
-        }
+        // BlueTube: always start in Home, like YouTube (the old "empty Home" fallback opened Music instead)
 
         int index = 0;
 
@@ -708,6 +799,27 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 }
                 break;
             case BrowseSection.TYPE_ROW:
+                if (section.getId() == BlueTubeSync.FAVORITES_SECTION_ID && BlueTubeSync.getSelectedTopics(getContext()).isEmpty()) {
+                    // No topics yet (this profile never picked them, here or on the phone): offer to pick them
+                    getView().showProgressBar(false);
+                    getView().showError(new ErrorFragmentData() {
+                        @Override
+                        public void onAction() {
+                            BlueTubeTvProfiles.showSettings(getContext(), () -> refresh(false));
+                        }
+
+                        @Override
+                        public String getMessage() {
+                            return getContext().getString(R.string.mobile_topics_empty);
+                        }
+
+                        @Override
+                        public String getActionText() {
+                            return getContext().getString(R.string.mobile_topics_choose);
+                        }
+                    });
+                    break;
+                }
                 Observable<List<MediaGroup>> groups = mRowMapping.get(section.getId());
                 updateVideoRows(section, groups, section.isAuthOnly());
                 break;

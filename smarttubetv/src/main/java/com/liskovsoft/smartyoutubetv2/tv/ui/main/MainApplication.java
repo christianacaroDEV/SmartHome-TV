@@ -101,6 +101,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         MobileSettings.applyCompactPlayerButtonsOnce(this);
         MobileSettings.applyNormalQualityOnce(this);
         MobileSettings.applyMobileMenuOnce(this);
+        MobileSettings.applyTvDefaultsOnce(this);
         setupGlobalExceptionHandler();
         setupViewManager();
     }

@@ -1,6 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.mobile;
 
 import com.liskovsoft.smartyoutubetv2.common.misc.MobileSettings;
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
 import com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import android.animation.ObjectAnimator;
@@ -271,6 +272,22 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             }, 600);
         } else {
             askTopicsIfNeeded();
+        }
+
+        // Same account on the TV/another phone: bring its profiles and favorites
+        BlueTubeSync.pull(this, this::onAccountSynced);
+    }
+
+    private void onAccountSynced() {
+        if (isFinishing()) {
+            return;
+        }
+
+        updateProfileButton();
+        mContents.remove(MY_TOPICS_ID);
+
+        if (mCurrentSectionId == MY_TOPICS_ID) {
+            loadMyTopics();
         }
     }
 
@@ -923,6 +940,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         // Built aside: the old rows stay on screen until the new videos arrive
         SectionContent fresh = new SectionContent();
         fresh.groups.put(WATCH_LATER_GROUP_ID, watchLaterGroup());
+        loadAccountWatchLater(fresh);
 
         for (int topic : topics) {
             GroupContent group = new GroupContent();
@@ -1020,7 +1038,59 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         if (content != null && content.groups.containsKey(WATCH_LATER_GROUP_ID)) {
             content.groups.put(WATCH_LATER_GROUP_ID, watchLaterGroup());
             showCurrentContent();
+            // the account playlist needs a moment to apply what was just saved
+            mFeed.postDelayed(() -> {
+                if (!isFinishing() && mContents.get(MY_TOPICS_ID) == content) {
+                    loadAccountWatchLater(content);
+                }
+            }, 2_000);
         }
+    }
+
+    /**
+     * Signed in: "Watch later" is the YouTube Watch later playlist of the account (the same one the TV shows).
+     * The list saved on the phone stays on screen until the account answers, or if it fails.
+     */
+    private void loadAccountWatchLater(SectionContent target) {
+        if (!YouTubeSignInService.instance().isSigned()) {
+            return;
+        }
+
+        Disposable action = YouTubeServiceManager.instance().getContentService().getChannelObserve(BlueTubeSync.WATCH_LATER_BROWSE_ID)
+                .take(1)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                        mediaGroups -> {
+                            GroupContent group = new GroupContent();
+                            group.title = watchLaterGroup().title;
+
+                            if (mediaGroups != null) {
+                                for (MediaGroup mediaGroup : mediaGroups) {
+                                    VideoGroup videoGroup = VideoGroup.from(mediaGroup);
+                                    if (videoGroup.getVideos() == null) {
+                                        continue;
+                                    }
+                                    List<Video> videos = new ArrayList<>();
+                                    for (Video video : videoGroup.getVideos()) {
+                                        if (video != null && video.videoId != null) {
+                                            videos.add(video);
+                                        }
+                                    }
+                                    addVideos(group, videos, false);
+                                }
+                            }
+
+                            target.groups.put(WATCH_LATER_GROUP_ID, group);
+                            SectionContent current = mContents.get(MY_TOPICS_ID);
+                            if (current != null && current != target) {
+                                current.groups.put(WATCH_LATER_GROUP_ID, group);
+                            }
+                            if (mCurrentSectionId == MY_TOPICS_ID) {
+                                showCurrentContent();
+                            }
+                        },
+                        error -> com.liskovsoft.sharedutils.mylogger.Log.e("MobileBrowseActivity", "Account watch later error: %s", error.getMessage()));
+        mTopicActions.add(action);
     }
 
     private void editTopics() {

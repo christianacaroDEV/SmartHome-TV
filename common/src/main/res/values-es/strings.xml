@@ -826,6 +826,8 @@
     <string name="mobile_unsubscribe_confirm">¿Anular la suscripción a %s?</string>
     <string name="mobile_unsubscribe">Anular suscripción</string>
     <string name="mobile_cancel">Cancelar</string>
+    <string name="mobile_tv_profiles_title">Perfiles y Favoritos</string>
+    <string name="mobile_tv_topics_of">Temas favoritos de %s</string>
     <string name="mobile_profile_default">Principal</string>
     <string name="mobile_profile_who">¿Quién está viendo?</string>
     <string name="mobile_profile_hint">Cada perfil tiene sus propios Favoritos y Ver más tarde. Mantén presionado para borrar uno.</string>

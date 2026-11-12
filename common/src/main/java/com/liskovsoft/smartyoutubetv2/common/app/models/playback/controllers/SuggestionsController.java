@@ -408,6 +408,22 @@ public class SuggestionsController extends BasePlayerController {
             if (group != null && !group.isEmpty()) {
                 VideoGroup videoGroup = VideoGroup.from(group);
 
+                // BlueTube: the video being watched is not a suggestion (YouTube sometimes puts it first).
+                // Playlists keep it: there it marks the current position.
+                if (!video.hasPlaylist() && video.videoId != null && videoGroup.getVideos() != null) {
+                    java.util.Iterator<Video> iterator = videoGroup.getVideos().iterator();
+                    while (iterator.hasNext()) {
+                        Video item = iterator.next();
+                        if (item != null && video.videoId.equals(item.videoId)) {
+                            iterator.remove();
+                        }
+                    }
+                }
+
+                if (videoGroup.isEmpty()) {
+                    continue;
+                }
+
                 if (TextUtils.isEmpty(videoGroup.getTitle())) {
                     videoGroup.setTitle(getContext().getString(R.string.suggestions));
                     if (getPlayerTweaksData().isSuggestionsHorizontallyScrolled()) {

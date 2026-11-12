@@ -827,6 +827,8 @@
     <string name="mobile_unsubscribe_confirm">Unsubscribe from %s?</string>
     <string name="mobile_unsubscribe">Unsubscribe</string>
     <string name="mobile_cancel">Cancel</string>
+    <string name="mobile_tv_profiles_title">Profiles and Favorites</string>
+    <string name="mobile_tv_topics_of">Favorite topics of %s</string>
     <string name="mobile_profile_default">Main</string>
     <string name="mobile_profile_who">Who is watching?</string>
     <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>

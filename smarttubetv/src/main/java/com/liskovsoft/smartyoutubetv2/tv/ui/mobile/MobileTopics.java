@@ -19,6 +19,7 @@ import android.widget.TextView;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 
@@ -99,6 +100,7 @@ public final class MobileTopics {
         }
 
         prefs(context).edit().putString(MobileProfiles.key(context, KEY_TOPICS), TextUtils.join(",", selectedKeys)).putBoolean(MobileProfiles.key(context, KEY_TOPICS_ASKED), true).apply();
+        BlueTubeSync.push(context); // same account = same favorites on the TV
     }
 
     /**

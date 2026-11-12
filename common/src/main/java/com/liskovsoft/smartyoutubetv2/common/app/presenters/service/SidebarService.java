@@ -2,11 +2,14 @@ package com.liskovsoft.smartyoutubetv2.common.app.presenters.service;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs.ProfileChangeListener;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -238,6 +241,9 @@ public class SidebarService implements ProfileChangeListener {
     private void initSections() {
         mDefaultSections.put(R.string.header_notifications, MediaGroup.TYPE_NOTIFICATIONS);
         mDefaultSections.put(R.string.header_home, MediaGroup.TYPE_HOME);
+        if (!DeviceMode.isMobile(mContext)) {
+            mDefaultSections.put(R.string.mobile_topics_title, BlueTubeSync.FAVORITES_SECTION_ID);
+        }
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
         mDefaultSections.put(R.string.header_trending, MediaGroup.TYPE_TRENDING);
         mDefaultSections.put(R.string.header_kids_home, MediaGroup.TYPE_KIDS_HOME);
@@ -304,6 +310,18 @@ public class SidebarService implements ProfileChangeListener {
 
         // Backward compatibility
         enableSection(MediaGroup.TYPE_SETTINGS, true);
+
+        // BlueTube: the Favorites section appears once on TVs set up before it existed (right after Home)
+        SharedPreferences prefs = BlueTubeSync.prefs(mContext);
+        if (!DeviceMode.isMobile(mContext) && !prefs.getBoolean("tv_favorites_section_added", false)) {
+            prefs.edit().putBoolean("tv_favorites_section_added", true).apply();
+            enableSection(BlueTubeSync.FAVORITES_SECTION_ID, true);
+            int homeIndex = getSectionIndex(MediaGroup.TYPE_HOME);
+            for (int i = 0; i < 20 && homeIndex != -1 && getSectionIndex(BlueTubeSync.FAVORITES_SECTION_ID) > homeIndex + 1
+                    && canMoveSectionUp(BlueTubeSync.FAVORITES_SECTION_ID); i++) {
+                moveSectionUp(BlueTubeSync.FAVORITES_SECTION_ID);
+            }
+        }
 
         cleanupPinnedItems();
     }

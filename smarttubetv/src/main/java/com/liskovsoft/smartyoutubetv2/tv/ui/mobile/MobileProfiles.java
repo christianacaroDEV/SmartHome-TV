@@ -20,6 +20,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 
 import org.json.JSONArray;
@@ -139,6 +140,7 @@ public final class MobileProfiles {
         Profile profile = new Profile(id, name, COLORS[profiles.size() % COLORS.length]);
         profiles.add(profile);
         save(context, profiles);
+        BlueTubeSync.push(context, new BlueTubeSync.Profile(profile.id, profile.name, profile.color));
         return profile;
     }
 
@@ -153,6 +155,7 @@ public final class MobileProfiles {
         }
 
         save(context, result);
+        BlueTubeSync.remove(context, toRemove.name);
 
         // Its own saved data goes too
         SharedPreferences.Editor editor = prefs(context).edit();

@@ -19,6 +19,7 @@ public final class MobileSettings {
     private static final String KEY_COMPACT_BUTTONS_APPLIED = "mobile_compact_buttons_applied";
     private static final String KEY_NORMAL_QUALITY_APPLIED = "mobile_normal_quality_applied";
     private static final String KEY_MOBILE_MENU_APPLIED = "mobile_menu_applied";
+    private static final String KEY_TV_DEFAULTS_APPLIED = "tv_defaults_v1";
     /**
      * The few player buttons that make sense on a small screen. Everything else is reachable from the
      * quality (HQ) dialog, and the user can still enable more buttons in the settings.
@@ -70,6 +71,34 @@ public final class MobileSettings {
         data.setPlayerButtonDisabled(all & ~COMPACT_PLAYER_BUTTONS);
         data.setPlayerButtonEnabled(COMPACT_PLAYER_BUTTONS);
         prefs.edit().putBoolean(KEY_COMPACT_BUTTONS_APPLIED, true).apply();
+    }
+
+    /**
+     * Once per install (TV only): a simple player like YouTube on TV (play/pause, previous/next, quality, subtitles,
+     * like and save). Everything else stays in the quality (HQ) dialog and can be enabled again in the settings.
+     * The video menu also offers "Watch later" (shared with the phone through the account).
+     */
+    public static void applyTvDefaultsOnce(Context context) {
+        SharedPreferences prefs = getPrefs(context);
+
+        if (prefs.getBoolean(KEY_TV_DEFAULTS_APPLIED, false) || DeviceMode.isMobile(context)) {
+            return;
+        }
+
+        PlayerTweaksData data = PlayerTweaksData.instance(context);
+        int all = 0;
+
+        for (int bit = 0; bit < 28; bit++) {
+            all |= 1 << bit;
+        }
+
+        data.setPlayerButtonDisabled(all & ~COMPACT_PLAYER_BUTTONS);
+        data.setPlayerButtonEnabled(COMPACT_PLAYER_BUTTONS);
+        // Next video = the suggestions (like YouTube), not the row of the Home it was opened from
+        // (that row showed the video being watched as the first "suggestion")
+        data.setSectionPlaylistEnabled(false);
+        MainUIData.instance(context).setMenuItemEnabled(MainUIData.MENU_ITEM_ADD_TO_WATCH_LATER);
+        prefs.edit().putBoolean(KEY_TV_DEFAULTS_APPLIED, true).apply();
     }
 
     /**

@@ -4,6 +4,7 @@ import android.content.Context;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSimpleSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AccountSettingsPresenter;
@@ -43,6 +44,13 @@ public class AppDataSourceManager {
 
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_accounts), () -> AccountSettingsPresenter.instance(context).show(), R.drawable.settings_account));
+        if (!DeviceMode.isMobile(context)) {
+            // TV: family profile and its Favorites topics (shared with the phone through the account)
+            settingItems.add(new SettingsItem(
+                    context.getString(R.string.mobile_tv_profiles_title),
+                    () -> BlueTubeTvProfiles.showSettings(context, () -> BrowsePresenter.instance(context).refresh(false)),
+                    R.drawable.settings_account));
+        }
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_remote_control), () -> RemoteControlSettingsPresenter.instance(context).show(), R.drawable.settings_cast));
         settingItems.add(new SettingsItem(
