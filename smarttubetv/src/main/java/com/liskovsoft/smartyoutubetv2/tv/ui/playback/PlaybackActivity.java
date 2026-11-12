@@ -1,5 +1,8 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.playback;
 
+import android.view.View;
+import android.provider.Settings;
+import android.view.OrientationEventListener;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
@@ -42,6 +45,14 @@ public class PlaybackActivity extends LeanbackActivity {
     private boolean gamepadTriggerPressed = false;
     private PlaybackFragment mPlaybackFragment;
     private MobileWatchPanel mMobilePanel;
+    private static final int ORIENTATION_LANDSCAPE = 1;
+    private static final int ORIENTATION_PORTRAIT = 2;
+    private int mAwaitedOrientation;
+    private OrientationEventListener mOrientationListener;
+    private boolean mSwipeActive;
+    private float mSwipeStartX;
+    private float mSwipeStartY;
+    private long mSwipeStartTime;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -144,8 +155,102 @@ public class PlaybackActivity extends LeanbackActivity {
      * screen back, because the phone is still held in the old position.
      */
     void toggleOrientation() {
-        boolean portrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+        boolean portrait = isPortraitScreen();
         setRequestedOrientation(portrait ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+        mAwaitedOrientation = portrait ? ORIENTATION_LANDSCAPE : ORIENTATION_PORTRAIT;
+        watchPhoneOrientation();
+    }
+
+    private boolean isPortraitScreen() {
+        View content = findViewById(android.R.id.content);
+
+        if (content != null && content.getWidth() > 0 && content.getHeight() > 0) {
+            return content.getHeight() > content.getWidth();
+        }
+
+        return getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+    }
+
+    /**
+     * The button locks the screen in the chosen orientation. The lock is released as soon as the phone is physically held
+     * that way, so from then on rotating the phone enters/leaves full screen by itself (like YouTube).
+     * With the system auto-rotate turned off the lock is kept (otherwise the screen would jump back).
+     */
+    private void watchPhoneOrientation() {
+        if (mOrientationListener == null) {
+            mOrientationListener = new OrientationEventListener(this) {
+                @Override
+                public void onOrientationChanged(int degrees) {
+                    if (degrees == ORIENTATION_UNKNOWN || mAwaitedOrientation == 0) {
+                        return;
+                    }
+
+                    boolean landscape = (degrees >= 60 && degrees <= 120) || (degrees >= 240 && degrees <= 300);
+                    boolean portrait = degrees <= 30 || degrees >= 330 || (degrees >= 150 && degrees <= 210);
+
+                    if ((mAwaitedOrientation == ORIENTATION_LANDSCAPE && landscape) || (mAwaitedOrientation == ORIENTATION_PORTRAIT && portrait)) {
+                        mAwaitedOrientation = 0;
+                        disable();
+
+                        if (Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, 0) == 1) {
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                        }
+                    }
+                }
+            };
+        }
+
+        mOrientationListener.enable();
+    }
+
+    /**
+     * YouTube-like gestures on the video: swipe down = minimize (portrait) / leave full screen (landscape),
+     * swipe up = full screen (portrait).
+     */
+    private void detectVideoSwipe(MotionEvent event) {
+        if (mMobilePanel == null || mMobilePanel.isLocked() || isInPipMode()) {
+            return;
+        }
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                int videoArea = mMobilePanel.getVideoAreaHeight();
+                mSwipeActive = event.getPointerCount() == 1 && (videoArea == 0 || event.getY() < videoArea);
+                mSwipeStartX = event.getX();
+                mSwipeStartY = event.getY();
+                mSwipeStartTime = event.getEventTime();
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_CANCEL:
+                mSwipeActive = false;
+                break;
+            case MotionEvent.ACTION_UP:
+                if (!mSwipeActive) {
+                    break;
+                }
+                mSwipeActive = false;
+
+                float density = getResources().getDisplayMetrics().density;
+                float dx = event.getX() - mSwipeStartX;
+                float dy = event.getY() - mSwipeStartY;
+
+                if (event.getEventTime() - mSwipeStartTime > 800 || Math.abs(dy) < 90 * density || Math.abs(dy) < 2 * Math.abs(dx)) {
+                    break;
+                }
+
+                boolean portrait = isPortraitScreen();
+
+                if (dy > 0) {
+                    if (portrait) {
+                        minimizeToPip();
+                    } else {
+                        toggleOrientation();
+                    }
+                } else if (portrait) {
+                    toggleOrientation();
+                }
+                break;
+        }
     }
 
     @Override
@@ -172,6 +277,8 @@ public class PlaybackActivity extends LeanbackActivity {
             boolean onUnlock = mMobilePanel.onLockedTouch(event.getRawX(), event.getRawY());
             return onUnlock ? super.dispatchTouchEvent(event) : true;
         }
+
+        detectVideoSwipe(event);
 
         // Portrait watch page: only the video area controls the player; the list below just scrolls
         boolean overPanel = mMobilePanel != null && mMobilePanel.isPortraitPanelShown() && event.getY() > mMobilePanel.getVideoAreaHeight();

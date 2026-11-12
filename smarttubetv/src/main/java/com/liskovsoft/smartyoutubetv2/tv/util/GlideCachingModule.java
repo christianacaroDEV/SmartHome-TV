@@ -1,5 +1,13 @@
 package com.liskovsoft.smartyoutubetv2.tv.util;
 
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import android.graphics.Bitmap;
+import com.bumptech.glide.Registry;
+import com.bumptech.glide.Glide;
+import androidx.annotation.NonNull;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.load.DecodeFormat;
 import android.content.Context;
 
 import com.bumptech.glide.GlideBuilder;
@@ -22,5 +30,19 @@ public class GlideCachingModule extends AppGlideModule {
 
         // Limit cache size
         builder.setDiskCache(new InternalCacheDiskCacheFactory(context, CACHE_SIZE));
+
+        // Hardware bitmaps + the bitmap pool crash the whole app on some Android versions after the app comes back
+        // from the background/PIP: "Abort message: 'unknown bitmap configuration'" (native SIGABRT in Downsampler.setInBitmap).
+        // The bitmap pool itself is the crashing part (LruBitmapPool.getDirty -> Bitmap.createBitmap): do not reuse bitmaps.
+        builder.setBitmapPool(new SafeBitmapPool());
+
+        builder.setDefaultRequestOptions(new RequestOptions().format(DecodeFormat.PREFER_ARGB_8888).disallowHardwareConfig());
+    }
+
+    @Override
+    public void registerComponents(@NonNull Context context, @NonNull Glide glide, @NonNull Registry registry) {
+        // Still images go through a safe decoder instead of Glide's Downsampler (native crash, see SafeBitmapDecoder)
+        registry.prepend(Registry.BUCKET_BITMAP, ByteBuffer.class, Bitmap.class, SafeBitmapDecoder.forByteBuffer(glide.getBitmapPool()));
+        registry.prepend(Registry.BUCKET_BITMAP, InputStream.class, Bitmap.class, SafeBitmapDecoder.forStream(glide.getBitmapPool()));
     }
 }

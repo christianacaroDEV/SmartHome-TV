@@ -56,6 +56,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
@@ -224,12 +226,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         Observable<List<MediaGroup>> continueRow = getContentService().getHistoryObserve()
                 .take(1)
                 .timeout(CONTINUE_WATCHING_TIMEOUT_SEC, TimeUnit.SECONDS)
+                // isEmpty() parses the whole (lazy) history: never on the main thread (it froze the app: ANR)
+                .observeOn(Schedulers.computation())
                 .filter(group -> group != null && !group.isEmpty())
                 .map(group -> {
                     List<MediaGroup> rows = new ArrayList<>();
                     rows.add(new TitledMediaGroup(group, getContext().getString(R.string.continue_watching)));
                     return rows;
                 })
+                .observeOn(AndroidSchedulers.mainThread())
                 .onErrorResumeNext(Observable.<List<MediaGroup>>empty());
 
         return Observable.concat(continueRow, home);

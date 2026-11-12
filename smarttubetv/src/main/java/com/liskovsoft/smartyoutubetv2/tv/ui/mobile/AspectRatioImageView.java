@@ -26,6 +26,14 @@ public class AspectRatioImageView extends ImageView {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+
+        // An UNSPECIFIED measure pass (e.g. while the window is resized by picture-in-picture) may report a huge width.
+        // Glide then requested a gigantic center-crop bitmap and the app aborted natively ("unknown bitmap configuration").
+        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED || width <= 0 || width > screenWidth) {
+            width = screenWidth;
+        }
+
         setMeasuredDimension(width, Math.round(width / ASPECT_RATIO));
     }
 }

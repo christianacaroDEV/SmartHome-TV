@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.common;
 
+import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -115,7 +116,9 @@ public class UriBackgroundManager {
             videoView.setVisibility(uri == null ? View.VISIBLE : View.INVISIBLE);
         }
 
-        if (uri == null) {
+        // Mobile mode paints its own backgrounds. Also, this full screen bitmap was decoded with stale metrics while the
+        // player was in picture-in-picture and crashed the app natively ("unknown bitmap configuration").
+        if (uri == null || DeviceMode.isMobile(mActivity)) {
             removeBackground();
             return;
         }

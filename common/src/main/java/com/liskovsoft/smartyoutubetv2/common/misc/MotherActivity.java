@@ -50,7 +50,6 @@ public class MotherActivity extends FragmentActivity {
     private static final String MOBILE_BACK_BUTTON_TAG = "mobile_back_button";
     private static final int MOBILE_BACK_BUTTON_SIZE_DP = 52;
     private static final int MOBILE_BACK_BUTTON_MARGIN_DP = 12;
-    private static final float MOBILE_UI_SCALE = 0.8f; // on a 20:9 phone this gives a 16:9-like canvas (1200 x 540 dp)
     private static DisplayMetrics sCachedDisplayMetrics;
     protected static boolean sIsInPipMode;
     private ScreensaverManager mScreensaverManager;
@@ -271,6 +270,12 @@ public class MotherActivity extends FragmentActivity {
     }
 
     private void initDpi() {
+        // Phones/tablets: keep the native density (same sizes as any other Android app), unless the user changed the UI scale.
+        // The TV scaling below would shrink everything and it also goes stale after a screen rotation.
+        if (DeviceMode.isMobile(this) && MainUIData.instance(this).getUIScale() == 1.0f) {
+            return;
+        }
+
         getResources().getDisplayMetrics().setTo(getDisplayMetrics(this));
     }
 
@@ -282,14 +287,10 @@ public class MotherActivity extends FragmentActivity {
             DisplayMetrics displayMetrics = new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
             float uiScale = MainUIData.instance(context).getUIScale();
-            // Phones are held close to the eyes: the TV-sized UI is too big there
-            if (DeviceMode.isMobile(context)) {
-                uiScale *= MOBILE_UI_SCALE;
-            }
             // Take into the account screen orientation (e.g. when running on phone)
             int widthPixels = Math.max(displayMetrics.widthPixels, displayMetrics.heightPixels);
             float widthRatio = DEFAULT_WIDTH / widthPixels;
-            float density = DEFAULT_DENSITY / widthRatio * uiScale;
+            float density = DeviceMode.isMobile(context) ? displayMetrics.density * uiScale : DEFAULT_DENSITY / widthRatio * uiScale;
             displayMetrics.density = density;
             displayMetrics.scaledDensity = density;
             sCachedDisplayMetrics = displayMetrics;

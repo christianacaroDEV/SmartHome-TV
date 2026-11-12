@@ -175,7 +175,8 @@ public class ViewUtil {
     public static RequestOptions glideOptions() {
         return new RequestOptions()
                 .diskCacheStrategy(DiskCacheStrategy.NONE) // ensure start animation from beginning
-                .skipMemoryCache(true); // ensure start animation from beginning
+                .skipMemoryCache(true) // ensure start animation from beginning
+                .disallowHardwareConfig(); // native crash 'unknown bitmap configuration' (see GlideCachingModule)
     }
 
     public static void enableTransparentDialog(Context context, View rootView) {

@@ -96,6 +96,13 @@ class MobileWatchPanel {
         mUnlockButton.setVisibility(View.GONE);
         mUnlockButton.setOnClickListener(v -> setLocked(false));
 
+        // Re-measure whenever the real size changes (rotation, picture-in-picture, split screen...)
+        mContent.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                mContent.post(this::apply);
+            }
+        });
+
         apply();
     }
 
@@ -111,11 +118,6 @@ class MobileWatchPanel {
     }
 
     void onConfigurationChanged() {
-        if (mPortrait != (mActivity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)) {
-            mLocked = false; // the lock only exists in full screen
-            mUnlockButton.setVisibility(View.GONE);
-        }
-
         apply();
     }
 
@@ -163,6 +165,11 @@ class MobileWatchPanel {
 
     void onPipChanged(boolean inPip) {
         mInPip = inPip;
+
+        if (inPip) {
+            mActivity.hideControls(); // the floating window shows only the video
+        }
+
         apply();
     }
 
@@ -211,7 +218,18 @@ class MobileWatchPanel {
     // ---------------------------------------------------------------------------------------------
 
     private void apply() {
-        mPortrait = mActivity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+        boolean wasPortrait = mPortrait;
+        // The real size of the screen decides: the configuration/display metrics can be stale after a rotation
+        int contentWidth = mContent.getWidth();
+        int contentHeight = mContent.getHeight();
+        mPortrait = contentWidth > 0 && contentHeight > 0 ? contentHeight > contentWidth
+                : mActivity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
+
+        if (wasPortrait != mPortrait && mLocked) {
+            mLocked = false; // the lock only exists in full screen
+            mUnlockButton.setVisibility(View.GONE);
+        }
+
         boolean showPanel = isPortraitPanelShown();
 
         // Video area: top 16:9 in portrait, the whole screen otherwise
@@ -228,7 +246,7 @@ class MobileWatchPanel {
                 if (id == R.id.playback_controls_fragment) {
                     // The TV controls are too big for the small video area: lay them out on a bigger virtual screen
                     // and scale it down, so they fit like on a TV.
-                    int width = mActivity.getResources().getDisplayMetrics().widthPixels;
+                    int width = contentWidth();
                     params.width = showPanel ? Math.round(width / CONTROLS_SCALE) : ViewGroup.LayoutParams.MATCH_PARENT;
                     params.height = showPanel ? Math.round(videoHeight() / CONTROLS_SCALE) : height;
                     view.setPivotX(0);
@@ -280,8 +298,12 @@ class MobileWatchPanel {
     }
 
     private int videoHeight() {
-        int width = mActivity.getResources().getDisplayMetrics().widthPixels;
-        return Math.round(width * 9f / 16f);
+        return Math.round(contentWidth() * 9f / 16f);
+    }
+
+    private int contentWidth() {
+        int width = mContent.getWidth();
+        return width > 0 ? width : mActivity.getResources().getDisplayMetrics().widthPixels;
     }
 
     private ImageButton createRoundButton(int iconResId, int descriptionResId, int gravity) {
