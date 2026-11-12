@@ -136,6 +136,14 @@ android {
             def version = variant.versionName
             def arch = output.getFilter(com.android.build.OutputFile.ABI)
             arch = arch != null ? arch : "universal"
+            // The APKs differ by CPU, not by device type: the label says where each one is meant to be used
+            def archLabels = [
+                    "arm64-v8a"  : "Celular-Tablet-TV_64bits",
+                    "armeabi-v7a": "TV-Box-antiguo_32bits",
+                    "x86"        : "Emulador-PC_x86",
+                    "universal"  : "Universal_todos"
+            ]
+            arch = archLabels.get(arch, arch)
 
             def newApkName = sprintf("%s_%s_%s_%s.apk", [project, flavor, version, arch])
 
