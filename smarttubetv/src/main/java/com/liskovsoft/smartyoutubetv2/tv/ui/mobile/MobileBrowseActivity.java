@@ -3,7 +3,16 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.mobile;
 import com.liskovsoft.smartyoutubetv2.common.misc.MobileSettings;
 import com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.widget.FrameLayout;
+
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -90,6 +99,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private int mCurrentSectionId = -1;
     private Video mLastScrollEndVideo;
     private boolean mIsFirstResume = true;
+    private SwipeRefreshLayout mRefresh;
+    private boolean mIsLoading;
+    private final Runnable mDropStaleContent = this::dropStaleContent;
 
     /**
      * Content of a section: groups (rows) of videos or settings items.
@@ -97,7 +109,14 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private static class SectionContent {
         final LinkedHashMap<Integer, GroupContent> groups = new LinkedHashMap<>();
         List<SettingsItem> settings = new ArrayList<>();
+        // The section is being reloaded: keep showing the old items until the new ones arrive (no blank screen)
+        boolean stale;
     }
+
+    private static final Object SKELETON = new Object();
+    private static final Object LOADING_FOOTER = new Object();
+    private static final int SKELETON_COUNT = 4;
+    private static final long STALE_TIMEOUT_MS = 2_500;
 
     private static class GroupContent {
         String title;
@@ -129,6 +148,23 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mAdapter = new FeedAdapter();
         mFeed.setLayoutManager(new LinearLayoutManager(this));
         mFeed.setAdapter(mAdapter);
+        if (mFeed.getItemAnimator() instanceof SimpleItemAnimator) {
+            // Changed cards are updated in place: no blink
+            ((SimpleItemAnimator) mFeed.getItemAnimator()).setSupportsChangeAnimations(false);
+        }
+
+        // Pull to refresh, like YouTube
+        mRefresh = findViewById(R.id.mobile_refresh);
+        mRefresh.setColorSchemeColors(ACCENT_COLOR);
+        mRefresh.setProgressBackgroundColorSchemeColor(0xFF0F1C3A);
+        mRefresh.setOnRefreshListener(() -> {
+            if (mPresenter != null && mCurrentSectionId != -1) {
+                mLastScrollEndVideo = null;
+                mPresenter.refresh();
+            } else {
+                mRefresh.setRefreshing(false);
+            }
+        });
         mFeed.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -328,10 +364,19 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         int sectionId = group.getSection() != null ? group.getSection().getId() : mCurrentSectionId;
         SectionContent content = getContent(sectionId);
 
+        boolean hasVideos = group.getVideos() != null && !group.getVideos().isEmpty();
+
+        // First new videos of a reloaded section: now the old ones can go (one single swap, no blank screen)
+        if (content.stale && hasVideos && group.getAction() != VideoGroup.ACTION_REMOVE && group.getAction() != VideoGroup.ACTION_REMOVE_AUTHOR) {
+            content.stale = false;
+            content.groups.clear();
+        }
+
         switch (group.getAction()) {
             case VideoGroup.ACTION_REPLACE:
-                if (group.getVideos() == null || group.getVideos().isEmpty()) {
-                    content.groups.clear(); // the presenter starts a section with an empty 'replace' group
+                if (!hasVideos) {
+                    // The presenter starts a section with an empty 'replace' group: keep the old items for now
+                    content.stale = !content.groups.isEmpty();
                 } else {
                     GroupContent replaced = new GroupContent();
                     replaced.title = group.getTitle();
@@ -356,7 +401,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
         if (sectionId == mCurrentSectionId) {
             showMessage(null, null, null);
-            mAdapter.setItems(buildItems(content));
+            showCurrentContent();
         }
     }
 
@@ -370,9 +415,14 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         SectionContent content = getContent(sectionId);
         content.settings = new ArrayList<>(group.getItems());
 
+        if (content.stale) {
+            content.stale = false;
+            content.groups.clear();
+        }
+
         if (sectionId == mCurrentSectionId) {
             showMessage(null, null, null);
-            mAdapter.setItems(buildItems(content));
+            showCurrentContent();
         }
     }
 
@@ -382,10 +432,16 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             return;
         }
 
-        mContents.remove(section.getId());
+        SectionContent content = mContents.get(section.getId());
+
+        if (content != null && !content.groups.isEmpty()) {
+            content.stale = true; // replaced when the new items arrive
+        } else {
+            mContents.remove(section.getId());
+        }
 
         if (section.getId() == mCurrentSectionId) {
-            mAdapter.setItems(new ArrayList<>());
+            showCurrentContent();
         }
     }
 
@@ -405,18 +461,72 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             return;
         }
 
+        mIsLoading = false;
+        mRefresh.setRefreshing(false);
+        SectionContent content = mContents.get(mCurrentSectionId);
+        if (content != null) {
+            content.groups.clear();
+            content.stale = false;
+        }
         mAdapter.setItems(new ArrayList<>());
         showMessage(data.getMessage(), data.getActionText(), data::onAction);
     }
 
+    /**
+     * No big spinner over the content: skeleton cards when the screen is empty, a small spinner at the end of the
+     * list when loading more, the pull-to-refresh circle when refreshing.
+     */
     @Override
     public void showProgressBar(boolean show) {
-        mProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+        mIsLoading = show;
+        mProgress.setVisibility(View.GONE);
+        mFeed.removeCallbacks(mDropStaleContent);
+
+        if (!show) {
+            mRefresh.setRefreshing(false);
+
+            SectionContent content = mContents.get(mCurrentSectionId);
+            if (content != null && content.stale) {
+                // The new items normally come right after this: if nothing comes, the old ones were really removed
+                mFeed.postDelayed(mDropStaleContent, STALE_TIMEOUT_MS);
+            }
+        }
+
+        showCurrentContent();
     }
 
     @Override
     public boolean isProgressBarShowing() {
-        return mProgress.getVisibility() == View.VISIBLE;
+        return mIsLoading;
+    }
+
+    private void dropStaleContent() {
+        SectionContent content = mContents.get(mCurrentSectionId);
+
+        if (content != null && content.stale) {
+            content.stale = false;
+            content.groups.clear();
+            showCurrentContent();
+        }
+    }
+
+    /**
+     * Shows the items of the current section (only the cards that changed are redrawn).
+     */
+    private void showCurrentContent() {
+        List<Object> items = buildItems(mContents.get(mCurrentSectionId));
+
+        if (items.isEmpty()) {
+            if (mIsLoading && mMessageGroup.getVisibility() != View.VISIBLE) {
+                for (int i = 0; i < SKELETON_COUNT; i++) {
+                    items.add(SKELETON);
+                }
+            }
+        } else if (mIsLoading && !mRefresh.isRefreshing()) {
+            items.add(LOADING_FOOTER);
+        }
+
+        mAdapter.setItems(items);
     }
 
     @Override
@@ -552,8 +662,12 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mCurrentSectionId = sectionId;
         mLastScrollEndVideo = null;
         showMessage(null, null, null);
+        mRefresh.setRefreshing(false);
+        mFeed.removeCallbacks(mDropStaleContent);
 
-        mAdapter.setItems(buildItems(mContents.get(sectionId)));
+        // A new section: start at the top with its cached items (or skeletons) instead of animating from the old list
+        mAdapter.replaceAll(buildItems(mContents.get(sectionId)));
+        showCurrentContent();
         mFeed.scrollToPosition(0);
         updateNavigationState();
 
@@ -563,6 +677,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private void onSectionTapped(int sectionId) {
         if (sectionId == mCurrentSectionId) {
             mFeed.scrollToPosition(0);
+            mLastScrollEndVideo = null;
+            mRefresh.setRefreshing(true);
             mPresenter.refresh(); // tapping the current section reloads it
         } else {
             selectSectionInternal(sectionId);
@@ -723,9 +839,74 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         private static final int TYPE_HEADER = 0;
         private static final int TYPE_VIDEO = 1;
         private static final int TYPE_SETTING = 2;
+        private static final int TYPE_SKELETON = 3;
+        private static final int TYPE_FOOTER = 4;
         private List<Object> mItems = new ArrayList<>();
 
+        /**
+         * Partial update: only the inserted/removed/changed cards are touched, the rest stay on screen as they are.
+         */
         void setItems(List<Object> items) {
+            List<Object> oldItems = mItems;
+            mItems = items;
+
+            if (oldItems.isEmpty() || items.isEmpty()) {
+                notifyDataSetChanged();
+                return;
+            }
+
+            // At the top of the list: stay there when new cards are inserted above (e.g. the "Continue watching" row)
+            LinearLayoutManager layoutManager = (LinearLayoutManager) mFeed.getLayoutManager();
+            boolean atTop = layoutManager != null && layoutManager.findFirstCompletelyVisibleItemPosition() <= 0;
+
+            DiffUtil.calculateDiff(new DiffUtil.Callback() {
+                @Override
+                public int getOldListSize() {
+                    return oldItems.size();
+                }
+
+                @Override
+                public int getNewListSize() {
+                    return items.size();
+                }
+
+                @Override
+                public boolean areItemsTheSame(int oldPosition, int newPosition) {
+                    Object oldItem = oldItems.get(oldPosition);
+                    Object newItem = items.get(newPosition);
+                    return oldItem == newItem || (oldItem.getClass() == newItem.getClass() && oldItem.equals(newItem));
+                }
+
+                @Override
+                public boolean areContentsTheSame(int oldPosition, int newPosition) {
+                    Object oldItem = oldItems.get(oldPosition);
+                    Object newItem = items.get(newPosition);
+
+                    if (oldItem instanceof Video && newItem instanceof Video) {
+                        Video a = (Video) oldItem;
+                        Video b = (Video) newItem;
+                        return a == b || (TextUtils.equals(a.getTitle(), b.getTitle())
+                                && TextUtils.equals(a.getSecondTitle(), b.getSecondTitle())
+                                && TextUtils.equals(a.cardImageUrl, b.cardImageUrl)
+                                && TextUtils.equals(a.badge, b.badge)
+                                && a.percentWatched == b.percentWatched
+                                && a.isLive == b.isLive
+                                && a.hasNewContent == b.hasNewContent);
+                    }
+
+                    return oldItem != SKELETON; // skeleton -> skeleton: keep the pulsing view as it is
+                }
+            }, false).dispatchUpdatesTo(this);
+
+            if (atTop) {
+                mFeed.scrollToPosition(0);
+            }
+        }
+
+        /**
+         * A different list (e.g. another section): no diff animation.
+         */
+        void replaceAll(List<Object> items) {
             mItems = items;
             notifyDataSetChanged();
         }
@@ -743,7 +924,30 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         @Override
         public int getItemViewType(int position) {
             Object item = mItems.get(position);
+
+            if (item == SKELETON) {
+                return TYPE_SKELETON;
+            }
+
+            if (item == LOADING_FOOTER) {
+                return TYPE_FOOTER;
+            }
+
             return item instanceof Video ? TYPE_VIDEO : item instanceof SettingsItem ? TYPE_SETTING : TYPE_HEADER;
+        }
+
+        @Override
+        public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof SkeletonHolder) {
+                ((SkeletonHolder) holder).startPulse();
+            }
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
+            if (holder instanceof SkeletonHolder) {
+                ((SkeletonHolder) holder).stopPulse();
+            }
         }
 
         @Override
@@ -759,6 +963,10 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                     return new VideoHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_mobile_video, parent, false));
                 case TYPE_SETTING:
                     return new SettingHolder(createSettingRow(parent));
+                case TYPE_SKELETON:
+                    return new SkeletonHolder(createSkeleton(parent));
+                case TYPE_FOOTER:
+                    return new HeaderHolder(createFooter(parent));
                 default:
                     return new HeaderHolder(createHeaderText(parent));
             }
@@ -772,9 +980,57 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 ((VideoHolder) holder).bind((Video) item);
             } else if (holder instanceof SettingHolder) {
                 ((SettingHolder) holder).bind((SettingsItem) item);
-            } else {
+            } else if (item instanceof String) {
                 ((TextView) holder.itemView).setText((String) item);
             }
+        }
+
+        /**
+         * Grey card with the shape of a video card (thumbnail + two text lines), pulsing while the feed loads.
+         */
+        private View createSkeleton(ViewGroup parent) {
+            LinearLayout card = new LinearLayout(parent.getContext());
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            card.setPadding(0, 0, 0, dp(16));
+
+            View thumb = new View(parent.getContext()) {
+                @Override
+                protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                    int width = MeasureSpec.getSize(widthMeasureSpec);
+                    if (width <= 0) {
+                        width = getResources().getDisplayMetrics().widthPixels;
+                    }
+                    setMeasuredDimension(width, width * 9 / 16);
+                }
+            };
+            thumb.setBackgroundColor(0xFF16264A);
+            card.addView(thumb, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            card.addView(skeletonLine(parent, 0.85f, 16, 12));
+            card.addView(skeletonLine(parent, 0.55f, 12, 8));
+            return card;
+        }
+
+        private View skeletonLine(ViewGroup parent, float widthFraction, int heightDp, int topMarginDp) {
+            View line = new View(parent.getContext());
+            GradientDrawable shape = new GradientDrawable();
+            shape.setCornerRadius(dp(4));
+            shape.setColor(0xFF16264A);
+            line.setBackground(shape);
+            int width = Math.round((parent.getWidth() > 0 ? parent.getWidth() : getResources().getDisplayMetrics().widthPixels) * widthFraction);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, dp(heightDp));
+            params.setMargins(dp(14), dp(topMarginDp), 0, 0);
+            line.setLayoutParams(params);
+            return line;
+        }
+
+        private View createFooter(ViewGroup parent) {
+            FrameLayout footer = new FrameLayout(parent.getContext());
+            footer.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)));
+            ProgressBar spinner = new ProgressBar(parent.getContext());
+            footer.addView(spinner, new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER));
+            return footer;
         }
 
         private TextView createHeaderText(ViewGroup parent) {
@@ -821,6 +1077,31 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private static class HeaderHolder extends RecyclerView.ViewHolder {
         HeaderHolder(View itemView) {
             super(itemView);
+        }
+    }
+
+    private static class SkeletonHolder extends RecyclerView.ViewHolder {
+        private ObjectAnimator mPulse;
+
+        SkeletonHolder(View itemView) {
+            super(itemView);
+        }
+
+        void startPulse() {
+            stopPulse();
+            mPulse = ObjectAnimator.ofFloat(itemView, View.ALPHA, 1f, 0.45f);
+            mPulse.setDuration(750);
+            mPulse.setRepeatMode(ValueAnimator.REVERSE);
+            mPulse.setRepeatCount(ValueAnimator.INFINITE);
+            mPulse.start();
+        }
+
+        void stopPulse() {
+            if (mPulse != null) {
+                mPulse.cancel();
+                mPulse = null;
+            }
+            itemView.setAlpha(1f);
         }
     }
 
@@ -888,10 +1169,16 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 mProgress.setVisibility(View.GONE);
             }
 
-            if (!isDestroyed()) {
+            // Same picture already on this card: don't load it again (that is what made the cards blink)
+            boolean sameImage = video.cardImageUrl != null && video.cardImageUrl.equals(mThumb.getTag(R.id.mobile_item_thumb))
+                    && mThumb.getDrawable() != null;
+
+            if (!sameImage && !isDestroyed()) {
+                mThumb.setTag(R.id.mobile_item_thumb, video.cardImageUrl);
                 Glide.with(MobileBrowseActivity.this)
                         .load(video.cardImageUrl)
                         .apply(ViewUtil.glideOptions())
+                        .transition(DrawableTransitionOptions.withCrossFade(180)) // the picture fades in
                         .into(mThumb);
             }
 
