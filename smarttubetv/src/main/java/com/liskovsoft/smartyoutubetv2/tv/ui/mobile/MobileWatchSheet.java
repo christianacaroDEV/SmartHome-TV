@@ -64,8 +64,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private final PlayerHolder mPlayerHolder;
     private final MobilePlayerView mPlayer;
     private final ProgressBar mLoading;
-    private final ImageButton mMinimizeButton;
-    private final ImageButton mFullscreenButton;
+    private final MobileControlsView mControls;
     private final LinearLayout mMiniBar;
     private final TextView mMiniTitle;
     private final TextView mMiniSubtitle;
@@ -140,14 +139,26 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mLoading = new ProgressBar(activity);
         mLoading.setVisibility(View.GONE);
         mPlayerHolder.addView(mLoading, new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.CENTER));
-        mMinimizeButton = createRoundButton(R.drawable.ic_m_expand_more, Gravity.TOP | Gravity.START);
-        mMinimizeButton.setOnClickListener(v -> setState(mState == STATE_FULLSCREEN ? STATE_EXPANDED : STATE_MINI));
-        mFullscreenButton = createRoundButton(R.drawable.ic_m_fullscreen, Gravity.TOP | Gravity.END);
-        mFullscreenButton.setOnClickListener(v -> setState(mState == STATE_FULLSCREEN ? STATE_EXPANDED : STATE_FULLSCREEN));
-        mPlayer.setControllerVisibilityListener(visibility -> {
-            mMinimizeButton.setVisibility(mState == STATE_MINI ? View.GONE : visibility);
-            mFullscreenButton.setVisibility(mState == STATE_MINI ? View.GONE : visibility);
+        // Own touch controls instead of the ExoPlayer controller
+        mPlayer.setUseController(false);
+        mControls = new MobileControlsView(activity, mPlayer, new MobileControlsView.Callback() {
+            @Override
+            public void onMinimizeClicked() {
+                setState(mState == STATE_FULLSCREEN ? STATE_EXPANDED : STATE_MINI);
+            }
+
+            @Override
+            public void onFullscreenClicked() {
+                setState(mState == STATE_FULLSCREEN ? STATE_EXPANDED : STATE_FULLSCREEN);
+            }
+
+            @Override
+            public void onLockChanged(boolean locked) {
+                // Nothing else: the holder stops the drag gestures and BACK while locked
+            }
         });
+        mPlayerHolder.addView(mControls, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        mLoading.bringToFront();
         mSheet.addView(mPlayerHolder);
 
         // Re-layout whenever the real size changes (rotation, split screen...)
@@ -173,6 +184,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mPlayer.openVideo(video);
         mList.scrollToPosition(0);
         setState(isLandscape() ? STATE_FULLSCREEN : STATE_EXPANDED);
+        mControls.flash();
     }
 
     public int getState() {
@@ -198,6 +210,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
      * @return true if BACK was consumed (full screen -> expanded -> mini)
      */
     public boolean onBackPressed() {
+        if (mState == STATE_FULLSCREEN && mControls.isLocked()) {
+            return true; // locked ("Fijar"): BACK does nothing until unlocked
+        }
+
         if (mState == STATE_FULLSCREEN) {
             setState(STATE_EXPANDED);
             return true;
@@ -286,9 +302,6 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 mMiniBar.setPadding(holderParams.width, 0, dp(4), 0);
                 mMiniBar.setVisibility(View.VISIBLE);
                 mList.setVisibility(View.GONE);
-                mPlayer.setUseController(false);
-                mMinimizeButton.setVisibility(View.GONE);
-                mFullscreenButton.setVisibility(View.GONE);
                 break;
             case STATE_FULLSCREEN:
                 sheetParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -296,8 +309,6 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 holderParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
                 mMiniBar.setVisibility(View.GONE);
                 mList.setVisibility(View.GONE);
-                mPlayer.setUseController(true);
-                mFullscreenButton.setImageResource(R.drawable.ic_m_fullscreen_exit);
                 break;
             case STATE_EXPANDED:
             default:
@@ -306,10 +317,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 listParams.topMargin = videoHeight;
                 mMiniBar.setVisibility(View.GONE);
                 mList.setVisibility(View.VISIBLE);
-                mPlayer.setUseController(true);
-                mFullscreenButton.setImageResource(R.drawable.ic_m_fullscreen);
                 break;
         }
+
+        mControls.setMode(mState == STATE_MINI, mState == STATE_FULLSCREEN, mVideo != null ? mVideo.getTitle() : null);
 
         mSheet.setTranslationY(0);
         mSheet.setLayoutParams(sheetParams);
@@ -411,6 +422,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mMiniTitle.setText(video.getTitle());
         mMiniSubtitle.setText(video.getSecondTitle());
         mAdapter.setItems(buildItems());
+        mControls.setMode(mState == STATE_MINI, mState == STATE_FULLSCREEN, video.getTitle());
     }
 
     @Override
@@ -623,6 +635,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 return event.getActionMasked() == MotionEvent.ACTION_UP; // a tap on the mini player expands it
             }
 
+            if (mControls.isLocked()) {
+                return false; // locked full screen: no drag gestures
+            }
+
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     mDownX = event.getRawX();
@@ -703,20 +719,6 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         button.setBackground(null);
         button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         button.setLayoutParams(new LinearLayout.LayoutParams(dp(48), dp(48)));
-        return button;
-    }
-
-    private ImageButton createRoundButton(int iconResId, int gravity) {
-        ImageButton button = new ImageButton(mActivity);
-        button.setImageResource(iconResId);
-        button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.OVAL);
-        background.setColor(0x80000000);
-        button.setBackground(background);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(dp(40), dp(40), gravity);
-        params.setMargins(dp(8), dp(8), dp(8), dp(8));
-        mPlayerHolder.addView(button, params);
         return button;
     }
 

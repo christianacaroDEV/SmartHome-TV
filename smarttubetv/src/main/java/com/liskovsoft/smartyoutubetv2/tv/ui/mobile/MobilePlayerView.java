@@ -23,13 +23,13 @@ public class MobilePlayerView extends EmbedPlayerView {
     }
 
     private Listener mListener;
+    // The controllers store the state of the player buttons here (e.g. subtitles on/off)
+    private final java.util.Map<Integer, Integer> mButtonStates = new java.util.HashMap<>();
 
     public MobilePlayerView(Context context) {
         super(context);
         setQuality(QUALITY_AUTO);
-        setUseController(true);
-        setControllerShowTimeoutMs(3_000);
-        setControllerHideOnTouch(true);
+        setUseController(false); // own touch controls (MobileControlsView)
     }
 
     public void setListener(Listener listener) {
@@ -58,6 +58,64 @@ public class MobilePlayerView extends EmbedPlayerView {
         if (mListener != null) {
             mListener.onVideoChanged(item);
         }
+    }
+
+    // The touch controls ask these before/after a video exists: never crash without a player
+
+    @Override
+    public long getPositionMs() {
+        try {
+            return super.getPositionMs();
+        } catch (NullPointerException e) {
+            return 0;
+        }
+    }
+
+    @Override
+    public long getDurationMs() {
+        try {
+            return super.getDurationMs();
+        } catch (NullPointerException e) {
+            return 0;
+        }
+    }
+
+    @Override
+    public boolean getPlayWhenReady() {
+        try {
+            return super.getPlayWhenReady();
+        } catch (NullPointerException e) {
+            return false;
+        }
+    }
+
+    @Override
+    public void setPositionMs(long positionMs) {
+        try {
+            super.setPositionMs(positionMs);
+        } catch (NullPointerException e) {
+            // no player yet
+        }
+    }
+
+    @Override
+    public void setPlayWhenReady(boolean play) {
+        try {
+            super.setPlayWhenReady(play);
+        } catch (NullPointerException e) {
+            // no player yet
+        }
+    }
+
+    @Override
+    public int getButtonState(int buttonId) {
+        Integer state = mButtonStates.get(buttonId);
+        return state != null ? state : -1;
+    }
+
+    @Override
+    public void setButtonState(int buttonId, int buttonState) {
+        mButtonStates.put(buttonId, buttonState);
     }
 
     @Override
