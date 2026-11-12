@@ -787,4 +787,6 @@
     <string name="mobile_sign_out">Cerrar sesión</string>
     <string name="mobile_background_audio">Reproducción en segundo plano</string>
     <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
+    <string name="mobile_pin">Fijar</string>
+    <string name="mobile_unpin">Toca para desbloquear</string>
 </resources>

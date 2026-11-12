@@ -787,4 +787,6 @@
     <string name="mobile_sign_out">Sign out</string>
     <string name="mobile_background_audio">Background playback</string>
     <string name="mobile_background_audio_desc">Keep the audio playing when the screen is locked</string>
+    <string name="mobile_pin">Lock</string>
+    <string name="mobile_unpin">Tap to unlock</string>
 </resources>

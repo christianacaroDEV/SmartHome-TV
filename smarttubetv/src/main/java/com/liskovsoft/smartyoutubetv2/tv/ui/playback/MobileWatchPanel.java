@@ -1,5 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.playback;
 
+import android.os.Looper;
+import android.os.Handler;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -44,6 +46,11 @@ class MobileWatchPanel {
     private final RecyclerView mList;
     private final ImageButton mMinimizeButton;
     private final ImageButton mFullscreenButton;
+    private final TextView mLockButton;
+    private final TextView mUnlockButton;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mHideUnlock = this::hideUnlockButton;
+    private boolean mLocked;
     private final PanelAdapter mAdapter = new PanelAdapter();
     private final LinkedHashMap<Integer, GroupData> mGroups = new LinkedHashMap<>();
     private String mTitle;
@@ -82,6 +89,13 @@ class MobileWatchPanel {
         mFullscreenButton = createRoundButton(R.drawable.ic_m_fullscreen, R.string.mobile_fullscreen, Gravity.TOP | Gravity.END);
         mFullscreenButton.setOnClickListener(v -> mActivity.toggleOrientation());
 
+        // "Lock" (full screen only): ignores every touch so the video can be watched freely
+        mLockButton = createPillButton(R.drawable.ic_m_lock, R.string.mobile_pin);
+        mLockButton.setOnClickListener(v -> setLocked(true));
+        mUnlockButton = createPillButton(R.drawable.ic_m_lock_open, R.string.mobile_unpin);
+        mUnlockButton.setVisibility(View.GONE);
+        mUnlockButton.setOnClickListener(v -> setLocked(false));
+
         apply();
     }
 
@@ -97,7 +111,54 @@ class MobileWatchPanel {
     }
 
     void onConfigurationChanged() {
+        if (mPortrait != (mActivity.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)) {
+            mLocked = false; // the lock only exists in full screen
+            mUnlockButton.setVisibility(View.GONE);
+        }
+
         apply();
+    }
+
+    private void hideUnlockButton() {
+        mUnlockButton.setVisibility(View.GONE);
+    }
+
+    boolean isLocked() {
+        return mLocked;
+    }
+
+    private void setLocked(boolean locked) {
+        mLocked = locked;
+        mHandler.removeCallbacks(mHideUnlock);
+        mUnlockButton.setVisibility(View.GONE);
+
+        if (locked) {
+            mActivity.hideControls();
+        }
+
+        apply();
+    }
+
+    /**
+     * A touch while the screen is locked: shows the unlock button for a moment.
+     * @return true if the touch is on the unlock button (it must reach the button)
+     */
+    boolean onLockedTouch(float x, float y) {
+        if (mUnlockButton.getVisibility() == View.VISIBLE) {
+            int[] location = new int[2];
+            mUnlockButton.getLocationOnScreen(location);
+
+            if (x >= location[0] && x <= location[0] + mUnlockButton.getWidth() && y >= location[1] && y <= location[1] + mUnlockButton.getHeight()) {
+                return true;
+            }
+        }
+
+        mUnlockButton.setVisibility(View.VISIBLE);
+        mUnlockButton.bringToFront();
+        mHandler.removeCallbacks(mHideUnlock);
+        mHandler.postDelayed(mHideUnlock, 2_500);
+
+        return false;
     }
 
     void onPipChanged(boolean inPip) {
@@ -185,12 +246,37 @@ class MobileWatchPanel {
         mList.setLayoutParams(listParams);
         mList.setVisibility(showPanel ? View.VISIBLE : View.GONE);
 
-        mMinimizeButton.setVisibility(mInPip ? View.GONE : View.VISIBLE);
-        mFullscreenButton.setVisibility(mInPip ? View.GONE : View.VISIBLE);
+        mMinimizeButton.setVisibility(mInPip || mLocked ? View.GONE : View.VISIBLE);
+        mFullscreenButton.setVisibility(mInPip || mLocked ? View.GONE : View.VISIBLE);
+        mLockButton.setVisibility(!mInPip && !mLocked && !mPortrait ? View.VISIBLE : View.GONE);
+        mLockButton.bringToFront();
         mFullscreenButton.setImageResource(mPortrait ? R.drawable.ic_m_fullscreen : R.drawable.ic_m_fullscreen_exit);
 
         mMinimizeButton.bringToFront();
         mFullscreenButton.bringToFront();
+    }
+
+    private TextView createPillButton(int iconResId, int textResId) {
+        TextView button = new TextView(mActivity);
+        button.setText(textResId);
+        button.setTextColor(Color.WHITE);
+        button.setTextSize(15);
+        button.setGravity(Gravity.CENTER_VERTICAL);
+        button.setCompoundDrawablesWithIntrinsicBounds(iconResId, 0, 0, 0);
+        button.setCompoundDrawablePadding(dp(8));
+        button.setPadding(dp(18), dp(10), dp(22), dp(10));
+
+        GradientDrawable background = new GradientDrawable();
+        background.setCornerRadius(dp(26));
+        background.setColor(0x99000000);
+        button.setBackground(background);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        params.bottomMargin = dp(28);
+        mContent.addView(button, params);
+
+        return button;
     }
 
     private int videoHeight() {

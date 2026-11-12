@@ -74,6 +74,22 @@ public class PlaybackActivity extends LeanbackActivity {
 
     // ---- Mobile watch page (see MobileWatchPanel)
 
+    void hideControls() {
+        if (mPlaybackFragment != null) {
+            mPlaybackFragment.hideControlsOverlay(true);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Locked: BACK is ignored too, otherwise the lock would be useless
+        if (mMobilePanel != null && mMobilePanel.isLocked()) {
+            return;
+        }
+
+        super.onBackPressed();
+    }
+
     void onMobileVideoChanged(Video video) {
         if (mMobilePanel != null) {
             mMobilePanel.setVideo(video);
@@ -151,6 +167,12 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        // Locked ("Fijar"): every touch is ignored except the one on the unlock button
+        if (mMobilePanel != null && mMobilePanel.isLocked()) {
+            boolean onUnlock = mMobilePanel.onLockedTouch(event.getRawX(), event.getRawY());
+            return onUnlock ? super.dispatchTouchEvent(event) : true;
+        }
+
         // Portrait watch page: only the video area controls the player; the list below just scrolls
         boolean overPanel = mMobilePanel != null && mMobilePanel.isPortraitPanelShown() && event.getY() > mMobilePanel.getVideoAreaHeight();
 
