@@ -801,6 +801,163 @@
     <string name="mobile_background_audio_desc">Keep the audio playing when the screen is locked</string>
     <string name="mobile_pin">Lock</string>
     <string name="mobile_unpin">Tap to unlock</string>
+    <string name="mobile_topics_title">Favorites</string>
+    <string name="mobile_topics_pick_title">What do you like to watch?</string>
+    <string name="mobile_topics_pick_subtitle">Pick your favorite topics and we\'ll suggest videos for each one.</string>
+    <string name="mobile_topics_save">Done</string>
+    <string name="mobile_topics_skip">Not now</string>
+    <string name="mobile_topics_edit">Edit my favorites</string>
+    <string name="mobile_topics_empty">Pick your favorite topics to see suggested videos for each one here.</string>
+    <string name="mobile_topics_choose">Choose topics</string>
+    <string name="mobile_topics_see_all">See all</string>
+    <string name="mobile_watch_later">Watch later</string>
+    <string name="mobile_watch_later_added">Saved to Watch later</string>
+    <string name="mobile_watch_later_removed">Removed from Watch later</string>
+    <!-- Topics of "My topics": stable key, section, label and the search behind it (same order) -->
+    <string-array name="mobile_topic_keys" translatable="false">
+        <item>programming</item>
+        <item>ai</item>
+        <item>robotics</item>
+        <item>tech</item>
+        <item>apps</item>
+        <item>games</item>
+        <item>trading</item>
+        <item>crypto</item>
+        <item>crypto_mining</item>
+        <item>finance</item>
+        <item>mentoring</item>
+        <item>movies</item>
+        <item>action</item>
+        <item>couples</item>
+        <item>kdrama</item>
+        <item>anime</item>
+        <item>telenovelas</item>
+        <item>comedy</item>
+        <item>music_mix</item>
+        <item>music</item>
+        <item>soccer</item>
+        <item>sports</item>
+        <item>fitness</item>
+        <item>youtubers</item>
+        <item>cooking</item>
+        <item>travel</item>
+        <item>science</item>
+        <item>news</item>
+        <item>cars</item>
+        <item>learning</item>
+        <item>kids</item>
+        <item>animals</item>
+    </string-array>
+    <integer-array name="mobile_topic_sections">
+        <item>0</item>
+        <item>0</item>
+        <item>0</item>
+        <item>0</item>
+        <item>0</item>
+        <item>0</item>
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>1</item>
+        <item>2</item>
+        <item>2</item>
+        <item>2</item>
+        <item>2</item>
+        <item>2</item>
+        <item>2</item>
+        <item>2</item>
+        <item>3</item>
+        <item>3</item>
+        <item>4</item>
+        <item>4</item>
+        <item>4</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+        <item>5</item>
+    </integer-array>
+    <string-array name="mobile_topic_section_labels">
+        <item>💻 Technology</item>
+        <item>💰 Money and business</item>
+        <item>🎬 Movies and shows</item>
+        <item>🎵 Music</item>
+        <item>⚽ Sports</item>
+        <item>🌎 More topics</item>
+    </string-array>
+    <string-array name="mobile_topic_labels">
+        <item>👨‍💻 Programming and software</item>
+        <item>🤖 Artificial intelligence</item>
+        <item>🦾 Robotics</item>
+        <item>💻 Tech and gadgets</item>
+        <item>📲 Phone apps and tricks</item>
+        <item>🎮 Video games</item>
+        <item>📈 Trading</item>
+        <item>🪙 Crypto and Binance</item>
+        <item>⛏️ Crypto mining</item>
+        <item>💰 Personal finance</item>
+        <item>🧭 Mentoring and business</item>
+        <item>🎬 Movies and new releases</item>
+        <item>💥 Action movies</item>
+        <item>💞 Movies for couples</item>
+        <item>🇰🇷 K-dramas and Korean movies</item>
+        <item>🍥 Anime</item>
+        <item>📺 Soap operas</item>
+        <item>😂 Comedy</item>
+        <item>🎧 Music mixes</item>
+        <item>🎵 Music hits</item>
+        <item>⚽ Soccer</item>
+        <item>🏀 Sports</item>
+        <item>💪 Fitness</item>
+        <item>⭐ Famous YouTubers</item>
+        <item>🍳 Cooking</item>
+        <item>✈️ Travel</item>
+        <item>🔬 Science</item>
+        <item>📰 News</item>
+        <item>🚗 Cars</item>
+        <item>📚 Learning</item>
+        <item>🧒 Kids</item>
+        <item>🐾 Animals</item>
+    </string-array>
+    <string-array name="mobile_topic_queries">
+        <item>software development programming</item>
+        <item>artificial intelligence news</item>
+        <item>robotics robots</item>
+        <item>technology news</item>
+        <item>best android apps tricks</item>
+        <item>video games gameplay</item>
+        <item>trading for beginners</item>
+        <item>binance crypto</item>
+        <item>crypto mining</item>
+        <item>personal finance</item>
+        <item>mentoring entrepreneurship personal growth</item>
+        <item>official movie trailer</item>
+        <item>action movie trailer</item>
+        <item>romantic movies for couples</item>
+        <item>korean drama</item>
+        <item>anime</item>
+        <item>telenovela episode</item>
+        <item>comedy sketch</item>
+        <item>music mix</item>
+        <item>music hits</item>
+        <item>soccer highlights</item>
+        <item>sports best plays</item>
+        <item>home workout</item>
+        <item>famous youtubers</item>
+        <item>easy recipes</item>
+        <item>travel destinations</item>
+        <item>science documentary</item>
+        <item>news today</item>
+        <item>car review</item>
+        <item>learn course</item>
+        <item>kids cartoons</item>
+        <item>animals documentary</item>
+    </string-array>
     <string name="mobile_watch_subscribe">Subscribe</string>
     <string name="mobile_watch_subscribed">Subscribed</string>
     <string name="mobile_watch_like">Like</string>

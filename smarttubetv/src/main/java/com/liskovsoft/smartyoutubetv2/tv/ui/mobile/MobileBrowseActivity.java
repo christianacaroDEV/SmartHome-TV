@@ -13,6 +13,10 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
+import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -101,6 +105,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private boolean mIsFirstResume = true;
     private SwipeRefreshLayout mRefresh;
     private boolean mIsLoading;
+    private boolean mTopicsLoading;
+    private int mTopicsPending;
+    private final List<Disposable> mTopicActions = new ArrayList<>();
     private final Runnable mDropStaleContent = this::dropStaleContent;
 
     /**
@@ -113,6 +120,38 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         boolean stale;
     }
 
+    /**
+     * "My topics": a section of this screen only (not from the presenter), made of one search per favorite topic.
+     */
+    private static final int MY_TOPICS_ID = -2001;
+    private static final int WATCH_LATER_GROUP_ID = -2002;
+    private static final int TOPIC_GROUP_BASE = -3000;
+    private static final int VIDEOS_PER_TOPIC = 4;
+    private static final Object EDIT_TOPICS = new Object();
+
+    /**
+     * Title of a "My topics" row, with "See all".
+     */
+    private static class TopicHeader {
+        final String title;
+        final String query;
+
+        TopicHeader(String title, String query) {
+            this.title = title;
+            this.query = query;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof TopicHeader && TextUtils.equals(title, ((TopicHeader) obj).title);
+        }
+
+        @Override
+        public int hashCode() {
+            return title != null ? title.hashCode() : 0;
+        }
+    }
+
     private static final Object SKELETON = new Object();
     private static final Object LOADING_FOOTER = new Object();
     private static final int SKELETON_COUNT = 4;
@@ -120,6 +159,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
     private static class GroupContent {
         String title;
+        String query; // "My topics" rows: the search behind "See all"
         final List<Video> videos = new ArrayList<>();
         final Set<Video> unique = new HashSet<>();
     }
@@ -158,7 +198,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mRefresh.setColorSchemeColors(ACCENT_COLOR);
         mRefresh.setProgressBackgroundColorSchemeColor(0xFF0F1C3A);
         mRefresh.setOnRefreshListener(() -> {
-            if (mPresenter != null && mCurrentSectionId != -1) {
+            if (mCurrentSectionId == MY_TOPICS_ID) {
+                loadMyTopics();
+            } else if (mPresenter != null && mCurrentSectionId != -1) {
                 mLastScrollEndVideo = null;
                 mPresenter.refresh();
             } else {
@@ -187,6 +229,15 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mPresenter = BrowsePresenter.instance(this);
         mPresenter.setView(this);
         mPresenter.onViewInitialized();
+
+        // First use: ask the favorite topics (once), then show them
+        if (MobileTopics.shouldAsk(this)) {
+            mFeed.postDelayed(() -> {
+                if (!isFinishing() && mIsResumed && MobileTopics.shouldAsk(this)) {
+                    MobileTopics.showPicker(this, topics -> selectSectionInternal(MY_TOPICS_ID));
+                }
+            }, 3_000);
+        }
     }
 
     private boolean openInApp(Video video) {
@@ -250,8 +301,12 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onResume();
         mIsResumed = true;
 
-        if (!mIsFirstResume && mPresenter != null) {
+        if (!mIsFirstResume && mPresenter != null && mCurrentSectionId != MY_TOPICS_ID) {
             mPresenter.onViewResumed();
+        }
+
+        if (mCurrentSectionId == MY_TOPICS_ID) {
+            updateWatchLaterRow(); // something may have been saved on the watch page
         }
 
         mIsFirstResume = false;
@@ -272,6 +327,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onDestroy();
 
         PlaybackPresenter.setInAppPlayerHost(null);
+        disposeTopicActions();
 
         if (mWatchSheet != null) {
             mWatchSheet.release();
@@ -362,6 +418,11 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         }
 
         int sectionId = group.getSection() != null ? group.getSection().getId() : mCurrentSectionId;
+
+        if (sectionId == MY_TOPICS_ID) {
+            return; // local section, never filled by the presenter
+        }
+
         SectionContent content = getContent(sectionId);
 
         boolean hasVideos = group.getVideos() != null && !group.getVideos().isEmpty();
@@ -515,14 +576,19 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
      */
     private void showCurrentContent() {
         List<Object> items = buildItems(mContents.get(mCurrentSectionId));
+        boolean isLoading = mCurrentSectionId == MY_TOPICS_ID ? mTopicsLoading : mIsLoading;
+
+        if (mCurrentSectionId == MY_TOPICS_ID && items.size() <= 1 && isLoading) {
+            items.clear(); // nothing yet: skeletons instead of the lone "Edit" button
+        }
 
         if (items.isEmpty()) {
-            if (mIsLoading && mMessageGroup.getVisibility() != View.VISIBLE) {
+            if (isLoading && mMessageGroup.getVisibility() != View.VISIBLE) {
                 for (int i = 0; i < SKELETON_COUNT; i++) {
                     items.add(SKELETON);
                 }
             }
-        } else if (mIsLoading && !mRefresh.isRefreshing()) {
+        } else if (isLoading && !mRefresh.isRefreshing()) {
             items.add(LOADING_FOOTER);
         }
 
@@ -608,12 +674,18 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             return items;
         }
 
+        boolean isMyTopics = content == mContents.get(MY_TOPICS_ID);
+
+        if (isMyTopics) {
+            items.add(EDIT_TOPICS);
+        }
+
         // Several groups = rows (home page): show the title of each group
-        boolean showHeaders = content.groups.size() > 1;
+        boolean showHeaders = content.groups.size() > 1 || isMyTopics;
 
         for (GroupContent group : content.groups.values()) {
             if (showHeaders && !TextUtils.isEmpty(group.title) && !group.videos.isEmpty()) {
-                items.add(group.title);
+                items.add(group.query != null ? new TopicHeader(group.title, group.query) : group.title);
             }
 
             items.addAll(group.videos);
@@ -671,11 +743,164 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         mFeed.scrollToPosition(0);
         updateNavigationState();
 
-        mPresenter.onSectionFocused(sectionId);
+        if (sectionId == MY_TOPICS_ID) {
+            loadMyTopics(); // local section: the presenter knows nothing about it
+        } else {
+            mPresenter.onSectionFocused(sectionId);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // My topics
+    // ---------------------------------------------------------------------------------------------
+
+    private void loadMyTopics() {
+        disposeTopicActions();
+        showMessage(null, null, null);
+
+        List<Integer> topics = MobileTopics.getSelected(this);
+        String[] labels = MobileTopics.getLabels(this);
+        String[] queries = MobileTopics.getQueries(this);
+
+        // Built aside: the old rows stay on screen until the new videos arrive
+        SectionContent fresh = new SectionContent();
+        fresh.groups.put(WATCH_LATER_GROUP_ID, watchLaterGroup());
+
+        for (int topic : topics) {
+            GroupContent group = new GroupContent();
+            group.title = labels[topic];
+            group.query = queries[topic];
+            fresh.groups.put(TOPIC_GROUP_BASE - topic, group);
+        }
+
+        SectionContent old = mContents.get(MY_TOPICS_ID);
+        if (old == null || topics.isEmpty() || !hasVideos(old)) {
+            mContents.put(MY_TOPICS_ID, fresh);
+        }
+
+        if (topics.isEmpty()) {
+            mTopicsLoading = false;
+            mRefresh.setRefreshing(false);
+            showCurrentContent();
+            if (fresh.groups.get(WATCH_LATER_GROUP_ID).videos.isEmpty()) {
+                showMessage(getString(R.string.mobile_topics_empty), getString(R.string.mobile_topics_choose), this::editTopics);
+            }
+            return;
+        }
+
+        mTopicsLoading = true;
+        mTopicsPending = topics.size();
+        showCurrentContent();
+
+        for (int topic : topics) {
+            GroupContent group = fresh.groups.get(TOPIC_GROUP_BASE - topic);
+            Disposable action = YouTubeServiceManager.instance().getContentService().getSearchObserve(group.query)
+                    .take(1)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(
+                            mediaGroups -> {
+                                addTopicVideos(group, mediaGroups);
+                                mContents.put(MY_TOPICS_ID, fresh);
+                                if (mCurrentSectionId == MY_TOPICS_ID) {
+                                    showCurrentContent();
+                                }
+                            },
+                            error -> onTopicLoaded(),
+                            this::onTopicLoaded);
+            mTopicActions.add(action);
+        }
+    }
+
+    private void addTopicVideos(GroupContent group, List<MediaGroup> mediaGroups) {
+        if (mediaGroups == null) {
+            return;
+        }
+
+        List<Video> videos = new ArrayList<>();
+
+        for (MediaGroup mediaGroup : mediaGroups) {
+            VideoGroup videoGroup = VideoGroup.from(mediaGroup);
+
+            if (videoGroup.getVideos() == null) {
+                continue;
+            }
+
+            for (Video video : videoGroup.getVideos()) {
+                // Only real videos (no channels/playlists), no shorts
+                if (video != null && video.videoId != null && !video.isShorts && videos.size() < VIDEOS_PER_TOPIC) {
+                    videos.add(video);
+                }
+            }
+        }
+
+        addVideos(group, videos, false);
+    }
+
+    private void onTopicLoaded() {
+        mTopicsPending--;
+
+        if (mTopicsPending <= 0) {
+            mTopicsLoading = false;
+            mRefresh.setRefreshing(false);
+
+            if (mCurrentSectionId == MY_TOPICS_ID) {
+                showCurrentContent();
+            }
+        }
+    }
+
+    private GroupContent watchLaterGroup() {
+        GroupContent group = new GroupContent();
+        group.title = "🕒 " + getString(R.string.mobile_watch_later);
+        addVideos(group, MobileTopics.getWatchLater(this), false);
+        return group;
+    }
+
+    private void updateWatchLaterRow() {
+        SectionContent content = mContents.get(MY_TOPICS_ID);
+
+        if (content != null && content.groups.containsKey(WATCH_LATER_GROUP_ID)) {
+            content.groups.put(WATCH_LATER_GROUP_ID, watchLaterGroup());
+            showCurrentContent();
+        }
+    }
+
+    private void editTopics() {
+        MobileTopics.showPicker(this, topics -> {
+            if (mCurrentSectionId == MY_TOPICS_ID) {
+                loadMyTopics();
+            } else {
+                selectSectionInternal(MY_TOPICS_ID);
+            }
+        });
+    }
+
+    private static boolean hasVideos(SectionContent content) {
+        for (GroupContent group : content.groups.values()) {
+            if (!group.videos.isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void disposeTopicActions() {
+        for (Disposable action : mTopicActions) {
+            if (action != null && !action.isDisposed()) {
+                action.dispose();
+            }
+        }
+
+        mTopicActions.clear();
     }
 
     private void onSectionTapped(int sectionId) {
-        if (sectionId == mCurrentSectionId) {
+        if (sectionId == mCurrentSectionId && sectionId == MY_TOPICS_ID) {
+            mFeed.scrollToPosition(0);
+            mRefresh.setRefreshing(true);
+            loadMyTopics();
+        } else if (sectionId == mCurrentSectionId) {
             mFeed.scrollToPosition(0);
             mLastScrollEndVideo = null;
             mRefresh.setRefreshing(true);
@@ -686,10 +911,14 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     }
 
     private void rebuildNavigation() {
-        // Chips: every enabled section
+        // Chips: every enabled section ("My topics" right after the first one)
         mChips.removeAllViews();
 
         for (BrowseSection section : mSections) {
+            if (mChips.getChildCount() == 1) {
+                mChips.addView(createMyTopicsChip());
+            }
+
             TextView chip = new TextView(this);
             chip.setTag(section.getId());
             chip.setText(section.getTitle());
@@ -720,6 +949,25 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         }
 
         updateNavigationState();
+    }
+
+    private TextView createMyTopicsChip() {
+        TextView chip = new TextView(this);
+        chip.setTag(MY_TOPICS_ID);
+        chip.setText("⭐ " + getString(R.string.mobile_topics_title));
+        chip.setTextSize(14);
+        chip.setMaxLines(1);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(dp(16), 0, dp(16), 0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+        params.setMargins(dp(4), 0, dp(4), 0);
+        chip.setLayoutParams(params);
+        chip.setOnClickListener(v -> onSectionTapped(MY_TOPICS_ID));
+        chip.setOnLongClickListener(v -> {
+            editTopics();
+            return true;
+        });
+        return chip;
     }
 
     private View createBottomNavItem(int sectionId, int iconResId, int labelResId) {
@@ -841,6 +1089,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         private static final int TYPE_SETTING = 2;
         private static final int TYPE_SKELETON = 3;
         private static final int TYPE_FOOTER = 4;
+        private static final int TYPE_EDIT_TOPICS = 5;
         private List<Object> mItems = new ArrayList<>();
 
         /**
@@ -933,6 +1182,10 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 return TYPE_FOOTER;
             }
 
+            if (item == EDIT_TOPICS) {
+                return TYPE_EDIT_TOPICS;
+            }
+
             return item instanceof Video ? TYPE_VIDEO : item instanceof SettingsItem ? TYPE_SETTING : TYPE_HEADER;
         }
 
@@ -967,6 +1220,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                     return new SkeletonHolder(createSkeleton(parent));
                 case TYPE_FOOTER:
                     return new HeaderHolder(createFooter(parent));
+                case TYPE_EDIT_TOPICS:
+                    return new HeaderHolder(createEditTopicsButton(parent));
                 default:
                     return new HeaderHolder(createHeaderText(parent));
             }
@@ -980,9 +1235,45 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
                 ((VideoHolder) holder).bind((Video) item);
             } else if (holder instanceof SettingHolder) {
                 ((SettingHolder) holder).bind((SettingsItem) item);
+            } else if (item instanceof TopicHeader) {
+                // "Technology            See all ›": opens the full search of the topic
+                TopicHeader topic = (TopicHeader) item;
+                TextView header = (TextView) holder.itemView;
+                header.setText(topic.title);
+                Drawable seeAll = ContextCompat.getDrawable(MobileBrowseActivity.this, R.drawable.ic_m_chevron);
+                if (seeAll != null) {
+                    seeAll = seeAll.mutate();
+                    seeAll.setAlpha(170);
+                }
+                header.setCompoundDrawablesWithIntrinsicBounds(null, null, seeAll, null);
+                header.setOnClickListener(v -> SearchPresenter.instance(MobileBrowseActivity.this).startSearch(topic.query));
             } else if (item instanceof String) {
-                ((TextView) holder.itemView).setText((String) item);
+                TextView header = (TextView) holder.itemView;
+                header.setText((String) item);
+                header.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
+                header.setOnClickListener(null);
+                header.setClickable(false);
             }
+        }
+
+        private View createEditTopicsButton(ViewGroup parent) {
+            FrameLayout box = new FrameLayout(parent.getContext());
+            box.setLayoutParams(new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            box.setPadding(dp(14), dp(4), dp(14), dp(4));
+            TextView button = new TextView(parent.getContext());
+            button.setText("✏️  " + getString(R.string.mobile_topics_edit));
+            button.setTextColor(Color.WHITE);
+            button.setTextSize(14);
+            button.setGravity(Gravity.CENTER_VERTICAL);
+            button.setPadding(dp(16), 0, dp(18), 0);
+            GradientDrawable shape = new GradientDrawable();
+            shape.setCornerRadius(dp(18));
+            shape.setColor(0x1FFFFFFF);
+            shape.setStroke(dp(1), 0x332F80FF);
+            button.setBackground(shape);
+            button.setOnClickListener(v -> editTopics());
+            box.addView(button, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)));
+            return box;
         }
 
         /**

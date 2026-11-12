@@ -270,14 +270,15 @@ public class MobileControlsView extends FrameLayout {
         mIsMini = mini;
         mIsFullscreen = fullscreen;
 
-        if (!fullscreen && mLocked) {
-            setLocked(false); // the lock only exists in full screen
+        if (mini && mLocked) {
+            setLocked(false); // no lock on the mini player
         }
 
         mTitle.setText(fullscreen ? title : null);
         // Full screen: keep the buttons away from the edge (a swipe there shows the system bars)
         mTopRow.setPadding(dp(fullscreen ? 16 : 4), dp(fullscreen ? 14 : 8), dp(fullscreen ? 16 : 4), 0);
-        mLock.setVisibility(fullscreen ? View.VISIBLE : View.GONE);
+        // Full screen: locks the landscape video. Portrait: locks and keeps only the video (no suggestions)
+        mLock.setVisibility(mini ? View.GONE : View.VISIBLE);
         mFullscreen.setImageResource(fullscreen ? R.drawable.ic_m_fullscreen_exit : R.drawable.ic_m_fullscreen);
         mMiniProgress.setVisibility(mini ? View.VISIBLE : View.GONE);
 

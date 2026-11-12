@@ -800,6 +800,94 @@
     <string name="mobile_background_audio_desc">Sigue sonando el audio con la pantalla bloqueada</string>
     <string name="mobile_pin">Fijar</string>
     <string name="mobile_unpin">Toca para desbloquear</string>
+    <string name="mobile_topics_title">Favoritos</string>
+    <string name="mobile_topics_pick_title">¿Qué te gusta ver?</string>
+    <string name="mobile_topics_pick_subtitle">Elige tus temas favoritos y te sugerimos videos de cada uno.</string>
+    <string name="mobile_topics_save">Listo</string>
+    <string name="mobile_topics_skip">Ahora no</string>
+    <string name="mobile_topics_edit">Editar mis favoritos</string>
+    <string name="mobile_topics_empty">Elige tus temas favoritos para ver aquí videos sugeridos de cada uno.</string>
+    <string name="mobile_topics_choose">Elegir temas</string>
+    <string name="mobile_topics_see_all">Ver todo</string>
+    <string name="mobile_watch_later">Ver más tarde</string>
+    <string name="mobile_watch_later_added">Guardado en Ver más tarde</string>
+    <string name="mobile_watch_later_removed">Quitado de Ver más tarde</string>
+    <string-array name="mobile_topic_section_labels">
+        <item>💻 Tecnología</item>
+        <item>💰 Dinero y negocios</item>
+        <item>🎬 Películas y series</item>
+        <item>🎵 Música</item>
+        <item>⚽ Deportes</item>
+        <item>🌎 Más temas</item>
+    </string-array>
+    <string-array name="mobile_topic_labels">
+        <item>👨‍💻 Programación y software</item>
+        <item>🤖 Inteligencia artificial</item>
+        <item>🦾 Robótica</item>
+        <item>💻 Tecnología y gadgets</item>
+        <item>📲 Apps y trucos para el celular</item>
+        <item>🎮 Videojuegos</item>
+        <item>📈 Trading</item>
+        <item>🪙 Criptomonedas y Binance</item>
+        <item>⛏️ Minería de criptomonedas</item>
+        <item>💰 Finanzas personales</item>
+        <item>🧭 Mentorías y emprendimiento</item>
+        <item>🎬 Películas y estrenos</item>
+        <item>💥 Películas de acción</item>
+        <item>💞 Películas para ver en pareja</item>
+        <item>🇰🇷 Doramas y cine coreano</item>
+        <item>🍥 Anime</item>
+        <item>📺 Telenovelas</item>
+        <item>😂 Comedia</item>
+        <item>🎧 Música mix</item>
+        <item>🎵 Éxitos musicales</item>
+        <item>⚽ Fútbol</item>
+        <item>🏀 Deportes</item>
+        <item>💪 Ejercicio</item>
+        <item>⭐ Youtubers famosos</item>
+        <item>🍳 Cocina</item>
+        <item>✈️ Viajes</item>
+        <item>🔬 Ciencia</item>
+        <item>📰 Noticias</item>
+        <item>🚗 Autos</item>
+        <item>📚 Aprender</item>
+        <item>🧒 Infantil</item>
+        <item>🐾 Animales</item>
+    </string-array>
+    <string-array name="mobile_topic_queries">
+        <item>programación desarrollo de software</item>
+        <item>inteligencia artificial novedades</item>
+        <item>robótica robots</item>
+        <item>tecnología novedades</item>
+        <item>mejores aplicaciones android trucos</item>
+        <item>videojuegos gameplay español</item>
+        <item>trading para principiantes</item>
+        <item>binance criptomonedas</item>
+        <item>minería de criptomonedas</item>
+        <item>finanzas personales</item>
+        <item>mentoría emprendimiento desarrollo personal</item>
+        <item>tráiler oficial estreno español</item>
+        <item>películas de acción tráiler</item>
+        <item>películas románticas para ver en pareja</item>
+        <item>dorama coreano</item>
+        <item>anime</item>
+        <item>telenovela capítulo</item>
+        <item>comedia sketch</item>
+        <item>mix música</item>
+        <item>música éxitos</item>
+        <item>fútbol resumen</item>
+        <item>deportes mejores jugadas</item>
+        <item>rutina ejercicios en casa</item>
+        <item>youtubers famosos</item>
+        <item>recetas fáciles</item>
+        <item>viajes destinos</item>
+        <item>ciencia documental</item>
+        <item>noticias hoy</item>
+        <item>autos reseña</item>
+        <item>aprende curso</item>
+        <item>dibujos animados infantiles</item>
+        <item>animales documental</item>
+    </string-array>
     <string name="mobile_watch_subscribe">Suscribirse</string>
     <string name="mobile_watch_subscribed">Suscrito</string>
     <string name="mobile_watch_like">Me gusta</string>

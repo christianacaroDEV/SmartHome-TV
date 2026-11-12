@@ -48,6 +48,7 @@ public class MobileWatchInfoView extends LinearLayout {
     private final TextView mSubscribe;
     private final TextView mLike;
     private final ImageView mDislike;
+    private final TextView mWatchLater;
     private final LinearLayout mDescriptionCard;
     private final TextView mDescription;
     private final TextView mDescriptionToggle;
@@ -130,6 +131,11 @@ public class MobileWatchInfoView extends LinearLayout {
         likePill.addView(mDislike, new LayoutParams(dp(44), dp(36)));
         actions.addView(likePill);
 
+        mWatchLater = (TextView) chip(R.drawable.ic_m_history, R.string.mobile_watch_later, v -> {
+            MobileTopics.toggleWatchLater(getContext(), mVideo);
+            bind(mVideo);
+        });
+        actions.addView(mWatchLater);
         actions.addView(chip(R.drawable.ic_m_share, R.string.mobile_watch_share, v -> share()));
         actions.addView(chip(R.drawable.ic_m_playlist_add, R.string.mobile_watch_save, v -> press(R.id.action_playlist_add)));
         addView(actionsScroll);
@@ -166,7 +172,7 @@ public class MobileWatchInfoView extends LinearLayout {
 
         mTitle.setText(video.getTitleFull() != null ? video.getTitleFull() : video.getTitle());
 
-        String author = !TextUtils.isEmpty(video.author) ? video.author : video.getAuthor();
+        String author = authorOf(video);
         mMeta.setText(viewsAndDate(video, author));
         mChannelName.setText(author);
         mSubscribers.setText(video.subscriberCount);
@@ -192,6 +198,10 @@ public class MobileWatchInfoView extends LinearLayout {
         mLike.setText(!TextUtils.isEmpty(video.likeCount) ? video.likeCount : getContext().getString(R.string.mobile_watch_like));
         mLike.setCompoundDrawablesWithIntrinsicBounds(tinted(R.drawable.ic_m_thumb_up, liked), null, null, null);
         mDislike.setColorFilter(disliked ? ACCENT : Color.WHITE);
+
+        boolean savedForLater = MobileTopics.isInWatchLater(getContext(), video);
+        mWatchLater.setCompoundDrawablesWithIntrinsicBounds(tinted(R.drawable.ic_m_history, savedForLater), null, null, null);
+        mWatchLater.setTextColor(savedForLater ? 0xFF7FB6FF : Color.WHITE);
 
         // Description: 3 lines, tap to see all of it
         boolean hasDescription = !TextUtils.isEmpty(video.description);
@@ -224,6 +234,19 @@ public class MobileWatchInfoView extends LinearLayout {
         }
 
         return TextUtils.join("  ·  ", parts);
+    }
+
+    /**
+     * The channel name. Before the metadata arrives (e.g. a search result) only "Author • views • date" is known.
+     */
+    private static String authorOf(Video video) {
+        String author = !TextUtils.isEmpty(video.author) ? video.author : video.getAuthor();
+
+        if (author != null && (author.contains("•") || author.contains("·"))) {
+            author = author.split("[•·]")[0].trim();
+        }
+
+        return author;
     }
 
     private void toggleDescription() {

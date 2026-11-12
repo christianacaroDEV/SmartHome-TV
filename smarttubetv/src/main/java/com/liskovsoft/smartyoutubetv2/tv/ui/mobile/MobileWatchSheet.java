@@ -159,7 +159,12 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
             @Override
             public void onLockChanged(boolean locked) {
-                // Nothing else: the holder stops the drag gestures and BACK while locked
+                // The holder stops the drag gestures and BACK while locked.
+                // Portrait: the screen stays vertical and only the video is shown.
+                if (mState == STATE_EXPANDED) {
+                    mActivity.setRequestedOrientation(locked ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                    applyLayout();
+                }
             }
         });
         mPlayerHolder.addView(mControls, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -215,7 +220,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
      * @return true if BACK was consumed (full screen -> expanded -> mini)
      */
     public boolean onBackPressed() {
-        if (mState == STATE_FULLSCREEN && mControls.isLocked()) {
+        if (mState != STATE_MINI && mControls.isLocked()) {
             return true; // locked ("Fijar"): BACK does nothing until unlocked
         }
 
@@ -321,8 +326,21 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 sheetParams.bottomMargin = 0;
                 listParams.topMargin = videoHeight;
                 mMiniBar.setVisibility(View.GONE);
-                mList.setVisibility(View.VISIBLE);
+                if (mControls.isLocked()) {
+                    // Locked in portrait: only the video, centered, nothing else to tap
+                    holderParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, videoHeight, Gravity.CENTER);
+                    mList.setVisibility(View.GONE);
+                } else {
+                    mList.setVisibility(View.VISIBLE);
+                }
                 break;
+        }
+
+        // Black page behind a locked portrait video, the app background otherwise
+        if (mState == STATE_EXPANDED && mControls.isLocked()) {
+            mSheet.setBackgroundColor(Color.BLACK);
+        } else {
+            mSheet.setBackgroundResource(R.drawable.bluetube_background);
         }
 
         mControls.setMode(mState == STATE_MINI, mState == STATE_FULLSCREEN, mVideo != null ? mVideo.getTitle() : null);
