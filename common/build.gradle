@@ -55,6 +55,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'androidx.appcompat:appcompat:' + appCompatXVersion
+    // BlueTubeSync makes one playlist request directly (same Retrofit as youtubeapi, already in the app)
+    compileOnly 'com.squareup.retrofit2:retrofit:' + retrofitVersion
     testImplementation 'junit:junit:' + junitVersion
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
 

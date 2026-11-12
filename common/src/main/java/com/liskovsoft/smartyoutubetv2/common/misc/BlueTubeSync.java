@@ -11,6 +11,9 @@ import com.liskovsoft.mediaserviceinterfaces.data.PlaylistInfo;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.sharedutils.rx.RxHelper;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.googlecommon.common.helpers.RetrofitHelper;
+import com.liskovsoft.youtubeapi.common.helpers.PostDataHelper;
+import com.liskovsoft.youtubeapi.playlist.PlaylistApi;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 
@@ -41,6 +44,7 @@ public final class BlueTubeSync {
     /** TV sidebar section with the Favorites (id outside the MediaGroup types) */
     public static final int FAVORITES_SECTION_ID = 99;
     private static final String PREFIX = "BlueTube · ";
+    private static boolean sCreateRefused;
     /** The playlists request needs some video (any one): the first YouTube video, it will not disappear */
     private static final String ANY_VIDEO_ID = "jNQXAC9IVRw";
     private static final int MAX_PROFILES = 6;
@@ -206,7 +210,9 @@ public final class BlueTubeSync {
 
             if (existing == null) {
                 // YouTube doesn't create an empty playlist: create it with a video and take the video out
-                RxHelper.runBlocking(itemService().createPlaylistObserve(title, ANY_VIDEO_ID));
+                if (!createPrivatePlaylist(title)) {
+                    return;
+                }
                 PlaylistInfo created = findPlaylist(itemService().getPlaylistsInfo(ANY_VIDEO_ID), profile.name);
                 Log.d(TAG, "Profile playlist created: %s", created != null);
                 if (created != null) {
@@ -274,8 +280,7 @@ public final class BlueTubeSync {
             SharedPreferences.Editor editor = prefs(appContext).edit();
 
             for (PlaylistInfo info : infos) {
-                String[] parsed = parse(info.getTitle());
-                Log.d(TAG, "pull: playlist %s", info.getTitle());
+                String[] parsed = parse(info);
 
                 if (parsed == null) {
                     continue;
@@ -283,7 +288,7 @@ public final class BlueTubeSync {
 
                 String name = parsed[0];
                 String topics = parsed[1];
-                remoteNames.add(name.toLowerCase());
+                remoteNames.add(nameKey(name));
                 Profile profile = findProfile(profiles, name);
 
                 if (profile == null) {
@@ -315,7 +320,7 @@ public final class BlueTubeSync {
 
             // Profiles created here before signing in (or offline) go to the account too
             for (Profile profile : profiles) {
-                if (!remoteNames.contains(cleanName(profile.name).toLowerCase())
+                if (!remoteNames.contains(nameKey(profile.name))
                         && !TextUtils.isEmpty(prefs(appContext).getString(key(profile.id, KEY_TOPICS), ""))) {
                     push(appContext, profile);
                 }
@@ -335,15 +340,48 @@ public final class BlueTubeSync {
         });
     }
 
+    /**
+     * Private playlist. The library request is refused by YouTube ("invalid argument"), so it's made here.<br/>
+     * NOTE: YouTube only lets accounts WITH a channel create playlists ("Precondition check failed" otherwise).
+     * Then the profiles stay on each device and only Watch later is shared.
+     */
+    private static boolean createPrivatePlaylist(String title) {
+        if (sCreateRefused) {
+            return false;
+        }
+
+        String quoted = JSONObject.quote(title);
+        String[] datas = {
+                "\"title\":" + quoted + ",\"videoIds\":[\"" + ANY_VIDEO_ID + "\"],\"privacyStatus\":\"PRIVATE\"",
+                "\"title\":" + quoted + ",\"privacyStatus\":\"PRIVATE\""
+        };
+        PlaylistApi api = RetrofitHelper.create(PlaylistApi.class);
+
+        for (String data : datas) {
+            for (String body : new String[] {PostDataHelper.createQueryWeb(data), PostDataHelper.createQueryTV(data)}) {
+                retrofit2.Response<?> response = RetrofitHelper.getResponse(api.createPlaylist(body));
+                int code = response != null ? response.code() : -1;
+                Log.d(TAG, "create playlist: %s", code);
+
+                if (code >= 200 && code < 300) {
+                    return true;
+                }
+            }
+        }
+
+        sCreateRefused = true; // don't ask again until the app restarts
+        return false;
+    }
+
     private static PlaylistInfo findPlaylist(List<PlaylistInfo> infos, String profileName) {
         if (infos == null) {
             return null;
         }
 
         for (PlaylistInfo info : infos) {
-            String[] parsed = parse(info.getTitle());
+            String[] parsed = parse(info);
 
-            if (parsed != null && parsed[0].equalsIgnoreCase(cleanName(profileName))) {
+            if (parsed != null && nameKey(parsed[0]).equals(nameKey(profileName))) {
                 return info;
             }
         }
@@ -353,7 +391,7 @@ public final class BlueTubeSync {
 
     private static Profile findProfile(List<Profile> profiles, String name) {
         for (Profile profile : profiles) {
-            if (cleanName(profile.name).equalsIgnoreCase(name)) {
+            if (nameKey(profile.name).equals(nameKey(name))) {
                 return profile;
             }
         }
@@ -364,8 +402,12 @@ public final class BlueTubeSync {
     /**
      * "BlueTube · Papi [trading,crypto]" -> {"Papi", "trading,crypto"}
      */
-    private static String[] parse(String title) {
-        if (title == null || !title.startsWith(PREFIX)) {
+    private static String[] parse(PlaylistInfo info) {
+        String title = info != null ? info.getTitle() : null;
+        String id = info != null ? info.getPlaylistId() : null;
+
+        // Only real account playlists ("PL..."): the library also lists local copies that never reached YouTube
+        if (title == null || !title.startsWith(PREFIX) || id == null || !id.startsWith("PL")) {
             return null;
         }
 
@@ -377,6 +419,15 @@ public final class BlueTubeSync {
         }
 
         return new String[] {rest.substring(0, open).trim(), rest.substring(open + 2, rest.length() - 1).trim()};
+    }
+
+    /**
+     * Same profile on every device: names compared without case, and the default profile is the same
+     * whatever the language of the device ("Principal" / "Main").
+     */
+    private static String nameKey(String name) {
+        String key = cleanName(name).toLowerCase();
+        return "main".equals(key) ? "principal" : key;
     }
 
     /**
