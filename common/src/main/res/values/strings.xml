@@ -895,6 +895,7 @@
     <string name="offline_message_mobile">Check your Wi-Fi or mobile data. We\'ll be back as soon as there\'s internet.</string>
     <string name="offline_message_tv">Check the TV\'s Wi-Fi or cable. We\'ll be back as soon as there\'s internet.</string>
     <string name="offline_retry">Retry</string>
+    <string name="msg_network_hiccup">We couldn\'t reach YouTube just now. Check your connection and try again.</string>
     <string name="mobile_profile_default">Main</string>
     <string name="mobile_profile_who">Who is watching?</string>
     <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>

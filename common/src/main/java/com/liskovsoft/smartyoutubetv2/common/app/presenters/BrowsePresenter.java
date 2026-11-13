@@ -80,6 +80,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private final BrowseProcessorManager mBrowseProcessor;
     private final List<Disposable> mActions;
     private final Runnable mRefreshSection = this::refresh;
+    /** Silent retries after a connection hiccup (DNS not ready yet, wifi/data switch) before showing an error */
+    private static final long[] NETWORK_RETRY_DELAYS_MS = {1_500, 3_000, 6_000};
+    private int mNetworkRetries;
+    private final Runnable mRetrySection = () -> refresh(false);
     private BrowseSection mCurrentSection;
     private Video mCurrentVideo;
     private long mLastUpdateTimeMs = -1;
@@ -932,6 +936,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         Disposable updateAction = groups
                 .subscribe(
                         mediaGroups -> {
+                            mNetworkRetries = 0;
                             getView().showProgressBar(false);
 
                             filterHomeIfNeeded(mediaGroups);
@@ -989,6 +994,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         Disposable updateAction = group
                 .subscribe(
                         mediaGroup -> {
+                            mNetworkRetries = 0;
                             getView().showProgressBar(false);
 
                             if (getView() == null) {
@@ -1120,6 +1126,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private void disposeActions() {
         RxHelper.disposeActions(mActions);
         Utils.removeCallbacks(mRefreshSection);
+        Utils.removeCallbacks(mRetrySection);
         mLastUpdateTimeMs = -1;
         mBrowseProcessor.dispose();
     }
@@ -1383,6 +1390,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         if (getView() == null) {
             return;
         }
+
+        if (error != null && CategoryEmptyError.isNetworkError(error) && mNetworkRetries < NETWORK_RETRY_DELAYS_MS.length) {
+            // Keep the loading state and try again quietly: usually works a moment later
+            Log.e(TAG, "Network hiccup, retry %s: %s", mNetworkRetries + 1, error.getMessage());
+            Utils.postDelayed(mRetrySection, NETWORK_RETRY_DELAYS_MS[mNetworkRetries++]);
+            return;
+        }
+
+        mNetworkRetries = 0; // the Retry button gets its own quiet retries again
 
         getView().showProgressBar(false);
 
