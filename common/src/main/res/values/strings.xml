@@ -768,12 +768,14 @@
     <string name="splash_tagline">Watch what you love, without limits</string>
     <!-- The splash shows one of these per launch, in order (the first one is the default) -->
     <string-array name="splash_taglines">
-        <item>Watch what you love, without limits</item>
+        <item>Press play on what moves you</item>
         <item>@@greeting@@ · What are we watching today?</item>
-        <item>Your favorite videos, one tap away</item>
+        <item>Get comfy, the show is about to start</item>
         <item>From your phone to your TV, right where you left off</item>
-        <item>Music, shows and more, always with you</item>
-        <item>Artificial Intelligence · Taking you to the future</item>
+        <item>Your next favorite video is waiting</item>
+        <item>Less searching, more enjoying</item>
+        <item>Near or far, watch it together</item>
+        <item>Popcorn ready… enjoy! 🍿</item>
     </string-array>
     <string name="splash_greeting_morning">Good morning</string>
     <string name="splash_greeting_afternoon">Good afternoon</string>
@@ -881,6 +883,18 @@
     <string name="together_create_desc">With the video you are watching; you get a code to share</string>
     <string name="together_join_desc">Someone gave you a 6-digit code</string>
     <string name="together_back">Back</string>
+    <string name="bluetube_update_title">BlueTube got better</string>
+    <string name="bluetube_update_message">Version %s</string>
+    <string name="bluetube_update_now">Update now</string>
+    <string name="bluetube_update_later">Later</string>
+    <string name="bluetube_update_news">What\'s new</string>
+    <string name="bluetube_update_keep">Your profiles and settings are kept.</string>
+    <string name="mobile_action_speed">Speed</string>
+    <string name="mobile_action_quality">Quality and more</string>
+    <string name="offline_title">You\'re offline</string>
+    <string name="offline_message_mobile">Check your Wi-Fi or mobile data. We\'ll be back as soon as there\'s internet.</string>
+    <string name="offline_message_tv">Check the TV\'s Wi-Fi or cable. We\'ll be back as soon as there\'s internet.</string>
+    <string name="offline_retry">Retry</string>
     <string name="mobile_profile_default">Main</string>
     <string name="mobile_profile_who">Who is watching?</string>
     <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>

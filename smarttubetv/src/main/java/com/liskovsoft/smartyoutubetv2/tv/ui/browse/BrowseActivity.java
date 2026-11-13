@@ -27,6 +27,23 @@ public class BrowseActivity extends LeanbackActivity {
         }
     }
 
+    private final com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay mOffline =
+            new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay(this,
+                    () -> com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter.instance(this).refresh());
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mOffline.start(); // no internet: "You're offline / Retry" screen
+        com.liskovsoft.smartyoutubetv2.common.misc.StartupUpdateCheck.checkOnce(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mOffline.stop();
+    }
+
     @Override
     protected void initTheme() {
         int browseThemeResId = MainUIData.instance(this).getColorScheme().browseThemeResId;

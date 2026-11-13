@@ -59,6 +59,12 @@ public class MobileControlsView extends FrameLayout {
     private final ImageButton mSubtitles;
     private final ImageButton mFullscreen;
     private final ImageButton mLock;
+    private final ImageButton mSpeed;
+    private final ImageButton mQuality;
+    private final LinearLayout mActionsRow;
+    private final LinearLayout mSubtitlesAction;
+    private final LevelBar mBrightnessBar;
+    private final LevelBar mVolumeBar;
     private final TextView mTime;
     private final SeekBar mSeekBar;
     private final ProgressBar mMiniProgress;
@@ -125,12 +131,12 @@ public class MobileControlsView extends FrameLayout {
         mSubtitles = iconButton(R.drawable.ic_m_cc, 44, R.string.mobile_cd_subtitles);
         mSubtitles.setOnClickListener(v -> pressButton(R.id.lb_control_closed_captioning));
         top.addView(mSubtitles);
-        ImageButton speed = iconButton(R.drawable.ic_m_speed, 44, R.string.mobile_cd_speed);
-        speed.setOnClickListener(v -> pressButton(R.id.action_video_speed));
-        top.addView(speed);
-        ImageButton quality = iconButton(R.drawable.ic_m_settings, 44, R.string.mobile_cd_quality);
-        quality.setOnClickListener(v -> pressButton(R.id.lb_control_high_quality));
-        top.addView(quality);
+        mSpeed = iconButton(R.drawable.ic_m_speed, 44, R.string.mobile_cd_speed);
+        mSpeed.setOnClickListener(v -> pressButton(R.id.action_video_speed));
+        top.addView(mSpeed);
+        mQuality = iconButton(R.drawable.ic_m_settings, 44, R.string.mobile_cd_quality);
+        mQuality.setOnClickListener(v -> pressButton(R.id.lb_control_high_quality));
+        top.addView(mQuality);
         mLock = iconButton(R.drawable.ic_m_lock, 44, R.string.mobile_pin);
         mLock.setOnClickListener(v -> setLocked(true));
         top.addView(mLock);
@@ -207,7 +213,33 @@ public class MobileControlsView extends FrameLayout {
             }
         });
         bottom.addView(mSeekBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // Full screen only: Subtitles · Speed · Quality and more · Pin, with names, under the seek bar
+        mActionsRow = new LinearLayout(context);
+        mActionsRow.setGravity(Gravity.CENTER);
+        mActionsRow.setPadding(dp(8), 0, dp(8), dp(10));
+        mSubtitlesAction = actionButton(R.drawable.ic_m_cc, R.string.mobile_cd_subtitles, v -> pressButton(R.id.lb_control_closed_captioning));
+        mActionsRow.addView(mSubtitlesAction);
+        mActionsRow.addView(actionButton(R.drawable.ic_m_speed, R.string.mobile_action_speed, v -> pressButton(R.id.action_video_speed)));
+        mActionsRow.addView(actionButton(R.drawable.ic_m_settings, R.string.mobile_action_quality, v -> pressButton(R.id.lb_control_high_quality)));
+        mActionsRow.addView(actionButton(R.drawable.ic_m_lock_open, R.string.mobile_pin, v -> setLocked(true)));
+        mActionsRow.setVisibility(View.GONE);
+        bottom.addView(mActionsRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         panel.addView(bottom, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+
+        // Full screen: brightness bar (left) and volume bar (right), like YouTube / TV boxes
+        mBrightnessBar = new LevelBar(context, R.drawable.ic_m_brightness, Color.WHITE);
+        LayoutParams brightnessParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL);
+        brightnessParams.leftMargin = dp(26);
+        brightnessParams.bottomMargin = dp(36); // above the time and the seek bar
+        addView(mBrightnessBar, brightnessParams);
+        mVolumeBar = new LevelBar(context, R.drawable.ic_m_volume, ACCENT);
+        LayoutParams volumeParams = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL);
+        volumeParams.rightMargin = dp(26);
+        volumeParams.bottomMargin = dp(36);
+        addView(mVolumeBar, volumeParams);
+        mBrightnessBar.setVisibility(View.GONE);
+        mVolumeBar.setVisibility(View.GONE);
 
         // Thin progress line (mini player)
         mMiniProgress = new ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
@@ -315,8 +347,24 @@ public class MobileControlsView extends FrameLayout {
         mTitle.setText(fullscreen ? title : null);
         // Full screen: keep the buttons away from the edge (a swipe there shows the system bars)
         mTopRow.setPadding(dp(fullscreen ? 16 : 4), dp(fullscreen ? 14 : 8), dp(fullscreen ? 16 : 4), 0);
-        // Full screen: locks the landscape video. Portrait: locks and keeps only the video (no suggestions)
-        mLock.setVisibility(mini ? View.GONE : View.VISIBLE);
+        // Full screen: the options move to the bottom row with their names; small player: icons at the top
+        int topIcons = mini || fullscreen ? View.GONE : View.VISIBLE;
+        mSubtitles.setVisibility(fullscreen ? View.GONE : View.VISIBLE);
+        mSpeed.setVisibility(fullscreen ? View.GONE : View.VISIBLE);
+        mQuality.setVisibility(fullscreen ? View.GONE : View.VISIBLE);
+        // Portrait player: locks and keeps only the video (no suggestions)
+        mLock.setVisibility(topIcons);
+        mActionsRow.setVisibility(fullscreen && !mini ? View.VISIBLE : View.GONE);
+        // Portrait (vertical full screen): icon above the name so the 4 fit; landscape: icon beside the name
+        boolean portrait = getResources().getConfiguration().orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        for (int i = 0; i < mActionsRow.getChildCount(); i++) {
+            LinearLayout action = (LinearLayout) mActionsRow.getChildAt(i);
+            action.setOrientation(portrait ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+            action.setLayoutParams(portrait ? new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                    : new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            ((TextView) action.getChildAt(1)).setPadding(portrait ? 0 : dp(8), portrait ? dp(4) : 0, 0, 0);
+        }
+        updateLevelBars();
         mFullscreen.setImageResource(fullscreen ? R.drawable.ic_m_fullscreen_exit : R.drawable.ic_m_fullscreen);
         mMiniProgress.setVisibility(mini ? View.VISIBLE : View.GONE);
 
@@ -387,12 +435,28 @@ public class MobileControlsView extends FrameLayout {
     private int mAdjusting;
     private float mAdjustStartY;
     private float mAdjustStartValue;
-    private TextView mAdjustBubble;
-    private final Runnable mHideAdjust = () -> {
-        if (mAdjustBubble != null) {
-            mAdjustBubble.setVisibility(View.GONE);
+    private final Runnable mHideAdjust = this::updateLevelBars;
+
+    /**
+     * Both bars are shown with the controls in full screen; while sliding a finger, the one being changed.
+     */
+    private void updateLevelBars() {
+        boolean withPanel = mIsFullscreen && !mIsMini && !mLocked && mPanel.getVisibility() == View.VISIBLE;
+        boolean brightness = withPanel || mAdjusting == ADJUST_BRIGHTNESS;
+        boolean volume = withPanel || mAdjusting == ADJUST_VOLUME;
+
+        mBrightnessBar.setVisibility(brightness ? View.VISIBLE : View.GONE);
+        mVolumeBar.setVisibility(volume ? View.VISIBLE : View.GONE);
+
+        if (brightness) {
+            mBrightnessBar.setLevel(getBrightness());
+            mBrightnessBar.bringToFront();
         }
-    };
+        if (volume) {
+            mVolumeBar.setLevel(getVolume());
+            mVolumeBar.bringToFront();
+        }
+    }
 
     /**
      * The outer 40% of each side: the middle keeps its own gestures (drag down = leave full screen).
@@ -446,15 +510,91 @@ public class MobileControlsView extends FrameLayout {
     }
 
     private void showAdjustBubble(float value) {
-        if (mAdjustBubble == null) {
-            mAdjustBubble = pill("");
-            addView(mAdjustBubble, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        mHandler.removeCallbacks(mHideAdjust);
+        updateLevelBars();
+        (mAdjusting == ADJUST_BRIGHTNESS ? mBrightnessBar : mVolumeBar).setLevel(value);
+        if (mPanel.getVisibility() == View.VISIBLE) {
+            scheduleAutoHide(); // keep the controls while adjusting
+        }
+    }
+
+    /**
+     * Full screen option with its name: icon + "Subtitles" / "Speed" / "Quality and more" / "Pin".
+     */
+    private LinearLayout actionButton(int iconResId, int labelResId, View.OnClickListener listener) {
+        LinearLayout button = new LinearLayout(getContext());
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(14), dp(8), dp(14), dp(8));
+        button.setClickable(true);
+        button.setFocusable(true);
+        android.util.TypedValue ripple = new android.util.TypedValue();
+        if (getContext().getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple, true)) {
+            button.setBackgroundResource(ripple.resourceId);
+        }
+        button.setOnClickListener(listener);
+        button.setContentDescription(getContext().getString(labelResId));
+
+        ImageView icon = new ImageView(getContext());
+        icon.setImageResource(iconResId);
+        button.addView(icon, new LinearLayout.LayoutParams(dp(22), dp(22)));
+
+        TextView label = new TextView(getContext());
+        label.setText(labelResId);
+        label.setTextColor(Color.WHITE);
+        label.setTextSize(13);
+        label.setMaxLines(1);
+        label.setEllipsize(TextUtils.TruncateAt.END);
+        button.addView(label);
+        return button;
+    }
+
+    /**
+     * Vertical level bar: icon, a white/blue column that fills from the bottom, and the percentage.
+     */
+    private class LevelBar extends LinearLayout {
+        private final View mFill;
+        private final TextView mPercent;
+        private final int mTrackHeight = dp(110);
+
+        LevelBar(Context context, int iconResId, int color) {
+            super(context);
+            setOrientation(VERTICAL);
+            setGravity(Gravity.CENTER_HORIZONTAL);
+            setMinimumWidth(dp(48)); // room for "100%"
+
+            ImageView icon = new ImageView(context);
+            icon.setImageResource(iconResId);
+            addView(icon, new LinearLayout.LayoutParams(dp(22), dp(22)));
+
+            FrameLayout track = new FrameLayout(context);
+            GradientDrawable trackShape = new GradientDrawable();
+            trackShape.setCornerRadius(dp(3));
+            trackShape.setColor(0x55FFFFFF);
+            track.setBackground(trackShape);
+            LinearLayout.LayoutParams trackParams = new LinearLayout.LayoutParams(dp(6), mTrackHeight);
+            trackParams.setMargins(0, dp(10), 0, dp(8));
+            addView(track, trackParams);
+
+            mFill = new View(context);
+            GradientDrawable fillShape = new GradientDrawable();
+            fillShape.setCornerRadius(dp(3));
+            fillShape.setColor(color);
+            mFill.setBackground(fillShape);
+            track.addView(mFill, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, Gravity.BOTTOM));
+
+            mPercent = new TextView(context);
+            mPercent.setTextColor(Color.WHITE);
+            mPercent.setTextSize(12);
+            addView(mPercent);
         }
 
-        mAdjustBubble.setText((mAdjusting == ADJUST_BRIGHTNESS ? "☀ " : "🔊 ") + Math.round(value * 100) + "%");
-        mAdjustBubble.setVisibility(View.VISIBLE);
-        mAdjustBubble.bringToFront();
-        mHandler.removeCallbacks(mHideAdjust);
+        void setLevel(float value) {
+            float level = Math.max(0f, Math.min(1f, value));
+            ViewGroup.LayoutParams params = mFill.getLayoutParams();
+            params.height = Math.round(mTrackHeight * level);
+            mFill.setLayoutParams(params);
+            mPercent.setText(Math.round(level * 100) + "%");
+        }
     }
 
     public boolean isPanelVisible() {
@@ -466,6 +606,7 @@ public class MobileControlsView extends FrameLayout {
         mPanel.setVisibility(visible ? View.VISIBLE : View.GONE);
         mCallback.onPanelVisibilityChanged(visible);
         updateProgress();
+        updateLevelBars();
 
         if (show) {
             scheduleAutoHide();
@@ -529,7 +670,9 @@ public class MobileControlsView extends FrameLayout {
 
         mMiniProgress.setProgress(progress);
         mPlayPause.setImageResource(mPlayer.getPlayWhenReady() ? R.drawable.ic_m_pause : R.drawable.ic_m_play);
-        mSubtitles.setColorFilter(mPlayer.getButtonState(R.id.lb_control_closed_captioning) == 1 ? ACCENT : Color.WHITE);
+        int subtitlesColor = mPlayer.getButtonState(R.id.lb_control_closed_captioning) == 1 ? ACCENT : Color.WHITE;
+        mSubtitles.setColorFilter(subtitlesColor);
+        ((ImageView) mSubtitlesAction.getChildAt(0)).setColorFilter(subtitlesColor);
     }
 
     private static String formatTime(long ms) {

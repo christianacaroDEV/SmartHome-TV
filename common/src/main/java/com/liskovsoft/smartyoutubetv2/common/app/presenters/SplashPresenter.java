@@ -106,7 +106,7 @@ public class SplashPresenter extends BasePresenter<SplashView> {
     }
 
     private void runPerViewTasks() {
-        Utils.postDelayed(mCheckForUpdates, APP_INIT_DELAY_MS);
+        // BlueTube: updates are asked right when the main screen opens (StartupUpdateCheck), not 10 s later in a pinned row
         Utils.updateRemoteControlService(getContext());
 
         checkMasterPassword(() -> applyNewIntent(getView().getNewIntent()));

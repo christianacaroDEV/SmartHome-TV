@@ -95,6 +95,7 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
     private BrowsePresenter mPresenter;
     private MobileWatchSheet mWatchSheet;
+    private com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay mOffline;
     private boolean mIsResumed;
     private RecyclerView mFeed;
     private FeedAdapter mAdapter;
@@ -502,6 +503,18 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onResume();
         mIsResumed = true;
         BackgroundPlaybackService.stop(this);
+        if (mOffline == null) {
+            mOffline = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay(this, () -> {
+                if (mCurrentSectionId == MY_TOPICS_ID) {
+                    loadMyTopics();
+                } else if (mPresenter != null) {
+                    mPresenter.refresh();
+                }
+            });
+            mOffline.setGate(() -> mWatchSheet == null || !mWatchSheet.isPlaying()); // don't cover a video still playing
+        }
+        mOffline.start(); // no internet: "You're offline / Retry" screen
+        com.liskovsoft.smartyoutubetv2.common.misc.StartupUpdateCheck.checkOnce(this); // new version? ask right away
 
         if (mWatchSheet != null) {
             mWatchSheet.setAudioOnly(false); // back in the app: the picture again
@@ -521,6 +534,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     @Override
     protected void onPause() {
         super.onPause();
+        if (mOffline != null) {
+            mOffline.stop();
+        }
         mIsResumed = false;
 
         // Background playback: start the keep-alive service while the app is still visible (Android 12+ rule).

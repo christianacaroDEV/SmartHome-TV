@@ -767,12 +767,14 @@
     <string name="continue_watching">Continuar viendo</string>
     <string name="splash_tagline">Mira lo que amas, sin límites</string>
     <string-array name="splash_taglines">
-        <item>Mira lo que amas, sin límites</item>
+        <item>Dale play a lo que te mueve</item>
         <item>@@greeting@@ · ¿Qué vemos hoy?</item>
-        <item>Tus videos favoritos, a un toque</item>
+        <item>Ponte cómodo, el show está por empezar</item>
         <item>Del celular a la TV, justo donde lo dejaste</item>
-        <item>Música, series y más, siempre contigo</item>
-        <item>Inteligencia Artificial · Llevándote al futuro</item>
+        <item>Tu próximo video favorito te está esperando</item>
+        <item>Menos buscar, más disfrutar</item>
+        <item>Lejos o cerca, mírenlo juntos</item>
+        <item>Palomitas listas… ¡a disfrutar! 🍿</item>
     </string-array>
     <string name="splash_greeting_morning">Buenos días</string>
     <string name="splash_greeting_afternoon">Buenas tardes</string>
@@ -880,6 +882,18 @@
     <string name="together_create_desc">Con el video que estás viendo; te damos un código para compartir</string>
     <string name="together_join_desc">Alguien te pasó un código de 6 números</string>
     <string name="together_back">Volver</string>
+    <string name="bluetube_update_title">BlueTube se renovó</string>
+    <string name="bluetube_update_message">Versión %s</string>
+    <string name="bluetube_update_now">Actualizar ahora</string>
+    <string name="bluetube_update_later">Más tarde</string>
+    <string name="bluetube_update_news">Novedades</string>
+    <string name="bluetube_update_keep">Tus perfiles y ajustes se conservan.</string>
+    <string name="mobile_action_speed">Velocidad</string>
+    <string name="mobile_action_quality">Calidad y más</string>
+    <string name="offline_title">Sin conexión</string>
+    <string name="offline_message_mobile">Revisa tu wifi o tus datos móviles. Volvemos solos apenas haya internet.</string>
+    <string name="offline_message_tv">Revisa el wifi o el cable de la TV. Volvemos solos apenas haya internet.</string>
+    <string name="offline_retry">Reintentar</string>
     <string name="mobile_profile_default">Principal</string>
     <string name="mobile_profile_who">¿Quién está viendo?</string>
     <string name="mobile_profile_hint">Cada perfil tiene sus propios Favoritos y Ver más tarde. Mantén presionado para borrar uno.</string>

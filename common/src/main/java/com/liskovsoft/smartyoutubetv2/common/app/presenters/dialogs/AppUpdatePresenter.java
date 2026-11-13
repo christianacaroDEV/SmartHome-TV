@@ -26,6 +26,7 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
     private final AppDialogPresenter mSettingsPresenter;
     private final String[] mUpdateManifestUrls;
     private boolean mIsForceCheck;
+    private boolean mInstallDirectly;
 
     public AppUpdatePresenter(Context context) {
         super(context);
@@ -48,6 +49,14 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
         sInstance = null;
     }
 
+    /**
+     * BlueTube: the user already said "Update now" (startup prompt): download and open the installer, no second dialog.
+     */
+    public void downloadAndInstall() {
+        mInstallDirectly = true;
+        start(true);
+    }
+
     public void start(boolean forceCheck) {
         mIsForceCheck = forceCheck;
 
@@ -61,7 +70,12 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
 
     @Override
     public void onUpdateFound(String versionName, List<String> changelog, String apkPath) {
-        if (mIsForceCheck) {
+        if (mInstallDirectly) {
+            mInstallDirectly = false;
+            LoadingManager.showLoading(getContext(), false);
+            GeneralData.instance(getContext()).setChangelog(changelog);
+            mUpdateChecker.installUpdate();
+        } else if (mIsForceCheck) {
             LoadingManager.showLoading(getContext(), false);
             showUpdateDialog(versionName, changelog, apkPath);
         } else if (GeneralData.instance(getContext()).isOldUpdateNotificationsEnabled()) {
@@ -73,6 +87,8 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
 
     @Override
     public void onUpdateError(Exception error) {
+        mInstallDirectly = false;
+
         if (mIsForceCheck) {
             LoadingManager.showLoading(getContext(), false);
 
