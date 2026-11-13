@@ -129,6 +129,16 @@ public class MobileAccountActivity extends MotherActivity {
         mContent.addView(createSwitchRow(R.drawable.ic_m_headphones, getString(R.string.mobile_background_audio),
                 getString(R.string.mobile_background_audio_desc), MobileSettings.isBackgroundAudioEnabled(this),
                 (button, checked) -> MobileSettings.setBackgroundAudioEnabled(this, checked)));
+        mContent.addView(createRow(R.drawable.ic_m_headphones, getString(R.string.mobile_audio_only),
+                getResources().getStringArray(R.array.mobile_audio_only_modes)[MobileSettings.getAudioOnlyMode(this)],
+                v -> new android.app.AlertDialog.Builder(this)
+                        .setTitle(R.string.mobile_audio_only)
+                        .setSingleChoiceItems(R.array.mobile_audio_only_modes, MobileSettings.getAudioOnlyMode(this), (dialog, which) -> {
+                            MobileSettings.setAudioOnlyMode(this, which);
+                            dialog.dismiss();
+                            recreate();
+                        })
+                        .show()));
         mContent.addView(createRow(R.drawable.ic_m_info, getString(R.string.settings_about), null,
                 v -> AboutSettingsPresenter.instance(this).show()));
         mContent.addView(createRow(R.drawable.ic_m_update, getString(R.string.check_for_updates), null,
@@ -316,7 +326,27 @@ public class MobileAccountActivity extends MotherActivity {
             icon.setColorFilter(Color.parseColor("#B8C7E6"));
         }
         row.addView(icon);
-        row.addView(createRowText(title, false));
+        if (subtitle == null) {
+            row.addView(createRowText(title, false));
+        } else {
+            // title + the current choice under it
+            LinearLayout texts = new LinearLayout(this);
+            texts.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams textsParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            textsParams.setMargins(dp(18), 0, dp(8), 0);
+            texts.setLayoutParams(textsParams);
+            TextView titleView = new TextView(this);
+            titleView.setTextColor(Color.WHITE);
+            titleView.setTextSize(16);
+            titleView.setText(title);
+            texts.addView(titleView);
+            TextView subtitleView = new TextView(this);
+            subtitleView.setTextColor(Color.parseColor("#9FB3D9"));
+            subtitleView.setTextSize(13);
+            subtitleView.setText(subtitle);
+            texts.addView(subtitleView);
+            row.addView(texts);
+        }
         row.setOnClickListener(listener);
 
         return row;

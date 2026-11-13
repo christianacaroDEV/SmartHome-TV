@@ -560,6 +560,18 @@ public class TrackSelectorManager implements TrackSelectorCallback {
         return result;
     }
 
+    /**
+     * BlueTube "audio only": the video renderer stops (no video chunks are downloaded), the audio keeps playing.
+     * The selected video quality is kept and comes back with {@code disabled = false}.
+     */
+    public void setVideoRendererDisabled(boolean disabled) {
+        if (mTrackSelector == null) {
+            return;
+        }
+
+        mTrackSelector.setParameters(mTrackSelector.buildUponParameters().setRendererDisabled(RENDERER_INDEX_VIDEO, disabled));
+    }
+
     private void applyOverride(int rendererIndex) {
         Renderer renderer = mRenderers[rendererIndex];
 

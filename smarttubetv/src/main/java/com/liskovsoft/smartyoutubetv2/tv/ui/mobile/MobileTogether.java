@@ -104,12 +104,23 @@ public final class MobileTogether {
             manager.addUiListener(closer);
             dialog.setOnDismissListener(d -> manager.removeUiListener(closer));
         } else {
+            // One thing at a time: first the choice, then only what that choice needs
             TextView hint = text(activity, 14, TEXT_SECONDARY, false);
-            hint.setText(R.string.together_create_hint);
+            hint.setText(R.string.together_choose);
             hint.setPadding(0, dp(activity, 8), 0, dp(activity, 4));
             box.addView(hint);
 
-            box.addView(button(activity, R.string.together_create, true, v -> {
+            LinearLayout choice = new LinearLayout(activity);
+            choice.setOrientation(LinearLayout.VERTICAL);
+            box.addView(choice);
+
+            LinearLayout joinBox = new LinearLayout(activity);
+            joinBox.setOrientation(LinearLayout.VERTICAL);
+            joinBox.setVisibility(View.GONE);
+            box.addView(joinBox);
+
+            // 1) Create: one tap
+            choice.addView(option(activity, "➕", R.string.together_create, R.string.together_create_desc, v -> {
                 v.setEnabled(false);
                 manager.create(success -> {
                     if (success) {
@@ -122,19 +133,34 @@ public final class MobileTogether {
                 });
             }));
 
+            // 2) Join: shows the code field (and only it)
             EditText code = new EditText(activity);
-            code.setHint(R.string.together_code_hint);
+            choice.addView(option(activity, "🔑", R.string.together_join_room, R.string.together_join_desc, v -> {
+                choice.setVisibility(View.GONE);
+                hint.setText(R.string.together_code_hint);
+                joinBox.setVisibility(View.VISIBLE);
+                code.requestFocus();
+                android.view.inputmethod.InputMethodManager imm =
+                        (android.view.inputmethod.InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    code.postDelayed(() -> imm.showSoftInput(code, 0), 150);
+                }
+            }));
+
+            code.setHint("000 000");
             code.setInputType(InputType.TYPE_CLASS_NUMBER);
+            code.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(6)});
             code.setTextColor(Color.WHITE);
             code.setHintTextColor(TEXT_SECONDARY);
-            code.setTextSize(20);
-            if (Build.VERSION.SDK_INT >= 21) { code.setLetterSpacing(0.1f); }
+            code.setTextSize(26);
+            code.setGravity(Gravity.CENTER);
+            if (Build.VERSION.SDK_INT >= 21) { code.setLetterSpacing(0.25f); }
             code.setImeOptions(EditorInfo.IME_ACTION_GO);
             LinearLayout.LayoutParams codeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            codeParams.setMargins(0, dp(activity, 18), 0, 0);
-            box.addView(code, codeParams);
+            codeParams.setMargins(0, dp(activity, 12), 0, 0);
+            joinBox.addView(code, codeParams);
 
-            View join = button(activity, R.string.together_join, false, null);
+            View join = button(activity, R.string.together_join, true, null);
             join.setOnClickListener(v -> {
                 v.setEnabled(false);
                 manager.join(code.getText().toString(), success -> {
@@ -150,7 +176,13 @@ public final class MobileTogether {
                 join.performClick();
                 return true;
             });
-            box.addView(join);
+            joinBox.addView(join);
+
+            joinBox.addView(button(activity, R.string.together_back, false, v -> {
+                joinBox.setVisibility(View.GONE);
+                hint.setText(R.string.together_choose);
+                choice.setVisibility(View.VISIBLE);
+            }));
         }
 
         GradientDrawable background = new GradientDrawable();
@@ -778,6 +810,40 @@ public final class MobileTogether {
     // ---------------------------------------------------------------------------------------------
     // Small views
     // ---------------------------------------------------------------------------------------------
+
+    /**
+     * A big choice row: icon | title + one line of help.
+     */
+    private static View option(Context context, String icon, int titleResId, int descResId, View.OnClickListener listener) {
+        LinearLayout row = new LinearLayout(context);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(context, 14), dp(context, 12), dp(context, 14), dp(context, 12));
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(dp(context, 14));
+        shape.setColor(CARD);
+        row.setBackground(shape);
+        row.setOnClickListener(listener);
+
+        TextView iconView = text(context, 24, Color.WHITE, false);
+        iconView.setText(icon);
+        row.addView(iconView);
+
+        LinearLayout texts = new LinearLayout(context);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.setPadding(dp(context, 14), 0, 0, 0);
+        TextView title = text(context, 16, Color.WHITE, true);
+        title.setText(titleResId);
+        texts.addView(title);
+        TextView desc = text(context, 13, TEXT_SECONDARY, false);
+        desc.setText(descResId);
+        texts.addView(desc);
+        row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, dp(context, 10), 0, 0);
+        row.setLayoutParams(params);
+        return row;
+    }
 
     private static View button(Context context, int textResId, boolean primary, View.OnClickListener listener) {
         TextView button = text(context, 15, Color.WHITE, true);

@@ -252,6 +252,35 @@ public class MobileControlsView extends FrameLayout {
             }
 
             @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                // Full screen, like YouTube: left side = brightness, right side = volume (not while locked)
+                if (!mIsFullscreen || mLocked || mIsMini || e1 == null || !isEdge(e1.getX())) {
+                    return false;
+                }
+
+                if (mAdjusting == 0 && Math.abs(e2.getY() - e1.getY()) > Math.abs(e2.getX() - e1.getX())) {
+                    mAdjusting = e1.getX() < getWidth() / 2f ? ADJUST_BRIGHTNESS : ADJUST_VOLUME;
+                    mAdjustStartY = e1.getY();
+                    mAdjustStartValue = mAdjusting == ADJUST_BRIGHTNESS ? getBrightness() : getVolume();
+                }
+
+                if (mAdjusting != 0) {
+                    // a drag of 70% of the height goes from 0 to 100%
+                    float delta = (mAdjustStartY - e2.getY()) / (getHeight() * 0.7f);
+                    float value = Math.max(0f, Math.min(1f, mAdjustStartValue + delta));
+                    if (mAdjusting == ADJUST_BRIGHTNESS) {
+                        setBrightness(value);
+                    } else {
+                        setVolume(value);
+                    }
+                    showAdjustBubble(value);
+                    return true;
+                }
+
+                return false;
+            }
+
+            @Override
             public boolean onDoubleTap(MotionEvent e) {
                 if (mLocked || mIsMini) {
                     return false;
@@ -329,6 +358,13 @@ public class MobileControlsView extends FrameLayout {
         }
 
         mGestures.onTouchEvent(event);
+
+        int action = event.getActionMasked();
+        if ((action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) && mAdjusting != 0) {
+            mAdjusting = 0;
+            mHandler.removeCallbacks(mHideAdjust);
+            mHandler.postDelayed(mHideAdjust, 700);
+        }
         return true;
     }
 
@@ -340,6 +376,85 @@ public class MobileControlsView extends FrameLayout {
         mUnlockVisible(false);
         showPanel(!locked);
         mCallback.onLockChanged(locked);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Brightness (left) and volume (right) by sliding a finger up/down in full screen
+    // ---------------------------------------------------------------------------------------------
+
+    private static final int ADJUST_BRIGHTNESS = 1;
+    private static final int ADJUST_VOLUME = 2;
+    private int mAdjusting;
+    private float mAdjustStartY;
+    private float mAdjustStartValue;
+    private TextView mAdjustBubble;
+    private final Runnable mHideAdjust = () -> {
+        if (mAdjustBubble != null) {
+            mAdjustBubble.setVisibility(View.GONE);
+        }
+    };
+
+    /**
+     * The outer 40% of each side: the middle keeps its own gestures (drag down = leave full screen).
+     */
+    public boolean isEdge(float x) {
+        return x < getWidth() * 0.4f || x > getWidth() * 0.6f;
+    }
+
+    public boolean isFullscreenGesturesEnabled() {
+        return mIsFullscreen && !mLocked && !mIsMini;
+    }
+
+    private float getBrightness() {
+        android.app.Activity activity = (android.app.Activity) getContext();
+        float value = activity.getWindow().getAttributes().screenBrightness;
+
+        if (value < 0) { // follows the system: start from the system level
+            try {
+                value = android.provider.Settings.System.getInt(getContext().getContentResolver(),
+                        android.provider.Settings.System.SCREEN_BRIGHTNESS) / 255f;
+            } catch (android.provider.Settings.SettingNotFoundException e) {
+                value = 0.5f;
+            }
+        }
+
+        return value;
+    }
+
+    private void setBrightness(float value) {
+        // Only this window (like YouTube): the phone setting doesn't change and it is back when leaving the player
+        android.view.Window window = ((android.app.Activity) getContext()).getWindow();
+        android.view.WindowManager.LayoutParams params = window.getAttributes();
+        params.screenBrightness = Math.max(0.01f, value);
+        window.setAttributes(params);
+    }
+
+    private android.media.AudioManager audio() {
+        return (android.media.AudioManager) getContext().getSystemService(android.content.Context.AUDIO_SERVICE);
+    }
+
+    private float getVolume() {
+        android.media.AudioManager audio = audio();
+        int max = audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        return max > 0 ? audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) / (float) max : 0;
+    }
+
+    private void setVolume(float value) {
+        android.media.AudioManager audio = audio();
+        int max = audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.round(value * max), 0);
+    }
+
+    private void showAdjustBubble(float value) {
+        if (mAdjustBubble == null) {
+            mAdjustBubble = pill("");
+            addView(mAdjustBubble, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        }
+
+        mAdjustBubble.setText((mAdjusting == ADJUST_BRIGHTNESS ? "☀ " : "🔊 ") + Math.round(value * 100) + "%");
+        mAdjustBubble.setVisibility(View.VISIBLE);
+        mAdjustBubble.bringToFront();
+        mHandler.removeCallbacks(mHideAdjust);
     }
 
     public boolean isPanelVisible() {

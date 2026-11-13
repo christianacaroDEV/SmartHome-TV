@@ -292,6 +292,21 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         return isActive() && mPlayer.getPlayWhenReady();
     }
 
+    private boolean mAudioOnly;
+    private boolean mEdgeGesture;
+
+    /**
+     * Audio only while the app is in the background (the picture comes back when the user returns).
+     */
+    public void setAudioOnly(boolean audioOnly) {
+        if (mAudioOnly == audioOnly || !isActive()) {
+            return;
+        }
+
+        mAudioOnly = audioOnly;
+        mPlayer.setVideoEnabled(!audioOnly);
+    }
+
     public void pause() {
         if (isActive()) {
             mPlayer.setPlayWhenReady(false);
@@ -531,6 +546,14 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
     private void setSystemBarsHidden(boolean hidden) {
         View decor = mActivity.getWindow().getDecorView();
+
+        if (!hidden) {
+            android.view.WindowManager.LayoutParams params = mActivity.getWindow().getAttributes();
+            if (params.screenBrightness >= 0) {
+                params.screenBrightness = android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+                mActivity.getWindow().setAttributes(params);
+            }
+        }
 
         // Full screen: the status bar is hidden, so the time (24 h) and the battery go in a corner
         if (mClock == null) {
@@ -992,6 +1015,16 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
             if (mControls.isLocked()) {
                 return false; // locked full screen: no drag gestures
+            }
+
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                // Full screen: a drag on the sides is brightness/volume (the controls handle it), not "leave full screen"
+                mEdgeGesture = mState == STATE_FULLSCREEN && mControls.isFullscreenGesturesEnabled()
+                        && mControls.isEdge(event.getX());
+            }
+
+            if (mEdgeGesture) {
+                return false;
             }
 
             switch (event.getActionMasked()) {

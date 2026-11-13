@@ -870,6 +870,16 @@
     <string name="together_chat_title">Chat · sala %s</string>
     <string name="together_new_messages">↓ %d mensajes nuevos</string>
     <string name="together_you">Tú</string>
+    <string name="mobile_audio_only">Solo audio en segundo plano</string>
+    <string-array name="mobile_audio_only_modes">
+        <item>Solo con datos móviles (ahorra datos)</item>
+        <item>Siempre</item>
+        <item>Nunca</item>
+    </string-array>
+    <string name="together_choose">¿Qué quieres hacer?</string>
+    <string name="together_create_desc">Con el video que estás viendo; te damos un código para compartir</string>
+    <string name="together_join_desc">Alguien te pasó un código de 6 números</string>
+    <string name="together_back">Volver</string>
     <string name="mobile_profile_default">Principal</string>
     <string name="mobile_profile_who">¿Quién está viendo?</string>
     <string name="mobile_profile_hint">Cada perfil tiene sus propios Favoritos y Ver más tarde. Mantén presionado para borrar uno.</string>

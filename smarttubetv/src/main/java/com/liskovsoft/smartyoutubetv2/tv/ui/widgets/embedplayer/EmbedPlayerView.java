@@ -358,6 +358,15 @@ public class EmbedPlayerView extends PlayerView implements PlaybackView {
         }
     }
 
+    /**
+     * Audio only (saves data): the picture stops and only the sound is downloaded.
+     */
+    public void setVideoEnabled(boolean enabled) {
+        if (mExoPlayerController != null) {
+            mExoPlayerController.setVideoEnabled(enabled);
+        }
+    }
+
     @Override
     public FormatItem getVideoFormat() {
         return mExoPlayerController.getVideoFormat();

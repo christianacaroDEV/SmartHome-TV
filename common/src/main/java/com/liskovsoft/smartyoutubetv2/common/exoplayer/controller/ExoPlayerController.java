@@ -331,6 +331,10 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
         }
     }
 
+    public void setVideoEnabled(boolean enabled) {
+        mTrackSelectorManager.setVideoRendererDisabled(!enabled);
+    }
+
     public FormatItem getVideoFormat() {
         return getSelectedFormat(TrackSelectorManager.RENDERER_INDEX_VIDEO);
     }

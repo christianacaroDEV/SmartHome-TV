@@ -871,6 +871,16 @@
     <string name="together_chat_title">Chat · room %s</string>
     <string name="together_new_messages">↓ %d new messages</string>
     <string name="together_you">You</string>
+    <string name="mobile_audio_only">Audio only in the background</string>
+    <string-array name="mobile_audio_only_modes">
+        <item>Only on mobile data (saves data)</item>
+        <item>Always</item>
+        <item>Never</item>
+    </string-array>
+    <string name="together_choose">What do you want to do?</string>
+    <string name="together_create_desc">With the video you are watching; you get a code to share</string>
+    <string name="together_join_desc">Someone gave you a 6-digit code</string>
+    <string name="together_back">Back</string>
     <string name="mobile_profile_default">Main</string>
     <string name="mobile_profile_who">Who is watching?</string>
     <string name="mobile_profile_hint">Each profile has its own Favorites and Watch later. Long press to delete one.</string>

@@ -20,6 +20,10 @@ public final class MobileSettings {
     private static final String KEY_NORMAL_QUALITY_APPLIED = "mobile_normal_quality_applied";
     private static final String KEY_MOBILE_MENU_APPLIED = "mobile_menu_applied";
     private static final String KEY_TV_DEFAULTS_APPLIED = "tv_defaults_v1";
+    private static final String KEY_AUDIO_ONLY_MODE = "audio_only_background";
+    public static final int AUDIO_ONLY_MOBILE_DATA = 0;
+    public static final int AUDIO_ONLY_ALWAYS = 1;
+    public static final int AUDIO_ONLY_NEVER = 2;
     /**
      * The few player buttons that make sense on a small screen. Everything else is reachable from the
      * quality (HQ) dialog, and the user can still enable more buttons in the settings.
@@ -49,6 +53,35 @@ public final class MobileSettings {
 
     public static void setBackgroundAudioEnabled(Context context, boolean enabled) {
         getPrefs(context).edit().putBoolean(KEY_BACKGROUND_AUDIO, enabled).apply();
+    }
+
+    /**
+     * In the background only the sound is downloaded (the video isn't seen anyway): on mobile data (default),
+     * always or never.
+     */
+    public static int getAudioOnlyMode(Context context) {
+        return getPrefs(context).getInt(KEY_AUDIO_ONLY_MODE, AUDIO_ONLY_MOBILE_DATA);
+    }
+
+    public static void setAudioOnlyMode(Context context, int mode) {
+        getPrefs(context).edit().putInt(KEY_AUDIO_ONLY_MODE, mode).apply();
+    }
+
+    public static boolean shouldUseAudioOnly(Context context) {
+        int mode = getAudioOnlyMode(context);
+        return mode == AUDIO_ONLY_ALWAYS || (mode == AUDIO_ONLY_MOBILE_DATA && isOnMobileData(context));
+    }
+
+    /**
+     * Metered connection (mobile data, or a phone hotspot that Android marks as metered).
+     */
+    public static boolean isOnMobileData(Context context) {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            return cm != null && cm.isActiveNetworkMetered();
+        } catch (RuntimeException e) {
+            return false;
+        }
     }
 
     /**

@@ -489,6 +489,9 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
         if (MobileSettings.isBackgroundAudioEnabled(this)) {
             BackgroundPlaybackService.start(this); // no-op if already running; tried in case onPause didn't
+            if (MobileSettings.shouldUseAudioOnly(this)) {
+                mWatchSheet.setAudioOnly(true); // nobody sees the picture: only the sound is downloaded
+            }
         } else {
             mWatchSheet.pause();
         }
@@ -499,6 +502,10 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         super.onResume();
         mIsResumed = true;
         BackgroundPlaybackService.stop(this);
+
+        if (mWatchSheet != null) {
+            mWatchSheet.setAudioOnly(false); // back in the app: the picture again
+        }
 
         if (!mIsFirstResume && mPresenter != null && mCurrentSectionId != MY_TOPICS_ID) {
             mPresenter.onViewResumed();

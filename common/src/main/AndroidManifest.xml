@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.liskovsoft.smartyoutubetv2.common">
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- "Audio only in the background": is the connection mobile data (metered)? -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Android 14 (API 34) -->
     <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" /> -->
     <!-- API level 34 -->
