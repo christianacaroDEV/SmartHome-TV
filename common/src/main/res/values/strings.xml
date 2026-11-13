@@ -934,6 +934,15 @@
         <item>learning</item>
         <item>kids</item>
         <item>animals</item>
+        <item>podcast_business</item>
+        <item>podcast_finance</item>
+        <item>podcast_tech</item>
+        <item>podcast_growth</item>
+        <item>podcast_history</item>
+        <item>podcast_talk</item>
+        <item>podcast_health</item>
+        <item>podcast_faith</item>
+        <item>audiobooks</item>
     </string-array>
     <integer-array name="mobile_topic_sections">
         <item>0</item>
@@ -968,6 +977,15 @@
         <item>5</item>
         <item>5</item>
         <item>5</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
+        <item>6</item>
     </integer-array>
     <string-array name="mobile_topic_section_labels">
         <item>💻 Technology</item>
@@ -976,6 +994,7 @@
         <item>🎵 Music</item>
         <item>⚽ Sports</item>
         <item>🌎 More topics</item>
+        <item>🎙️ Podcasts</item>
     </string-array>
     <string-array name="mobile_topic_labels">
         <item>👨‍💻 Programming and software</item>
@@ -1010,6 +1029,15 @@
         <item>📚 Learning</item>
         <item>🧒 Kids</item>
         <item>🐾 Animals</item>
+        <item>💼 Business and entrepreneurship podcasts</item>
+        <item>📊 Finance and trading podcasts</item>
+        <item>🤖 Tech and AI podcasts</item>
+        <item>🌱 Personal growth podcasts</item>
+        <item>🕵️ History and mystery podcasts</item>
+        <item>😂 Humor and interview podcasts</item>
+        <item>🧘 Health and wellness podcasts</item>
+        <item>🙏 Christian and reflection podcasts</item>
+        <item>📖 Audiobooks and stories</item>
     </string-array>
     <string-array name="mobile_topic_queries">
         <item>software development programming</item>
@@ -1044,6 +1072,15 @@
         <item>learn course</item>
         <item>kids cartoons</item>
         <item>animals documentary</item>
+        <item>business entrepreneurship podcast full episode</item>
+        <item>finance investing trading podcast full episode</item>
+        <item>technology artificial intelligence podcast</item>
+        <item>personal development motivation podcast</item>
+        <item>history mystery true crime podcast</item>
+        <item>comedy interview podcast full episode</item>
+        <item>health wellness nutrition podcast</item>
+        <item>christian podcast reflection sermon</item>
+        <item>audiobook full narrated</item>
     </string-array>
     <string name="mobile_watch_subscribe">Subscribe</string>
     <string name="mobile_watch_subscribed">Subscribed</string>

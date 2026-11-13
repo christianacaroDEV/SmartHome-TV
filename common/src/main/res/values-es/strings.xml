@@ -906,6 +906,7 @@
         <item>🎵 Música</item>
         <item>⚽ Deportes</item>
         <item>🌎 Más temas</item>
+        <item>🎙️ Pódcast</item>
     </string-array>
     <string-array name="mobile_topic_labels">
         <item>👨‍💻 Programación y software</item>
@@ -940,6 +941,15 @@
         <item>📚 Aprender</item>
         <item>🧒 Infantil</item>
         <item>🐾 Animales</item>
+        <item>💼 Pódcast de negocios y emprendimiento</item>
+        <item>📊 Pódcast de finanzas y trading</item>
+        <item>🤖 Pódcast de tecnología e IA</item>
+        <item>🌱 Pódcast de desarrollo personal</item>
+        <item>🕵️ Pódcast de historia y misterio</item>
+        <item>😂 Pódcast de humor y entrevistas</item>
+        <item>🧘 Pódcast de salud y bienestar</item>
+        <item>🙏 Pódcast cristianos y de reflexión</item>
+        <item>📖 Audiolibros y cuentos</item>
     </string-array>
     <string-array name="mobile_topic_queries">
         <item>programación desarrollo de software</item>
@@ -974,6 +984,15 @@
         <item>aprende curso</item>
         <item>dibujos animados infantiles</item>
         <item>animales documental</item>
+        <item>podcast negocios emprendimiento episodio completo</item>
+        <item>podcast finanzas inversión trading español</item>
+        <item>podcast tecnología inteligencia artificial español</item>
+        <item>podcast desarrollo personal motivación</item>
+        <item>podcast historia misterio crímenes reales</item>
+        <item>podcast humor entrevistas episodio completo</item>
+        <item>podcast salud bienestar nutrición</item>
+        <item>podcast cristiano reflexión prédica</item>
+        <item>audiolibro completo en español narrado</item>
     </string-array>
     <string name="mobile_watch_subscribe">Suscribirse</string>
     <string name="mobile_watch_subscribed">Suscrito</string>
