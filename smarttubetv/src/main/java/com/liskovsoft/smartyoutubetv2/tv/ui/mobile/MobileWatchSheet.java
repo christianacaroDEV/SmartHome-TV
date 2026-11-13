@@ -201,6 +201,18 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
             }
 
             @Override
+            public void onPanelVisibilityChanged(boolean visible) {
+                // Full screen: the corner clock steps aside while the player buttons are shown
+                if (mClock != null && mState == STATE_FULLSCREEN) {
+                    if (visible) {
+                        mClock.hide();
+                    } else {
+                        mClock.show();
+                    }
+                }
+            }
+
+            @Override
             public void onLockChanged(boolean locked) {
                 // The holder stops the drag gestures and BACK while locked.
                 // Portrait: the screen stays vertical and only the video is shown.
@@ -524,7 +536,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         if (mClock == null) {
             mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(mActivity, true);
         }
-        if (hidden) {
+        if (hidden && !mControls.isPanelVisible()) {
             mClock.show();
         } else {
             mClock.hide();

@@ -38,6 +38,10 @@ public class MobileControlsView extends FrameLayout {
         void onMinimizeClicked();
         void onFullscreenClicked();
         void onLockChanged(boolean locked);
+
+        /** The control panel appeared or went away (the full screen clock makes room for its buttons) */
+        default void onPanelVisibilityChanged(boolean visible) {
+        }
     }
 
     private static final int AUTO_HIDE_MS = 3_000;
@@ -338,8 +342,14 @@ public class MobileControlsView extends FrameLayout {
         mCallback.onLockChanged(locked);
     }
 
+    public boolean isPanelVisible() {
+        return mPanel.getVisibility() == View.VISIBLE;
+    }
+
     private void showPanel(boolean show) {
-        mPanel.setVisibility(show && !mLocked ? View.VISIBLE : View.GONE);
+        boolean visible = show && !mLocked;
+        mPanel.setVisibility(visible ? View.VISIBLE : View.GONE);
+        mCallback.onPanelVisibilityChanged(visible);
         updateProgress();
 
         if (show) {
