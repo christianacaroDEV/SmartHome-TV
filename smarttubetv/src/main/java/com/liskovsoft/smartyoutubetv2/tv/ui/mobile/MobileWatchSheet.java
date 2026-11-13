@@ -473,8 +473,20 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     }
 
     @SuppressWarnings("deprecation")
+    private com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay mClock;
+
     private void setSystemBarsHidden(boolean hidden) {
         View decor = mActivity.getWindow().getDecorView();
+
+        // Full screen: the status bar is hidden, so the time (24 h) and the battery go in a corner
+        if (mClock == null) {
+            mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(mActivity, true);
+        }
+        if (hidden) {
+            mClock.show();
+        } else {
+            mClock.hide();
+        }
 
         // The app content sits between the status and navigation bars (camera cutouts): in full screen the video
         // takes the whole screen instead (except the cutout itself, like YouTube)

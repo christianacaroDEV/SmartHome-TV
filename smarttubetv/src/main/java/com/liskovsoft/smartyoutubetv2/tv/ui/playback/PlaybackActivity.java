@@ -418,8 +418,25 @@ public class PlaybackActivity extends LeanbackActivity {
         mPlaybackFragment.onFinish();
     }
 
+    private com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay mClock;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // BlueTube: time (24 h) in a corner; battery too on devices that have one
+        if (mClock == null) {
+            mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(this, true);
+        }
+        mClock.show();
+    }
+
     @Override
     protected void onPause() {
+        if (mClock != null) {
+            mClock.hide();
+        }
+
         boolean hasDialogBug = AppDialogPresenter.instance(this).isDialogShown() && Build.VERSION.SDK_INT <= 23;
         boolean isScreenOff = getPlayerData().getBackgroundMode() != PlayerData.BACKGROUND_MODE_DEFAULT && Utils.isHardScreenOff(this);
 

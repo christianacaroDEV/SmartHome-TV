@@ -43,6 +43,8 @@ public final class BlueTubeSync {
     public static final String WATCH_LATER_BROWSE_ID = "VLWL";
     /** TV sidebar section with the Favorites (id outside the MediaGroup types) */
     public static final int FAVORITES_SECTION_ID = 99;
+    /** TV sidebar section "Watch together" */
+    public static final int TOGETHER_SECTION_ID = 98;
     private static final String PREFIX = "BlueTube · ";
     private static boolean sCreateRefused;
     /** The playlists request needs some video (any one): the first YouTube video, it will not disappear */

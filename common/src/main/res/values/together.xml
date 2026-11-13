@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- "Watch together": Firebase Realtime Database of the rooms (rules: only /rooms/{6 digits} readable/writable) -->
+    <string name="together_db_url" translatable="false">https://bluetube-juntos-default-rtdb.firebaseio.com</string>
+</resources>

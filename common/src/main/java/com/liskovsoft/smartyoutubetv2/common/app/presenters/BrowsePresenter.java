@@ -153,6 +153,11 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         super.onViewResumed();
 
         refreshIfNeeded();
+
+        // "Watch together" is a message + button, not videos: show it again (the room may have changed meanwhile)
+        if (getView() != null && mCurrentSection != null && mCurrentSection.getId() == BlueTubeSync.TOGETHER_SECTION_ID) {
+            updateSection(mCurrentSection);
+        }
     }
 
     private void refreshIfNeeded() {
@@ -224,6 +229,8 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             // TV: the Favorites of the phone (same account = same profiles, topics and Watch later)
             mSectionsMapping.put(BlueTubeSync.FAVORITES_SECTION_ID, new BrowseSection(BlueTubeSync.FAVORITES_SECTION_ID,
                     getContext().getString(R.string.mobile_topics_title), BrowseSection.TYPE_ROW, R.drawable.icon_favorites, false));
+            mSectionsMapping.put(BlueTubeSync.TOGETHER_SECTION_ID, new BrowseSection(BlueTubeSync.TOGETHER_SECTION_ID,
+                    getContext().getString(R.string.together_title), BrowseSection.TYPE_ROW, R.drawable.icon_together, false));
         }
 
         if (getSidebarService().isSettingsSectionEnabled()) {
@@ -800,6 +807,33 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 }
                 break;
             case BrowseSection.TYPE_ROW:
+                if (section.getId() == BlueTubeSync.TOGETHER_SECTION_ID) {
+                    // "Watch together": what it is + the button (create, join, react, leave)
+                    getView().showProgressBar(false);
+                    com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager together =
+                            com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(getContext());
+                    String message = together.isActive()
+                            ? getContext().getString(R.string.together_in_room,
+                                together.getCode().substring(0, 3) + " " + together.getCode().substring(3), Math.max(1, together.getMembers()))
+                            : getContext().getString(R.string.together_menu_hint);
+                    getView().showError(new ErrorFragmentData() {
+                        @Override
+                        public void onAction() {
+                            com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherTvDialog.show(getContext());
+                        }
+
+                        @Override
+                        public String getMessage() {
+                            return message;
+                        }
+
+                        @Override
+                        public String getActionText() {
+                            return getContext().getString(R.string.together_title);
+                        }
+                    });
+                    break;
+                }
                 if (section.getId() == BlueTubeSync.FAVORITES_SECTION_ID && BlueTubeSync.getSelectedTopics(getContext()).isEmpty()) {
                     // No topics yet (this profile never picked them, here or on the phone): offer to pick them
                     getView().showProgressBar(false);

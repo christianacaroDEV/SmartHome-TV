@@ -51,6 +51,13 @@ public class AppDataSourceManager {
                     () -> BlueTubeTvProfiles.showSettings(context, () -> BrowsePresenter.instance(context).refresh(false)),
                     R.drawable.settings_account));
         }
+        if (!DeviceMode.isMobile(context)) {
+            // TV: "Watch together" (same video as a phone/TV elsewhere, with reactions and voice notes)
+            settingItems.add(new SettingsItem(
+                    context.getString(R.string.together_title),
+                    () -> com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherTvDialog.show(context),
+                    R.drawable.settings_cast));
+        }
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_remote_control), () -> RemoteControlSettingsPresenter.instance(context).show(), R.drawable.settings_cast));
         settingItems.add(new SettingsItem(

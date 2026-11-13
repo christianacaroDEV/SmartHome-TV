@@ -138,9 +138,21 @@ public class MobileWatchInfoView extends LinearLayout {
             bind(mVideo);
         });
         actions.addView(mWatchLater);
+        // "Watch together": same video, chat and voice notes with someone else (another phone or a TV)
+        actions.addView(chip(R.drawable.ic_m_together, R.string.together_title, v -> {
+            if (getContext() instanceof android.app.Activity) {
+                MobileTogether.showDialog((android.app.Activity) getContext());
+            }
+        }));
         actions.addView(chip(R.drawable.ic_m_share, R.string.mobile_watch_share, v -> share()));
         actions.addView(chip(R.drawable.ic_m_playlist_add, R.string.mobile_watch_save, v -> press(R.id.action_playlist_add)));
         addView(actionsScroll);
+
+        // Room panel (only while watching together)
+        MobileTogether.Panel together = new MobileTogether.Panel(context);
+        LayoutParams togetherParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        togetherParams.setMargins(dp(12), dp(4), dp(12), dp(6));
+        addView(together, togetherParams);
 
         // Description card
         mDescriptionCard = new LinearLayout(context);

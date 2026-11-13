@@ -393,6 +393,16 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         topBar.addView(mProfileButton, topBar.indexOfChild(mAccountButton), params);
         mProfileButton.setOnClickListener(v -> MobileProfiles.showPicker(this, true, this::onProfileChanged));
         updateProfileButton();
+
+        // "Watch together" (room with someone else): always at hand in the top bar
+        android.widget.ImageButton together = new android.widget.ImageButton(this);
+        together.setImageResource(R.drawable.ic_m_together);
+        together.setBackground(null);
+        together.setPadding(dp(8), dp(8), dp(8), dp(8));
+        together.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        together.setContentDescription(getString(R.string.together_title));
+        together.setOnClickListener(v -> MobileTogether.showDialog(this));
+        topBar.addView(together, topBar.indexOfChild(mProfileButton), new LinearLayout.LayoutParams(dp(40), dp(40)));
     }
 
     private boolean openInApp(Video video) {

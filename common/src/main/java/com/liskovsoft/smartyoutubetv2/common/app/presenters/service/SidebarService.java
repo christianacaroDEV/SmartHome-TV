@@ -243,6 +243,7 @@ public class SidebarService implements ProfileChangeListener {
         mDefaultSections.put(R.string.header_home, MediaGroup.TYPE_HOME);
         if (!DeviceMode.isMobile(mContext)) {
             mDefaultSections.put(R.string.mobile_topics_title, BlueTubeSync.FAVORITES_SECTION_ID);
+            mDefaultSections.put(R.string.together_title, BlueTubeSync.TOGETHER_SECTION_ID);
         }
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
         mDefaultSections.put(R.string.header_trending, MediaGroup.TYPE_TRENDING);
@@ -310,6 +311,17 @@ public class SidebarService implements ProfileChangeListener {
 
         // Backward compatibility
         enableSection(MediaGroup.TYPE_SETTINGS, true);
+
+        // BlueTube: "Watch together" appears once on TVs set up before it existed (right after Favorites)
+        if (!DeviceMode.isMobile(mContext) && !BlueTubeSync.prefs(mContext).getBoolean("tv_together_section_added", false)) {
+            BlueTubeSync.prefs(mContext).edit().putBoolean("tv_together_section_added", true).apply();
+            enableSection(BlueTubeSync.TOGETHER_SECTION_ID, true);
+            int favoritesIndex = getSectionIndex(BlueTubeSync.FAVORITES_SECTION_ID);
+            for (int i = 0; i < 20 && favoritesIndex != -1 && getSectionIndex(BlueTubeSync.TOGETHER_SECTION_ID) > favoritesIndex + 1
+                    && canMoveSectionUp(BlueTubeSync.TOGETHER_SECTION_ID); i++) {
+                moveSectionUp(BlueTubeSync.TOGETHER_SECTION_ID);
+            }
+        }
 
         // BlueTube: the Favorites section appears once on TVs set up before it existed (right after Home)
         SharedPreferences prefs = BlueTubeSync.prefs(mContext);
