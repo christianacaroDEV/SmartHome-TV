@@ -72,6 +72,17 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private final MobileControlsView mControls;
     private final MobileMediaSession mMediaSession;
     private final TextView mShortsInfo;
+    /** Locked in portrait: big time + battery + date above the video, like a lock screen */
+    private final LinearLayout mLockClock;
+    private final TextView mLockTime;
+    private final TextView mLockInfo;
+    private final Runnable mLockClockUpdate = new Runnable() {
+        @Override
+        public void run() {
+            updateLockClock();
+            mLockClock.postDelayed(this, 15_000);
+        }
+    };
     private boolean mShortsMode;
     private float mShortsDownY;
     private float mShortsDownX;
@@ -209,6 +220,21 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mShortsInfo.setVisibility(View.GONE);
         mPlayerHolder.addView(mShortsInfo, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
         mSheet.addView(mPlayerHolder);
+
+        mLockClock = new LinearLayout(activity);
+        // Small, one line, in the black band above the video: it never covers the picture
+        mLockClock.setOrientation(LinearLayout.HORIZONTAL);
+        mLockClock.setGravity(Gravity.CENTER_VERTICAL);
+        mLockTime = createText(15, 0xE6FFFFFF, true);
+        mLockClock.addView(mLockTime);
+        mLockInfo = createText(13, 0xFF9FB3D9, false);
+        mLockInfo.setPadding(dp(8), 0, 0, 0);
+        mLockClock.addView(mLockInfo);
+        mLockClock.setVisibility(View.GONE);
+        FrameLayout.LayoutParams lockClockParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+        lockClockParams.topMargin = dp(14);
+        mSheet.addView(mLockClock, lockClockParams);
 
         // Re-layout whenever the real size changes (rotation, split screen...)
         mRoot.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -410,6 +436,15 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
                 break;
         }
 
+        // Locked in portrait: time and battery above the video (landscape: the corner clock of full screen)
+        boolean lockClock = mState == STATE_EXPANDED && mControls.isLocked() && !mShortsMode;
+        mLockClock.removeCallbacks(mLockClockUpdate);
+        mLockClock.setVisibility(lockClock ? View.VISIBLE : View.GONE);
+        if (lockClock) {
+            mLockClock.bringToFront();
+            mLockClockUpdate.run();
+        }
+
         // Black page behind a locked portrait video, the app background otherwise
         if (mState == STATE_EXPANDED && (mControls.isLocked() || mShortsMode)) {
             mSheet.setBackgroundColor(Color.BLACK);
@@ -474,6 +509,13 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
 
     @SuppressWarnings("deprecation")
     private com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay mClock;
+
+    private void updateLockClock() {
+        mLockTime.setText(new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date()));
+        String date = new java.text.SimpleDateFormat("EEE d MMM", mActivity.getResources().getConfiguration().locale).format(new java.util.Date());
+        String battery = com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay.batteryText(mActivity);
+        mLockInfo.setText(battery != null ? "·  " + battery + "  ·  " + date : "·  " + date);
+    }
 
     private void setSystemBarsHidden(boolean hidden) {
         View decor = mActivity.getWindow().getDecorView();

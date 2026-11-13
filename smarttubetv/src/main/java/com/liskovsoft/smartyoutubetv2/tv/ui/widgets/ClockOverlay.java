@@ -89,6 +89,24 @@ public final class ClockOverlay {
         }
     }
 
+    /**
+     * "🔋 89%" / "⚡ 100%", or null on devices without a battery (TVs).
+     */
+    public static String batteryText(android.content.Context context) {
+        Intent battery = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+
+        if (battery == null || !battery.getBooleanExtra(BatteryManager.EXTRA_PRESENT, true)) {
+            return null;
+        }
+
+        int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+        int status = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL;
+
+        return level >= 0 && scale > 0 ? (charging ? "⚡ " : "🔋 ") + Math.round(level * 100f / scale) + "%" : null;
+    }
+
     private void update() {
         if (mView == null) {
             return;
