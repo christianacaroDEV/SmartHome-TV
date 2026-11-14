@@ -16,7 +16,6 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.utils.LoadingManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdateCheckerListener {
@@ -114,7 +113,7 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
                     GeneralData.instance(getContext()).setChangelog(changelog);
                     mUpdateChecker.installUpdate();
                 }, false));
-        mSettingsPresenter.appendStringsCategory(getContext().getString(R.string.update_changelog), createChangelogOptions(changelog));
+        // BlueTube: only that there is an update, without the list of changes
         //mSettingsPresenter.appendSingleSwitch(UiOptionItem.from(getContext().getString(R.string.show_again), optionItem -> {
         //    mUpdateChecker.enableUpdateCheck(optionItem.isSelected());
         //}, mUpdateChecker.isUpdateCheckEnabled()));
@@ -138,9 +137,7 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
 
             @Override
             public String getMessage() {
-                return String.format("%s %s", getContext().getString(R.string.app_name), versionName) + " " +
-                        getContext().getString(R.string.update_changelog) + ":\n" +
-                        createChangelog(changelog);
+                return getContext().getString(R.string.bluetube_update_title);
             }
 
             @Override
@@ -148,36 +145,5 @@ public class AppUpdatePresenter extends BasePresenter<Void> implements AppUpdate
                 return getContext().getString(R.string.install_update);
             }
         });
-    }
-
-    private List<OptionItem> createChangelogOptions(List<String> changelog) {
-        List<OptionItem> options = new ArrayList<>();
-
-        for (String change : changelog) {
-            options.add(UiOptionItem.from(change));
-        }
-
-        return options;
-    }
-
-    private String createChangelog(List<String> changelog) {
-        StringBuilder builder = new StringBuilder();
-
-        int maxLines = 30;
-        int lineNum = 0;
-
-        for (String change : changelog) {
-            if (lineNum > maxLines) {
-                break;
-            }
-
-            builder.append("- ");
-            builder.append(change);
-            builder.append("\n");
-
-            lineNum++;
-        }
-
-        return builder.toString();
     }
 }

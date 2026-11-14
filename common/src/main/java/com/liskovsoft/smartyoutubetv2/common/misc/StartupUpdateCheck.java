@@ -98,7 +98,6 @@ public class StartupUpdateCheck {
     private static final int CARD = 0xFF13204A;
     private static final int TEXT_SECONDARY = 0xFF9FB4E0;
     private static final int BLUE = 0xFF2F7BFF;
-    private static final int GREEN = 0xFF5FD1A0;
 
     /**
      * BlueTube card: app icon, version, "What's new" with ticks, and big buttons.
@@ -114,7 +113,7 @@ public class StartupUpdateCheck {
         card.setPadding(dp(activity, 22), dp(activity, 22), dp(activity, 22), dp(activity, tv ? 22 : 12));
         card.setBackground(shape(activity, CARD, 24, 0, 0));
 
-        // Header: icon + title + version
+        // Header: icon + "A new update is available" (no version, no list of changes: just that there is one)
         LinearLayout header = new LinearLayout(activity);
         header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView icon = new ImageView(activity);
@@ -124,35 +123,9 @@ public class StartupUpdateCheck {
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setPadding(dp(activity, 14), 0, 0, 0);
         titles.addView(text(activity, activity.getString(R.string.bluetube_update_title), tv ? 22 : 19, Color.WHITE, true));
-        titles.addView(text(activity, activity.getString(R.string.bluetube_update_message, update.versionName + " · " + update.versionCode),
-                tv ? 15 : 13, TEXT_SECONDARY, false));
-        header.addView(titles);
+        header.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        header.setPadding(0, 0, 0, dp(activity, 20));
         card.addView(header);
-
-        // What's new
-        if (!update.changes.isEmpty()) {
-            TextView news = text(activity, activity.getString(R.string.bluetube_update_news), tv ? 14 : 12, TEXT_SECONDARY, false);
-            news.setPadding(0, dp(activity, 18), 0, dp(activity, 6));
-            card.addView(news);
-            int shown = 0;
-            for (String change : update.changes) {
-                if (++shown > 6) {
-                    break;
-                }
-                LinearLayout row = new LinearLayout(activity);
-                row.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
-                TextView tick = text(activity, "✓", tv ? 17 : 15, GREEN, true);
-                tick.setPadding(0, 0, dp(activity, 10), 0);
-                row.addView(tick);
-                row.addView(text(activity, change, tv ? 17 : 15, Color.WHITE, false),
-                        new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-                card.addView(row);
-            }
-        }
-
-        TextView keep = text(activity, activity.getString(R.string.bluetube_update_keep), tv ? 14 : 12, TEXT_SECONDARY, false);
-        keep.setPadding(0, dp(activity, 14), 0, dp(activity, 16));
-        card.addView(keep);
 
         // Buttons
         TextView now = button(activity, R.string.bluetube_update_now, true, tv);

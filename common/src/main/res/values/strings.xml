@@ -902,12 +902,9 @@
     <string name="together_create_desc">With the video you are watching; you get a code to share</string>
     <string name="together_join_desc">Someone gave you a 6-digit code</string>
     <string name="together_back">Back</string>
-    <string name="bluetube_update_title">BlueTube got better</string>
-    <string name="bluetube_update_message">Version %s</string>
+    <string name="bluetube_update_title">A new update is available</string>
     <string name="bluetube_update_now">Update now</string>
     <string name="bluetube_update_later">Later</string>
-    <string name="bluetube_update_news">What\'s new</string>
-    <string name="bluetube_update_keep">Your profiles and settings are kept.</string>
     <string name="mobile_action_speed">Speed</string>
     <string name="mobile_action_quality">Quality and more</string>
     <string name="offline_title">You\'re offline</string>

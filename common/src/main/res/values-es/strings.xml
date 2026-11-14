@@ -901,12 +901,9 @@
     <string name="together_create_desc">Con el video que estás viendo; te damos un código para compartir</string>
     <string name="together_join_desc">Alguien te pasó un código de 6 números</string>
     <string name="together_back">Volver</string>
-    <string name="bluetube_update_title">BlueTube se renovó</string>
-    <string name="bluetube_update_message">Versión %s</string>
+    <string name="bluetube_update_title">Hay una nueva actualización</string>
     <string name="bluetube_update_now">Actualizar ahora</string>
     <string name="bluetube_update_later">Más tarde</string>
-    <string name="bluetube_update_news">Novedades</string>
-    <string name="bluetube_update_keep">Tus perfiles y ajustes se conservan.</string>
     <string name="mobile_action_speed">Velocidad</string>
     <string name="mobile_action_quality">Calidad y más</string>
     <string name="offline_title">Sin conexión</string>
