@@ -64,7 +64,7 @@ android {
         applicationId "com.bluetube.tv"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
-        versionCode 2481
+        versionCode 2482
         versionName "32.72"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "long", "TIMESTAMP", System.currentTimeMillis() + "L"
@@ -72,6 +72,10 @@ android {
         // More info: http://myhexaville.com/2017/03/10/android-multidex/
         // Additionally, you should extend your application from MultiDexApplication
         multiDexEnabled = true
+
+        // BlueTube: Spanish only (the default English strings stay as the fallback); the other ~45 translations
+        // of the original project are left out of the APK (~3 MB smaller)
+        resConfigs "es"
 
         // Trying to fix VerifyError/ClassNotFoundException
         multiDexKeepProguard file("multidex-keep.pro")

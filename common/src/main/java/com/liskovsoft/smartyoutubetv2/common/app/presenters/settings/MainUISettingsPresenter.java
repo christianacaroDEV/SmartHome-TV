@@ -13,7 +13,6 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 import com.liskovsoft.smartyoutubetv2.common.prefs.DeArrowData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
-import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData.ColorScheme;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 
@@ -49,7 +48,7 @@ public class MainUISettingsPresenter extends BasePresenter<Void> {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
         appendTopButtonsCategory(settingsPresenter);
-        appendColorScheme(settingsPresenter);
+        // BlueTube: one theme only (the BlueTube one), no color scheme choice
         if (Build.VERSION.SDK_INT > 19) {
             appendCardTextScrollSpeed(settingsPresenter);
         }
@@ -86,28 +85,6 @@ public class MainUISettingsPresenter extends BasePresenter<Void> {
         }
 
         settingsPresenter.appendCheckedCategory(getContext().getString(R.string.various_buttons), options);
-    }
-
-    private void appendColorScheme(AppDialogPresenter settingsPresenter) {
-        List<ColorScheme> colorSchemes = mMainUIData.getColorSchemes();
-
-        settingsPresenter.appendRadioCategory(getContext().getString(R.string.color_scheme), fromColorSchemes(colorSchemes));
-    }
-
-    private List<OptionItem> fromColorSchemes(List<ColorScheme> colorSchemes) {
-        List<OptionItem> styleOptions = new ArrayList<>();
-
-        for (ColorScheme colorScheme : colorSchemes) {
-            styleOptions.add(UiOptionItem.from(
-                    getContext().getString(colorScheme.nameResId),
-                    option -> {
-                        mMainUIData.setColorScheme(colorScheme);
-                        mRestartApp = true;
-                    },
-                    colorScheme.equals(mMainUIData.getColorScheme())));
-        }
-
-        return styleOptions;
     }
 
     private void appendCardPreviews(AppDialogPresenter settingsPresenter) {

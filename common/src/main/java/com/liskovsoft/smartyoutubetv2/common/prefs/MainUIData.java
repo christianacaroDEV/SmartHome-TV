@@ -210,7 +210,8 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     }
 
     public ColorScheme getColorScheme() {
-        return mColorSchemes.get(mColorSchemeIndex);
+        // BlueTube: always the BlueTube theme (the choice was removed; an older choice is ignored)
+        return mColorSchemes.get(Math.min(DEFAULT_COLOR_SCHEME_INDEX, mColorSchemes.size() - 1));
     }
 
     public void setColorScheme(ColorScheme scheme) {
