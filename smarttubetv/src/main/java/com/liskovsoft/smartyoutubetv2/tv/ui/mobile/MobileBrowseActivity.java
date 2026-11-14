@@ -957,6 +957,18 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             return items;
         }
 
+        if (content == mContents.get(com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.SECTION_ID)) {
+            // Live TV: one carousel of channels per category, like a TV guide
+            for (GroupContent group : content.groups.values()) {
+                if (!group.videos.isEmpty()) {
+                    items.add(group.title);
+                    items.add(new CarouselRow(group.title, group));
+                }
+            }
+
+            return items;
+        }
+
         // Several groups = rows (home page): show the title of each group
         boolean showHeaders = content.groups.size() > 1 || isMyTopics;
 

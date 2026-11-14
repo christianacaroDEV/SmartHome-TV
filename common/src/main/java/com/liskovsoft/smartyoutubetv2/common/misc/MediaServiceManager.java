@@ -374,7 +374,7 @@ public class MediaServiceManager implements OnAccountChange {
     }
 
     public void updateHistory(Video video, long positionMs) {
-        if (video == null || RxHelper.isAnyActionRunning(mHistoryAction)) {
+        if (video == null || LiveTv.isStream(video) || RxHelper.isAnyActionRunning(mHistoryAction)) {
             return;
         }
 

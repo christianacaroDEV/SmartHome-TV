@@ -107,6 +107,7 @@ public class MobileWatchInfoView extends LinearLayout {
 
         // Actions (scroll sideways on small screens)
         HorizontalScrollView actionsScroll = new HorizontalScrollView(context);
+        mActionsScroll = actionsScroll;
         actionsScroll.setHorizontalScrollBarEnabled(false);
         LinearLayout actions = new LinearLayout(context);
         actions.setGravity(Gravity.CENTER_VERTICAL);
@@ -173,6 +174,8 @@ public class MobileWatchInfoView extends LinearLayout {
         addView(mDescriptionCard, cardParams);
     }
 
+    private View mActionsScroll;
+
     public void bind(Video video) {
         if (video != mVideo) {
             mExpanded = false;
@@ -201,6 +204,11 @@ public class MobileWatchInfoView extends LinearLayout {
             mLoadedAvatar = null;
             mAvatar.setImageResource(R.drawable.ic_m_account);
         }
+
+        // BlueTube Live TV: a TV channel stream has no likes, subscriptions or "watch later"
+        boolean tvStream = com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isStream(video);
+        mSubscribe.setVisibility(tvStream ? GONE : VISIBLE);
+        mActionsScroll.setVisibility(tvStream ? GONE : VISIBLE);
 
         boolean subscribed = mPlayer.getButtonState(R.id.action_subscribe) == BUTTON_ON;
         mSubscribe.setText(subscribed ? R.string.mobile_watch_subscribed : R.string.mobile_watch_subscribe);

@@ -255,6 +255,19 @@ public class VideoLoaderController extends BasePlayerController {
         Utils.post(mShowProgressBar);
         disposeActions();
 
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isStream(video)) {
+            // BlueTube Live TV: the channel's own stream (HLS)
+            String url = com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.getStreamUrl(getContext(), video);
+            if (url != null) {
+                Log.d(TAG, "Loading TV channel stream...");
+                getPlayer().openHlsUrl(url);
+            } else {
+                getPlayer().showProgressBar(false);
+                MessageHelpers.showMessage(getContext(), R.string.live_tv_unavailable);
+            }
+            return;
+        }
+
         ServiceManager service = YouTubeServiceManager.instance();
         MediaItemService mediaItemManager = service.getMediaItemService();
         mFormatInfoAction = mediaItemManager.getFormatInfoObserve(video.videoId)

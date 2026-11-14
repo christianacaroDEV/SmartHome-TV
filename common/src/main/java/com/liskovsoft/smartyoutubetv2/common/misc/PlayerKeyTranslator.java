@@ -195,6 +195,32 @@ public class PlayerKeyTranslator extends GlobalKeyTranslator {
         }
     }
 
+    /**
+     * BlueTube Live TV: CH+ / CH- of the remote always change the channel, whatever the setting for videos
+     */
+    @Override
+    protected boolean handleSpecialKey(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        if (keyCode != KeyEvent.KEYCODE_CHANNEL_UP && keyCode != KeyEvent.KEYCODE_CHANNEL_DOWN) {
+            return false;
+        }
+
+        PlaybackPresenter presenter = getPlaybackPresenter();
+        if (presenter == null || !LiveTv.isChannel(presenter.getVideo())) {
+            return false;
+        }
+
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            if (keyCode == KeyEvent.KEYCODE_CHANNEL_UP) {
+                presenter.onNextClicked();
+            } else {
+                presenter.onPreviousClicked();
+            }
+        }
+
+        return true;
+    }
+
     private PlaybackPresenter getPlaybackPresenter() {
         return PlaybackPresenter.instance(mContext);
     }

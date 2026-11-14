@@ -1122,4 +1122,30 @@
     <string name="mobile_signin_qr">Or scan it with another phone or computer</string>
     <string name="mobile_signin_waiting">Waiting for the confirmation…</string>
     <string name="mobile_signin_loading">Getting your code…</string>
+    <string name="live_tv_title">Live TV</string>
+    <string name="live_tv_my_channels">⭐ My channels</string>
+    <string name="live_tv_channel_number">Channel %d</string>
+    <string name="live_tv_unavailable">This channel isn\'t on the air right now. Try another one.</string>
+    <string name="live_tv_add_favorite">⭐ Add to My channels</string>
+    <string name="live_tv_remove_favorite">Remove from My channels</string>
+    <string name="live_tv_watch">▶ Watch channel</string>
+    <string name="live_tv_added">Added to My channels</string>
+    <string name="live_tv_removed">Removed from My channels</string>
+    <string name="live_tv_channels">Channels</string>
+    <string-array name="live_tv_category_keys" translatable="false">
+        <item>ecuador</item>
+        <item>noticias</item>
+        <item>infantil</item>
+        <item>musica</item>
+        <item>cultura</item>
+        <item>entretenimiento</item>
+    </string-array>
+    <string-array name="live_tv_category_labels">
+        <item>🇪🇨 Ecuador</item>
+        <item>📰 News</item>
+        <item>🧒 Kids</item>
+        <item>🎵 Music</item>
+        <item>🏛️ Culture and education</item>
+        <item>🎬 Entertainment</item>
+    </string-array>
 </resources>

@@ -13,6 +13,9 @@ import com.liskovsoft.mediaserviceinterfaces.data.MediaItem;
 import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeSync;
 import com.liskovsoft.smartyoutubetv2.common.misc.BlueTubeTvProfiles;
 import com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode;
+import com.liskovsoft.smartyoutubetv2.common.misc.LiveTv;
+import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
+import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.locale.LocaleUtility;
 import com.liskovsoft.sharedutils.mylogger.Log;
@@ -237,6 +240,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                     getContext().getString(R.string.together_title), BrowseSection.TYPE_ROW, R.drawable.icon_together, false));
         }
 
+        // BlueTube: TV channels (phone: a chip at the top, TV: the sidebar)
+        mSectionsMapping.put(LiveTv.SECTION_ID, new BrowseSection(LiveTv.SECTION_ID,
+                (DeviceMode.isMobile(getContext()) ? "📺 " : "") + getContext().getString(R.string.live_tv_title), BrowseSection.TYPE_ROW, R.drawable.icon_live_tv, false));
+
         if (getSidebarService().isSettingsSectionEnabled()) {
             mSectionsMapping.put(MediaGroup.TYPE_SETTINGS, new BrowseSection(MediaGroup.TYPE_SETTINGS, getContext().getString(R.string.header_settings), BrowseSection.TYPE_SETTINGS_GRID, R.drawable.icon_settings));
         }
@@ -263,6 +270,33 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 .onErrorResumeNext(Observable.<List<MediaGroup>>empty());
 
         return Observable.concat(continueRow, home);
+    }
+
+    /**
+     * TV channel: watch it or add/remove it from "My channels" (the YouTube video menu doesn't apply to it)
+     */
+    private void showLiveTvMenu(Video item) {
+        LiveTv.Channel channel = LiveTv.find(getContext(), item);
+
+        if (channel == null) {
+            return;
+        }
+
+        boolean favorite = LiveTv.isFavorite(getContext(), channel);
+        AppDialogPresenter dialog = AppDialogPresenter.instance(getContext());
+        dialog.appendSingleButton(UiOptionItem.from(getContext().getString(R.string.live_tv_watch), option -> {
+            dialog.closeDialog();
+            VideoActionPresenter.instance(getContext()).apply(item);
+        }));
+        dialog.appendSingleButton(UiOptionItem.from(getContext().getString(favorite ? R.string.live_tv_remove_favorite : R.string.live_tv_add_favorite), option -> {
+            dialog.closeDialog();
+            LiveTv.toggleFavorite(getContext(), channel);
+            MessageHelpers.showMessage(getContext(), favorite ? R.string.live_tv_removed : R.string.live_tv_added);
+            if (mCurrentSection != null && mCurrentSection.getId() == LiveTv.SECTION_ID) {
+                refresh(false);
+            }
+        }));
+        dialog.showDialog(channel.name);
     }
 
     private void onFavoritesChanged() {
@@ -379,6 +413,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         mRowMapping.put(MediaGroup.TYPE_USER_PLAYLISTS, getContentService().getPlaylistRowsObserve());
         // built on every visit: the profile or its topics may have changed
         mRowMapping.put(BlueTubeSync.FAVORITES_SECTION_ID, Observable.defer(this::createFavoritesRows));
+        mRowMapping.put(LiveTv.SECTION_ID, Observable.defer(() -> LiveTv.getRowsObserve(getContext())));
 
         mGridMapping.put(MediaGroup.TYPE_SHORTS, getContentService().getShortsObserve());
         mGridMapping.put(MediaGroup.TYPE_SUBSCRIPTIONS, getContentService().getSubscriptionsObserve());
@@ -607,7 +642,9 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             return;
         }
 
-        if (belongsToChannelUploads(item)) { // We need to be sure we exactly on Channels section
+        if (LiveTv.isChannel(item)) {
+            showLiveTvMenu(item);
+        } else if (belongsToChannelUploads(item)) { // We need to be sure we exactly on Channels section
             ChannelUploadsMenuPresenter.instance(getContext()).showMenu(item, (videoItem, action) -> {
                 if (action == VideoMenuCallback.ACTION_UNSUBSCRIBE) { // works with any uploads section look
                     removeItem(item);

@@ -56,6 +56,11 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return;
         }
 
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isStream(getVideo())) {
+            onTvStreamError(null);
+            return;
+        }
+
         if (isStreamEnded()) {
             getMainController().onPlayEnd();
         } else if (isOfflineVideo() && isSubtitlesEnabled()) {
@@ -148,6 +153,11 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             // Offline: restarting or switching engines won't help (and must not change the user's engine). Wait calmly.
             Log.e(TAG, "Player error while offline: %s", error != null ? error.getMessage() : null);
             mVideoLoaderController.reloadVideo(5_000);
+            return;
+        }
+
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isStream(getVideo())) {
+            onTvStreamError(error);
             return;
         }
 
@@ -477,6 +487,17 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
                 new Integer[] { PlayerTweaksData.PLAYER_DATA_SOURCE_DEFAULT, PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP } :
                 new Integer[] { PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET, PlayerTweaksData.PLAYER_DATA_SOURCE_DEFAULT, PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP };
         return Helpers.getNextValue(engineList, currentEngine);
+    }
+
+    private void onTvStreamError(Throwable error) {
+        Log.e(TAG, "TV channel stream error: %s", error != null ? error.getMessage() : "stalled");
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.nextStreamUrl(getContext(), getVideo())) {
+            mVideoLoaderController.reloadVideo(500);
+        } else if (getPlayer() != null) {
+            getPlayer().showProgressBar(false);
+            getPlayer().showOverlay(true);
+            MessageHelpers.showLongMessage(getContext(), R.string.live_tv_unavailable);
+        }
     }
 
     @SuppressWarnings("deprecation")

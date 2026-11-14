@@ -237,8 +237,36 @@ public class SuggestionsController extends BasePlayerController {
             return;
         }
 
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isChannel(video)) {
+            showChannels(video);
+            return;
+        }
+
         clearSuggestionsIfNeeded(video);
         loadMetadata(video, metadata -> updateSuggestions(metadata, video));
+    }
+
+    /**
+     * BlueTube Live TV: the channel list instead of YouTube suggestions
+     */
+    private void showChannels(Video video) {
+        disposeActions();
+
+        if (getPlayer() == null) {
+            return;
+        }
+
+        java.util.List<Video> channels = com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.getZapping(getContext());
+        java.util.List<Video> copy = new java.util.ArrayList<>();
+        for (Video channel : channels) {
+            copy.add(Video.from(channel));
+        }
+        VideoGroup group = VideoGroup.from(copy);
+        group.setTitle(getContext().getString(R.string.live_tv_channels));
+        getPlayer().clearSuggestions();
+        getPlayer().updateSuggestions(group);
+        getPlayer().setNextTitle(getNext());
+        getPlayer().showProgressBar(false); // normally hidden once the YouTube metadata arrives
     }
 
     private void loadMetadata(Video video, OnMetadata callback) {
@@ -277,6 +305,10 @@ public class SuggestionsController extends BasePlayerController {
             return null;
         }
 
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isChannel(getVideo())) {
+            return com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.getNext(getContext(), getVideo());
+        }
+
         Video result = null;
         Video next = Playlist.instance().getNext();
 
@@ -299,6 +331,10 @@ public class SuggestionsController extends BasePlayerController {
     public Video getPrevious() {
         if (getPlayer() == null || getVideo() == null) {
             return null;
+        }
+
+        if (com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.isChannel(getVideo())) {
+            return com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.getPrevious(getContext(), getVideo());
         }
 
         Video result = getPreviousFromGroup(getVideo());

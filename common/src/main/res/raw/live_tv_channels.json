@@ -1,0 +1,330 @@
+{
+ "version": 1,
+ "channels": [
+  {
+   "n": 1,
+   "id": "ecuavisa",
+   "name": "Ecuavisa",
+   "cat": "ecuador",
+   "hls": [
+    "https://redirector.dps.live/hls-video/c54ac2799874375c81c1672abb700870537c5223/ecuavisa/ecuavisa.smil/playlist.m3u8",
+    "https://dai.google.com/linear/hls/event/GyPkTVDZSXGhpOvxPK7m2g/master.m3u8"
+   ],
+   "card": "ltv_ecuavisa"
+  },
+  {
+   "n": 2,
+   "id": "ecuadortv",
+   "name": "Ecuador TV",
+   "cat": "ecuador",
+   "hls": [
+    "https://video-eu1.streamerr.co/hls/s64029a8fdf/live.m3u8"
+   ],
+   "card": "ltv_ecuadortv"
+  },
+  {
+   "n": 3,
+   "id": "oromar",
+   "name": "Oromar TV",
+   "cat": "ecuador",
+   "hls": [
+    "https://stream.oromar.tv/hls/oromartv_hi/index.m3u8"
+   ],
+   "card": "ltv_oromar"
+  },
+  {
+   "n": 4,
+   "id": "telemar",
+   "name": "Telemar",
+   "cat": "ecuador",
+   "hls": [
+    "https://cloudpro.servidoresdestream.com:8081/8020/index.m3u8"
+   ],
+   "card": "ltv_telemar"
+  },
+  {
+   "n": 5,
+   "id": "manavision",
+   "name": "Manavisión",
+   "cat": "ecuador",
+   "hls": [
+    "https://play.once.net.ec/play/Ily2oYdd3E1fi9wK2zORoRovFU9P5xM0g3CNVK2MT0M/.m3u8"
+   ],
+   "card": "ltv_manavision"
+  },
+  {
+   "n": 6,
+   "id": "telerama",
+   "name": "Telerama",
+   "cat": "ecuador",
+   "hls": [
+    "https://play.once.net.ec/telerama/live.tv/538.m3u8"
+   ],
+   "card": "ltv_telerama"
+  },
+  {
+   "n": 7,
+   "id": "puruwa",
+   "name": "Puruwá TV",
+   "cat": "ecuador",
+   "hls": [
+    "https://live.tvcontrolcp.com:1936/puruwatv/puruwatv/playlist.m3u8"
+   ],
+   "card": "ltv_puruwa"
+  },
+  {
+   "n": 8,
+   "id": "hechos",
+   "name": "Hechos Ecuador",
+   "cat": "ecuador",
+   "hls": [
+    "https://online.hechosecuador.com:5443/WebRTCApp/streams/hechosecuador.m3u8"
+   ],
+   "card": "ltv_hechos"
+  },
+  {
+   "n": 9,
+   "id": "makrodigital",
+   "name": "MakroDigital TV",
+   "cat": "ecuador",
+   "hls": [
+    "https://makrodigitaltv.makrodigital.com/makrodigitaltelevision/iptv/playlist.m3u8"
+   ],
+   "card": "ltv_makrodigital"
+  },
+  {
+   "n": 10,
+   "id": "legislativa",
+   "name": "TV Legislativa",
+   "cat": "ecuador",
+   "hls": [
+    "https://streamingav.asambleanacional.gob.ec/hls/stream.m3u8"
+   ],
+   "card": "ltv_legislativa"
+  },
+  {
+   "n": 11,
+   "id": "ntn24",
+   "name": "NTN24",
+   "cat": "noticias",
+   "yt": "NTN24"
+  },
+  {
+   "n": 12,
+   "id": "cnnee",
+   "name": "CNN en Español",
+   "cat": "noticias",
+   "yt": "CNNEE"
+  },
+  {
+   "n": 13,
+   "id": "dw",
+   "name": "DW Español",
+   "cat": "noticias",
+   "hls": [
+    "https://dwamdstream104.akamaized.net/hls/live/2015530/dwstream104/master.m3u8"
+   ],
+   "card": "ltv_dw"
+  },
+  {
+   "n": 14,
+   "id": "france24",
+   "name": "France 24 Español",
+   "cat": "noticias",
+   "hls": [
+    "https://live.france24.com/hls/live/2037220/F24_ES_HI_HLS/master_2300.m3u8",
+    "https://live.france24.com/hls/live/2037220-b/F24_ES_HI_HLS/master_2300.m3u8"
+   ],
+   "card": "ltv_france24"
+  },
+  {
+   "n": 15,
+   "id": "euronews",
+   "name": "Euronews Español",
+   "cat": "noticias",
+   "hls": [
+    "https://cdn-euronews.akamaized.net/live/eds/euronews-es/25053/index.m3u8"
+   ],
+   "card": "ltv_euronews"
+  },
+  {
+   "n": 16,
+   "id": "rtve24h",
+   "name": "24 Horas RTVE",
+   "cat": "noticias",
+   "hls": [
+    "https://ztnr.rtve.es/ztnr/1694255.m3u8"
+   ],
+   "card": "ltv_rtve24h"
+  },
+  {
+   "n": 17,
+   "id": "caracol",
+   "name": "Noticias Caracol",
+   "cat": "noticias",
+   "yt": "noticiascaracol"
+  },
+  {
+   "n": 18,
+   "id": "milenio",
+   "name": "Milenio",
+   "cat": "noticias",
+   "yt": "milenio"
+  },
+  {
+   "n": 19,
+   "id": "canal26",
+   "name": "Canal 26",
+   "cat": "noticias",
+   "hls": [
+    "https://stream-gtlc.telecentro.net.ar/hls/canal26hls/main.m3u8"
+   ],
+   "card": "ltv_canal26"
+  },
+  {
+   "n": 20,
+   "id": "tn",
+   "name": "TN Todo Noticias",
+   "cat": "noticias",
+   "yt": "todonoticias"
+  },
+  {
+   "n": 21,
+   "id": "c5n",
+   "name": "C5N",
+   "cat": "noticias",
+   "yt": "c5n"
+  },
+  {
+   "n": 22,
+   "id": "a24",
+   "name": "A24",
+   "cat": "noticias",
+   "yt": "A24com"
+  },
+  {
+   "n": 23,
+   "id": "adn40",
+   "name": "ADN 40",
+   "cat": "noticias",
+   "hls": [
+    "https://mdstrm.com/live-stream-playlist/60b578b060947317de7b57ac.m3u8"
+   ],
+   "card": "ltv_adn40"
+  },
+  {
+   "n": 24,
+   "id": "13kids",
+   "name": "13 Kids",
+   "cat": "infantil",
+   "hls": [
+    "https://origin.dpsgo.com/ssai/event/LhHrVtyeQkKZ-Ye_xEU75g/master.m3u8"
+   ],
+   "card": "ltv_13kids"
+  },
+  {
+   "n": 25,
+   "id": "clan",
+   "name": "Clan",
+   "cat": "infantil",
+   "hls": [
+    "https://lge-lgla2.otteravision.com/lge/lgcla/lgcla.m3u8"
+   ],
+   "card": "ltv_clan"
+  },
+  {
+   "n": 26,
+   "id": "fmmundo",
+   "name": "FM Mundo",
+   "cat": "musica",
+   "hls": [
+    "https://video2.makrodigital.com/fmmundo/fmmundo/playlist.m3u8"
+   ],
+   "card": "ltv_fmmundo"
+  },
+  {
+   "n": 27,
+   "id": "americaestereo",
+   "name": "América Estéreo",
+   "cat": "musica",
+   "hls": [
+    "https://video.makrodigital.com/americaestereoquito/americaestereoquito/playlist.m3u8"
+   ],
+   "card": "ltv_americaestereo"
+  },
+  {
+   "n": 28,
+   "id": "monumental",
+   "name": "Radio Monumental TV",
+   "cat": "musica",
+   "hls": [
+    "https://cloud37.ecuatel.com/monumentaltv/live/manifest.m3u8"
+   ],
+   "card": "ltv_monumental"
+  },
+  {
+   "n": 29,
+   "id": "lofigirl",
+   "name": "Lofi Girl",
+   "cat": "musica",
+   "yt": "LofiGirl"
+  },
+  {
+   "n": 30,
+   "id": "educa",
+   "name": "Educa TV",
+   "cat": "cultura",
+   "hls": [
+    "https://avm.ecuamedia.net/educatv/live/playlist.m3u8"
+   ],
+   "card": "ltv_educa"
+  },
+  {
+   "n": 31,
+   "id": "canalonce",
+   "name": "Canal Once",
+   "cat": "cultura",
+   "hls": [
+    "https://vivo.canaloncelive.tv/securepkgr3/oncemexico/playlist.m3u8"
+   ],
+   "card": "ltv_canalonce"
+  },
+  {
+   "n": 32,
+   "id": "institucional",
+   "name": "Canal Institucional",
+   "cat": "cultura",
+   "hls": [
+    "https://streaming.rtvc.gov.co/TV_CanalInstitucional_live/smil:live.smil/playlist.m3u8"
+   ],
+   "card": "ltv_institucional"
+  },
+  {
+   "n": 33,
+   "id": "nasa",
+   "name": "NASA",
+   "cat": "cultura",
+   "yt": "NASA"
+  },
+  {
+   "n": 34,
+   "id": "azteca",
+   "name": "Azteca Internacional",
+   "cat": "entretenimiento",
+   "hls": [
+    "https://azt-mun.otteravision.com/azt/mun/mun.m3u8"
+   ],
+   "card": "ltv_azteca"
+  },
+  {
+   "n": 35,
+   "id": "imagen",
+   "name": "Imagen TV",
+   "cat": "entretenimiento",
+   "hls": [
+    "https://igd-it-runtime.otteravision.com/igd/it/it.m3u8"
+   ],
+   "card": "ltv_imagen"
+  }
+ ]
+}

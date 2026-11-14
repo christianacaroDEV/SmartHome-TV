@@ -1034,4 +1034,22 @@
     <string name="mobile_signin_qr">O escanéalo con otro celular o computadora</string>
     <string name="mobile_signin_waiting">Esperando la confirmación…</string>
     <string name="mobile_signin_loading">Obteniendo tu código…</string>
+    <string name="live_tv_title">TV en vivo</string>
+    <string name="live_tv_my_channels">⭐ Mis canales</string>
+    <string name="live_tv_channel_number">Canal %d</string>
+    <string name="live_tv_unavailable">Este canal no está transmitiendo ahora. Prueba con otro.</string>
+    <string name="live_tv_add_favorite">⭐ Agregar a Mis canales</string>
+    <string name="live_tv_remove_favorite">Quitar de Mis canales</string>
+    <string name="live_tv_watch">▶ Ver canal</string>
+    <string name="live_tv_added">Agregado a Mis canales</string>
+    <string name="live_tv_removed">Quitado de Mis canales</string>
+    <string name="live_tv_channels">Canales</string>
+    <string-array name="live_tv_category_labels">
+        <item>🇪🇨 Ecuador</item>
+        <item>📰 Noticias</item>
+        <item>🧒 Infantil</item>
+        <item>🎵 Música</item>
+        <item>🏛️ Cultura y educación</item>
+        <item>🎬 Entretenimiento</item>
+    </string-array>
 </resources>

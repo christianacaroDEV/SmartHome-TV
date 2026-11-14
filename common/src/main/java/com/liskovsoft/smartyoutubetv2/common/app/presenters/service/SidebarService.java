@@ -245,6 +245,7 @@ public class SidebarService implements ProfileChangeListener {
             mDefaultSections.put(R.string.mobile_topics_title, BlueTubeSync.FAVORITES_SECTION_ID);
             mDefaultSections.put(R.string.together_title, BlueTubeSync.TOGETHER_SECTION_ID);
         }
+        mDefaultSections.put(R.string.live_tv_title, com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.SECTION_ID);
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
         mDefaultSections.put(R.string.header_trending, MediaGroup.TYPE_TRENDING);
         mDefaultSections.put(R.string.header_kids_home, MediaGroup.TYPE_KIDS_HOME);
@@ -332,6 +333,20 @@ public class SidebarService implements ProfileChangeListener {
             for (int i = 0; i < 20 && homeIndex != -1 && getSectionIndex(BlueTubeSync.FAVORITES_SECTION_ID) > homeIndex + 1
                     && canMoveSectionUp(BlueTubeSync.FAVORITES_SECTION_ID); i++) {
                 moveSectionUp(BlueTubeSync.FAVORITES_SECTION_ID);
+            }
+        }
+
+        // BlueTube: "Live TV" appears once (TV: after "Watch together", phone: after Home)
+        if (!prefs.getBoolean("live_tv_section_added", false)) {
+            prefs.edit().putBoolean("live_tv_section_added", true).apply();
+            int liveId = com.liskovsoft.smartyoutubetv2.common.misc.LiveTv.SECTION_ID;
+            enableSection(liveId, true);
+            int afterIndex = getSectionIndex(DeviceMode.isMobile(mContext) ? MediaGroup.TYPE_HOME : BlueTubeSync.TOGETHER_SECTION_ID);
+            if (afterIndex == -1) {
+                afterIndex = getSectionIndex(MediaGroup.TYPE_HOME);
+            }
+            for (int i = 0; i < 30 && afterIndex != -1 && getSectionIndex(liveId) > afterIndex + 1 && canMoveSectionUp(liveId); i++) {
+                moveSectionUp(liveId);
             }
         }
 

@@ -44,6 +44,10 @@ public abstract class KeyTranslator {
     }
 
     public final KeyEvent translate(KeyEvent event) {
+        if (handleSpecialKey(event)) {
+            return null; // handled
+        }
+
         Runnable action = mActionMapping.get(event.getKeyCode());
         if (action != null && checkEvent(event)) {
             if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -97,6 +101,13 @@ public abstract class KeyTranslator {
                         !AppDialogPresenter.instance(null).isDialogShown());
 
         return mIsChecked;
+    }
+
+    /**
+     * Keys whose meaning depends on what is playing
+     */
+    protected boolean handleSpecialKey(KeyEvent event) {
+        return false;
     }
 
     protected abstract void initKeyMapping();
