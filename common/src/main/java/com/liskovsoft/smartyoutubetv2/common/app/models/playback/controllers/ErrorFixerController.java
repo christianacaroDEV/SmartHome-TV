@@ -29,6 +29,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     private VideoLoaderController mVideoLoaderController;
     private String mSabrErrorFixVideoId;
     private int mSabrErrorFixAttempts;
+    private String mNetworkMessageVideoId;
 
     @Override
     public void onInit() {
@@ -49,6 +50,12 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return;
         }
 
+        if (!isOnline()) {
+            // No connection at all: switching clients won't help, keep waiting (the player resumes by itself)
+            mBufferingDetector.onStartBuffering();
+            return;
+        }
+
         if (isStreamEnded()) {
             getMainController().onPlayEnd();
         } else if (isOfflineVideo() && isSubtitlesEnabled()) {
@@ -65,7 +72,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
                 // Exclude possible PoToken errors. Upon resume there's no 60 sec PoToken attestation window, so a resumed video fails instantly.
                 // Wrong DNS resolving could cause hanging at start
                 // Do switch to only engine that respects custom DNS settings
-                MessageHelpers.showLongMessage(getContext(), "Fixing incorrect DNS resolution. App restart needed...");
+                MessageHelpers.showLongMessage(getContext(), R.string.msg_fixing_dns);
                 getPlayerTweaksData().setPlayerDataSource(requiredEngine);
                 getPlayerTweaksData().setPreferredDnsType(customDns);
                 if (!isCustomDnsEnabled) {
@@ -76,7 +83,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
                 }
             } else {
                 // Also, some clients like ANDROID_REEL may just hang at start
-                MessageHelpers.showLongMessage(getContext(), "Fixing stalled client...");
+                MessageHelpers.showMessage(getContext(), R.string.msg_fixing_stalled);
                 YouTubeServiceManager.instance().switchNextClientNow();
                 mVideoLoaderController.reloadVideo();
             }
@@ -137,6 +144,13 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return;
         }
 
+        if (!isOnline()) {
+            // Offline: restarting or switching engines won't help (and must not change the user's engine). Wait calmly.
+            Log.e(TAG, "Player error while offline: %s", error != null ? error.getMessage() : null);
+            mVideoLoaderController.reloadVideo(5_000);
+            return;
+        }
+
         if (isStreamEnded()) {
             // Url no longer works (e.g. live stream ended)
             getMainController().onPlayEnd();
@@ -180,7 +194,8 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return false;
         }
 
-        MessageHelpers.showLongMessage(getContext(), "%s. Attempt: %s", reloadError.getMessage(), mSabrErrorFixAttempts);
+        Log.e(TAG, "%s. Attempt: %s", reloadError.getMessage(), mSabrErrorFixAttempts);
+        MessageHelpers.showMessage(getContext(), R.string.msg_fixing_stalled);
 
         YouTubeServiceManager.instance().reloadPlayerResponse(video.videoId, reloadError.reloadPlaybackToken);
         mVideoLoaderController.reloadVideo();
@@ -215,7 +230,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return false;
         }
 
-        MessageHelpers.showLongMessage(getContext(), "%s. Attempt: %s", backoffError.getMessage(), mSabrErrorFixAttempts);
+        Log.e(TAG, "%s. Attempt: %s", backoffError.getMessage(), mSabrErrorFixAttempts);
 
         // SABR may hang if the server issues a high backoffTime
         mVideoLoaderController.reloadVideo();
@@ -387,6 +402,23 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             return;
         }
 
+        if (com.liskovsoft.smartyoutubetv2.common.app.models.errors.CategoryEmptyError.isNetworkError(error)) {
+            // No connection / DNS hiccup: no stack trace, one friendly message per video and a calm retry.
+            // Fast reload loops race with engine restarts and may leave the player stuck when the network returns.
+            Log.e(TAG, "loadFormatInfo network error: %s", error.getMessage());
+            Video video = getVideo();
+            String videoId = video != null ? video.videoId : null;
+            if (!Helpers.equals(videoId, mNetworkMessageVideoId)) {
+                mNetworkMessageVideoId = videoId;
+                MessageHelpers.showMessage(getContext(), isOnline() ? R.string.msg_network_slow : R.string.msg_waiting_network);
+            }
+            if (Utils.fixRetrofitErrors(getContext(), error)) {
+                return;
+            }
+            mVideoLoaderController.reloadVideo(isOnline() ? 2_000 : 5_000);
+            return;
+        }
+
         String message = error.getMessage();
         String className = error.getClass().getSimpleName();
         String fullMsg = String.format("loadFormatInfo error: %s: %s", className, Utils.getStackTraceAsString(error));
@@ -445,6 +477,17 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
                 new Integer[] { PlayerTweaksData.PLAYER_DATA_SOURCE_DEFAULT, PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP } :
                 new Integer[] { PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET, PlayerTweaksData.PLAYER_DATA_SOURCE_DEFAULT, PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP };
         return Helpers.getNextValue(engineList, currentEngine);
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean isOnline() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getContext().getSystemService(android.content.Context.CONNECTIVITY_SERVICE);
+            android.net.NetworkInfo info = cm != null ? cm.getActiveNetworkInfo() : null;
+            return info != null && info.isConnected();
+        } catch (RuntimeException e) {
+            return true; // can't tell
+        }
     }
 
     private boolean isSubtitlesEnabled() {

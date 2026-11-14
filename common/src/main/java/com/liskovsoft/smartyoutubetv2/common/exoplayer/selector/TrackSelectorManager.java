@@ -352,7 +352,7 @@ public class TrackSelectorManager implements TrackSelectorCallback {
         if (params.hasSelectionOverride(rendererIndex, rendererTrackGroups)) {
             SelectionOverride override = params.getSelectionOverride(rendererIndex, rendererTrackGroups);
 
-            if (override != null) {
+            if (override != null && isValidOverride(override, rendererTrackGroups)) {
                 definition = new TrackSelection.Definition(
                                 rendererTrackGroups.get(override.groupIndex),
                                 override.tracks,
@@ -593,6 +593,20 @@ public class TrackSelectorManager implements TrackSelectorCallback {
             Log.e(TAG, "Something went wrong. Selected track not found for renderer=%s", rendererIndex);
             mTrackSelector.setParameters(mTrackSelector.buildUponParameters().clearSelectionOverrides(rendererIndex)); // Auto quality button selected
         }
+    }
+
+    /** An override left over from the previous video may point to a track the new one doesn't have */
+    private static boolean isValidOverride(SelectionOverride override, TrackGroupArray groups) {
+        if (override.groupIndex < 0 || override.groupIndex >= groups.length) {
+            return false;
+        }
+        int length = groups.get(override.groupIndex).length;
+        for (int track : override.tracks) {
+            if (track < 0 || track >= length) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private MediaTrack createAutoSelection(int rendererIndex) {

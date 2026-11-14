@@ -1532,6 +1532,11 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       TrackGroupArray rendererTrackGroups = mappedTrackInfo.getTrackGroups(i);
       if (params.hasSelectionOverride(i, rendererTrackGroups)) {
         SelectionOverride override = params.getSelectionOverride(i, rendererTrackGroups);
+        if (override != null && !isValidOverride(override, rendererTrackGroups)) {
+          // BlueTube: an override left over from the previous video (more qualities) would crash the
+          // player with ArrayIndexOutOfBounds and leave it stuck. Keep the automatic choice instead.
+          continue;
+        }
         definitions[i] =
             override == null
                 ? null
@@ -2720,5 +2725,18 @@ public class DefaultTrackSelector extends MappingTrackSelector {
       }
       return 0;
     }
+  }
+
+  private static boolean isValidOverride(SelectionOverride override, TrackGroupArray groups) {
+    if (override.groupIndex < 0 || override.groupIndex >= groups.length) {
+      return false;
+    }
+    int length = groups.get(override.groupIndex).length;
+    for (int track : override.tracks) {
+      if (track < 0 || track >= length) {
+        return false;
+      }
+    }
+    return true;
   }
 }

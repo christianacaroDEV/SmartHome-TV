@@ -330,7 +330,7 @@ public class VideoLoaderController extends BasePlayerController {
         player.showBackground(bgImageUrl); // remove bg (if video playing) or set another bg
     }
 
-    private void reloadVideo(int delayMs) {
+    public void reloadVideo(int delayMs) {
         if (getPlayer() == null) {
             return;
         }

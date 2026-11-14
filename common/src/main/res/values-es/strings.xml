@@ -894,6 +894,10 @@
     <string name="offline_message_mobile">Revisa tu wifi o tus datos móviles. Volvemos solos apenas haya internet.</string>
     <string name="offline_message_tv">Revisa el wifi o el cable de la TV. Volvemos solos apenas haya internet.</string>
     <string name="offline_retry">Reintentar</string>
+    <string name="msg_fixing_stalled">El video tardaba en cargar. Probando otra vía…</string>
+    <string name="msg_waiting_network">Sin internet. El video empezará apenas vuelva la conexión.</string>
+    <string name="msg_network_slow">La conexión está lenta. Reintentando…</string>
+    <string name="msg_fixing_dns">Mejorando la conexión. BlueTube se reiniciará…</string>
     <string name="msg_network_hiccup">No pudimos conectar con YouTube en este momento. Revisa tu conexión e inténtalo de nuevo.</string>
     <string name="mobile_profile_default">Principal</string>
     <string name="mobile_profile_who">¿Quién está viendo?</string>

@@ -7,6 +7,8 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 public class BufferingDetector {
     private static final long BUFFERING_WINDOW_MS = 60_000;
     private static final long BUFFERING_DURATION_MS = 20_000;
+    /** A video that never started: a hung client is likelier than a slow network, so react sooner */
+    private static final long START_BUFFERING_DURATION_MS = 12_000;
     
     private long mBeginTimeMs;
     private long mStartTimeMs;
@@ -30,7 +32,8 @@ public class BufferingDetector {
             mTotalDurationMs = 0;
         }
         mStartTimeMs = currentTimeMs;
-        Utils.postDelayed(mOnLongBuffering, Math.max(0, BUFFERING_DURATION_MS - mTotalDurationMs));
+        long limitMs = mIsPlayable ? BUFFERING_DURATION_MS : START_BUFFERING_DURATION_MS;
+        Utils.postDelayed(mOnLongBuffering, Math.max(0, limitMs - mTotalDurationMs));
     }
 
     public void onStopBuffering() {
