@@ -74,7 +74,7 @@ public final class MobileTogether {
 
             TextView members = text(activity, 13, TEXT_SECONDARY, false);
             members.setText(manager.getMembers() > 1
-                    ? activity.getString(R.string.together_in_room, formatCode(manager.getCode()), manager.getMembers())
+                    ? manager.describeRoom(activity)
                     : activity.getString(R.string.together_waiting));
             box.addView(members);
 
@@ -295,8 +295,7 @@ public final class MobileTogether {
                 return;
             }
 
-            int members = Math.max(1, mManager.getMembers());
-            mHeader.setText("👥  " + getContext().getString(R.string.together_in_room, formatCode(mManager.getCode()), members));
+            mHeader.setText("👥  " + mManager.describeRoom(getContext()));
             int unread = mManager.getUnread();
             mOpen.setText(unread > 0
                     ? getContext().getString(R.string.together_open_chat_unread, unread)

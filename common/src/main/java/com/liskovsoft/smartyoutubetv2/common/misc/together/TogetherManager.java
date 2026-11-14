@@ -52,6 +52,9 @@ public final class TogetherManager implements TogetherRoom.Listener {
     private TogetherRoom mRoom;
     private PlayerSide mPlayerSide;
     private int mMembers;
+    /** deviceId -> name of everybody in the room (this device included) */
+    private final java.util.Map<String, String> mMemberNames = new java.util.LinkedHashMap<>();
+    private MediaPlayer mChimePlayer;
     private JSONObject mPendingState;
     private MediaPlayer mVoicePlayer;
     private String mVoiceKey;
@@ -165,6 +168,39 @@ public final class TogetherManager implements TogetherRoom.Listener {
         return mMembers;
     }
 
+    /**
+     * Names of the other people in the room ("Ana, Luis"), empty if nobody else is there.
+     */
+    public String getOtherNames() {
+        StringBuilder names = new StringBuilder();
+
+        for (java.util.Map.Entry<String, String> member : mMemberNames.entrySet()) {
+            if (!mDeviceId.equals(member.getKey())) {
+                if (names.length() > 0) {
+                    names.append(", ");
+                }
+                names.append(member.getValue());
+            }
+        }
+
+        return names.toString();
+    }
+
+    /**
+     * "Viendo juntos · código 123 456 · 2 personas" plus, on a second line, who the others are.
+     */
+    public String describeRoom(Context context) {
+        String code = getCode();
+
+        if (code == null) {
+            return "";
+        }
+
+        String info = context.getString(R.string.together_in_room, code.substring(0, 3) + " " + code.substring(3), Math.max(1, mMembers));
+        String others = getOtherNames();
+        return others.isEmpty() ? info : info + "\n" + context.getString(R.string.together_with, others);
+    }
+
     public List<Message> getHistory() {
         synchronized (mHistory) {
             return new ArrayList<>(mHistory);
@@ -254,6 +290,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
 
         mRoom = null;
         mMembers = 0;
+        mMemberNames.clear();
         forgetRoom();
         mPendingState = null;
         mHandler.removeCallbacks(mHeartbeat);
@@ -667,17 +704,88 @@ public final class TogetherManager implements TogetherRoom.Listener {
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void onMembers(int count) {
-        post(() -> {
-            int before = mMembers;
-            mMembers = count;
+    public void onMembers(JSONObject members) {
+        java.util.Map<String, String> now = new java.util.LinkedHashMap<>();
 
-            if (mRoom != null && before > 0 && count > before) {
-                MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_someone_joined), true);
+        for (java.util.Iterator<String> keys = members.keys(); keys.hasNext(); ) {
+            String id = keys.next();
+            JSONObject member = members.optJSONObject(id);
+            String name = member != null ? member.optString("name") : "";
+            now.put(id, TextUtils.isEmpty(name) ? "BlueTube" : name);
+        }
+
+        post(() -> {
+            if (mRoom == null) {
+                return;
+            }
+
+            boolean firstList = mMemberNames.isEmpty();
+            List<String> joined = new ArrayList<>();
+            List<String> left = new ArrayList<>();
+
+            for (java.util.Map.Entry<String, String> member : now.entrySet()) {
+                if (!mDeviceId.equals(member.getKey()) && !mMemberNames.containsKey(member.getKey())) {
+                    joined.add(member.getValue());
+                }
+            }
+
+            for (java.util.Map.Entry<String, String> member : mMemberNames.entrySet()) {
+                if (!mDeviceId.equals(member.getKey()) && !now.containsKey(member.getKey())) {
+                    left.add(member.getValue());
+                }
+            }
+
+            boolean changed = !mMemberNames.equals(now);
+            mMemberNames.clear();
+            mMemberNames.putAll(now);
+            mMembers = now.size();
+
+            if (changed) {
+                com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter.instance(mContext).refreshIfTogetherShown();
+            }
+
+            if (firstList) {
+                // Just came in: who is already here
+                if (!joined.isEmpty()) {
+                    MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_with, TextUtils.join(", ", joined)), true);
+                }
+            } else if (!joined.isEmpty()) {
+                playChime(R.raw.together_join);
+                MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_someone_joined, TextUtils.join(", ", joined)), true);
+            } else if (!left.isEmpty()) {
+                playChime(R.raw.together_leave);
+                MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_someone_left, TextUtils.join(", ", left)), true);
             }
 
             notifyRoomChanged();
         });
+    }
+
+    /**
+     * A short sound when somebody comes in or leaves (not over a voice note).
+     */
+    private void playChime(int resId) {
+        if (mVoicePlayer != null) {
+            return;
+        }
+
+        try {
+            if (mChimePlayer != null) {
+                mChimePlayer.release();
+            }
+            mChimePlayer = MediaPlayer.create(mContext, resId);
+            if (mChimePlayer != null) {
+                mChimePlayer.setOnCompletionListener(mp -> {
+                    mp.release();
+                    if (mChimePlayer == mp) {
+                        mChimePlayer = null;
+                    }
+                });
+                mChimePlayer.start();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "playChime: %s", e.getMessage());
+        }
     }
 
     @Override

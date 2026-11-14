@@ -864,7 +864,9 @@
     <string name="together_quick_2">Pausa un momento</string>
     <string name="together_quick_3">Ya volví</string>
     <string name="together_create_hint">Crea una sala con el video que estás viendo, o únete con un código.</string>
-    <string name="together_someone_joined">Alguien se unió a la sala. Dale play para empezar juntos</string>
+    <string name="together_someone_joined">👋 %s se unió a la sala. Dale play para empezar juntos</string>
+    <string name="together_someone_left">%s salió de la sala</string>
+    <string name="together_with">Con: %s</string>
     <string name="together_menu_hint">Mira el mismo video con otra persona, en celular o TV, con chat y notas de voz.</string>
     <string name="together_keep_watching">Seguir viendo</string>
     <string name="together_open_chat">Abrir chat ›</string>

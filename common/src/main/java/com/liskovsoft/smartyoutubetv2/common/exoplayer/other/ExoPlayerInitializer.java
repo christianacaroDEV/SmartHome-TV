@@ -82,7 +82,7 @@ public class ExoPlayerInitializer {
         return player;
     }
 
-    private static AudioAttributes getAudioAttributes() {
+    public static AudioAttributes getAudioAttributes() {
         if (sAudioAttributes == null) {
             sAudioAttributes = new AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)

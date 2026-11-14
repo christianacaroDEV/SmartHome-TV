@@ -54,6 +54,7 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
     private WeakReference<Video> mVideo;
     private final PlayerEventListener mEventListener;
     private SimpleExoPlayer mPlayer;
+    private boolean mAudioFocusSuspended;
     /** Not null only for sabr live streams */
     private SabrManifest mSabrLiveManifest;
     /** Sabr live stream without DVR: rewind is forbidden, the playback must always stay on the live edge */
@@ -235,8 +236,47 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
 
     public void setPlayWhenReady(boolean play) {
         if (mPlayer != null) {
+            if (play) {
+                prepareAudioForPlay();
+            }
             mPlayer.setPlayWhenReady(play);
         }
+    }
+
+    /**
+     * During a phone/WhatsApp call Android denies the audio focus to other apps, so ExoPlayer refused to play
+     * (play did nothing, e.g. "Watch together" while on a video call). While a call is going on the player stops
+     * asking for the focus; it asks again once the call is over.
+     */
+    public void prepareAudioForPlay() {
+        if (mPlayer == null || mContext == null || !PlayerTweaksData.instance(mContext).isAudioFocusEnabled()) {
+            return;
+        }
+
+        boolean inCall = isCallActive();
+
+        if (inCall == mAudioFocusSuspended) {
+            return;
+        }
+
+        try {
+            mPlayer.setAudioAttributes(com.liskovsoft.smartyoutubetv2.common.exoplayer.other.ExoPlayerInitializer.getAudioAttributes(), !inCall);
+            mAudioFocusSuspended = inCall;
+        } catch (SecurityException e) {
+            Log.e(TAG, "prepareAudioForPlay: " + e.getMessage());
+        }
+    }
+
+    private boolean isCallActive() {
+        android.media.AudioManager audioManager = (android.media.AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+
+        if (audioManager == null) {
+            return false;
+        }
+
+        int mode = audioManager.getMode();
+        return mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION
+                || mode == android.media.AudioManager.MODE_RINGTONE;
     }
 
     public boolean getPlayWhenReady() {
@@ -278,6 +318,7 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
     
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
+        mAudioFocusSuspended = false;
         player.addListener(this);
     }
 

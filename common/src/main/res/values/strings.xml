@@ -865,7 +865,9 @@
     <string name="together_quick_2">Pause a moment</string>
     <string name="together_quick_3">I am back</string>
     <string name="together_create_hint">Create a room with the video you are watching, or join with a code.</string>
-    <string name="together_someone_joined">Someone joined the room. Press play to start together</string>
+    <string name="together_someone_joined">👋 %s joined the room. Press play to start together</string>
+    <string name="together_someone_left">%s left the room</string>
+    <string name="together_with">With: %s</string>
     <string name="together_menu_hint">Watch the same video with someone else, on a phone or a TV, with chat and voice notes.</string>
     <string name="together_keep_watching">Keep watching</string>
     <string name="together_open_chat">Open chat ›</string>

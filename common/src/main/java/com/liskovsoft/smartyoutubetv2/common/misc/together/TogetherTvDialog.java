@@ -28,9 +28,7 @@ public final class TogetherTvDialog {
         String title = context.getString(R.string.together_title);
 
         if (manager.isActive()) {
-            String code = manager.getCode();
-            String info = context.getString(R.string.together_in_room, code.substring(0, 3) + " " + code.substring(3),
-                    Math.max(1, manager.getMembers()));
+            String info = manager.describeRoom(context);
 
             List<OptionItem> reactions = new ArrayList<>();
             for (String reaction : REACTIONS) {

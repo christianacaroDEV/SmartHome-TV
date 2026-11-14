@@ -34,7 +34,8 @@ public class TogetherRoom {
         void onState(JSONObject state);
         /** isNew = arrived after joining (old ones are the chat history) */
         void onMessage(String key, JSONObject message, boolean isNew);
-        void onMembers(int count);
+        /** members = {deviceId: {name, ts}} */
+        void onMembers(JSONObject members);
         void onConnectionError(String error);
     }
 
@@ -346,7 +347,7 @@ public class TogetherRoom {
                 case "members":
                     synchronized (mMembers) {
                         apply(mMembers, path, value, "put".equals(event));
-                        mListener.onMembers(mMembers.length());
+                        mListener.onMembers(new JSONObject(mMembers.toString()));
                     }
                     break;
                 case "messages":

@@ -261,8 +261,18 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         return dispatchLongClickAction(action);
     }
 
+    /** Runs right before the play button/key starts the player (e.g. audio focus during a call) */
+    private Runnable mBeforePlay;
+
+    public void setBeforePlay(Runnable beforePlay) {
+        mBeforePlay = beforePlay;
+    }
+
     @Override
     public void play() {
+        if (mBeforePlay != null) {
+            mBeforePlay.run();
+        }
         super.play();
     }
 

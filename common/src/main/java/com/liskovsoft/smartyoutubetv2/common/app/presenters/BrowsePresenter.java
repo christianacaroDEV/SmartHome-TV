@@ -854,8 +854,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                     com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager together =
                             com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(getContext());
                     String message = together.isActive()
-                            ? getContext().getString(R.string.together_in_room,
-                                together.getCode().substring(0, 3) + " " + together.getCode().substring(3), Math.max(1, together.getMembers()))
+                            ? together.describeRoom(getContext())
                             : getContext().getString(R.string.together_menu_hint);
                     getView().showError(new ErrorFragmentData() {
                         @Override
@@ -1185,6 +1184,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     @Nullable
+    /**
+     * "Watch together" on the TV: the people in the room changed, the section text follows (only if it is on screen).
+     */
+    public void refreshIfTogetherShown() {
+        if (getView() != null && mCurrentSection != null && mCurrentSection.getId() == BlueTubeSync.TOGETHER_SECTION_ID) {
+            refresh(false);
+        }
+    }
+
     public BrowseSection getCurrentSection() {
         return mCurrentSection;
     }

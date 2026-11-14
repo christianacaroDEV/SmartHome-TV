@@ -508,6 +508,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         OnActionClickedListener playerActionListener = new PlayerActionListener();
         mPlayerGlue = new VideoPlayerGlue(getContext(), playerAdapter, playerActionListener); // NOTE: possible context memory leak
         mPlayerGlue.setHost(new SurfacePlaybackFragmentGlueHost(this));
+        mPlayerGlue.setBeforePlay(mExoPlayerController::prepareAudioForPlay); // play during a phone/WhatsApp call
         mPlayerGlue.setSeekEnabled(true);
         // Static sabr timeline doesn't know the live stream state. Ask the controller when needed (like dash does)
         mPlayerGlue.setLiveStateProvider(mExoPlayerController);
