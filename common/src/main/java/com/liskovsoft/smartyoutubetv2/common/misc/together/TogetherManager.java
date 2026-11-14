@@ -49,6 +49,9 @@ public final class TogetherManager implements TogetherRoom.Listener {
     private final List<UiListener> mUiListeners = new CopyOnWriteArrayList<>();
     private final List<Message> mHistory = new ArrayList<>();
     private final String mDeviceId;
+    /** When the app (this manager) started: the splash screen must be done before the room video is opened */
+    private final long mStartedAt = android.os.SystemClock.uptimeMillis();
+    private static final long STARTUP_MS = 6_000;
     private TogetherRoom mRoom;
     private PlayerSide mPlayerSide;
     private int mMembers;
@@ -56,6 +59,10 @@ public final class TogetherManager implements TogetherRoom.Listener {
     private final java.util.Map<String, String> mMemberNames = new java.util.LinkedHashMap<>();
     private MediaPlayer mChimePlayer;
     private JSONObject mPendingState;
+    /** The latest state of the room (also our own), for "Sync" */
+    private JSONObject mLastState;
+    /** The first state after (re)joining is applied even if this device wrote it (e.g. the app was restarted) */
+    private boolean mFirstState;
     private MediaPlayer mVoicePlayer;
     private String mVoiceKey;
     private boolean mChatOpen;
@@ -78,7 +85,16 @@ public final class TogetherManager implements TogetherRoom.Listener {
         JSONObject getLocalState();
         /** The room was just created here: wait (paused) for the others */
         void pauseForRoom();
+        /** true/false = playing or paused, null = no video open */
+        Boolean isPlaying();
+        /** {@link #ACTION_TOGGLE_PLAY} or {@link #ACTION_REWIND}: done here and sent to everybody. false = no video open */
+        boolean control(int action);
     }
+
+    public static final int ACTION_TOGGLE_PLAY = 0;
+    public static final int ACTION_REWIND = 1;
+    /** Back this much with the "-10 s" button */
+    public static final long REWIND_MS = 10_000;
 
     public interface Callback {
         void onResult(boolean success);
@@ -291,6 +307,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
         mRoom = null;
         mMembers = 0;
         mMemberNames.clear();
+        mLastState = null;
         forgetRoom();
         mPendingState = null;
         mHandler.removeCallbacks(mHeartbeat);
@@ -310,6 +327,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
         }
 
         mRoom = room;
+        mFirstState = true;
         rememberRoom(room.getCode());
         room.start();
         mHandler.postDelayed(mHeartbeat, HEARTBEAT_MS);
@@ -376,7 +394,15 @@ public final class TogetherManager implements TogetherRoom.Listener {
     @Override
     public void onState(JSONObject state) {
         post(() -> {
-            if (mRoom == null || mDeviceId.equals(state.optString("by"))) {
+            if (mRoom == null) {
+                return;
+            }
+
+            mLastState = state;
+            boolean first = mFirstState;
+            mFirstState = false;
+
+            if (!first && mDeviceId.equals(state.optString("by"))) {
                 return; // our own change coming back
             }
 
@@ -409,7 +435,56 @@ public final class TogetherManager implements TogetherRoom.Listener {
         mPlayerSide.applyRemoteState(videoId, state.optString("title"), position, playing);
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Controls for everybody (chat buttons)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * true/false = the video is playing/paused here, null = no video open.
+     */
+    public Boolean isPlaying() {
+        return mPlayerSide != null ? mPlayerSide.isPlaying() : null;
+    }
+
+    /**
+     * Pause/play or go back 10 s, here and for everybody. false = there is no video open.
+     */
+    public boolean control(int action) {
+        return mRoom != null && mPlayerSide != null && mPlayerSide.control(action);
+    }
+
+    /**
+     * Jump to where the room is (same video, position and play state as the others). false = nothing to sync yet.
+     */
+    public boolean syncNow() {
+        JSONObject state = mLastState;
+
+        if (mRoom == null || state == null || TextUtils.isEmpty(state.optString("videoId", null))) {
+            return false;
+        }
+
+        if (mPlayerSide == null) {
+            openRoomVideo(state);
+        } else {
+            applyState(state);
+        }
+
+        return true;
+    }
+
     private void openRoomVideo(JSONObject state) {
+        long wait = mStartedAt + STARTUP_MS - android.os.SystemClock.uptimeMillis();
+
+        if (wait > 0) {
+            // App just opened: the splash would open the main screen over the video
+            mHandler.postDelayed(() -> {
+                if (mRoom != null && mPlayerSide == null && mPendingState == state) {
+                    openRoomVideo(state);
+                }
+            }, wait);
+            return;
+        }
+
         String videoId = state.optString("videoId", null);
 
         if (!TextUtils.isEmpty(videoId)) {
@@ -511,6 +586,10 @@ public final class TogetherManager implements TogetherRoom.Listener {
     }
 
     public String describe(Message message) {
+        if ("system".equals(message.type)) {
+            return "• " + message.text;
+        }
+
         String text = "voice".equals(message.type) ? "🎙 " + mContext.getString(R.string.together_voice_note) : message.text;
         return message.name + ": " + text;
     }
@@ -745,6 +824,20 @@ public final class TogetherManager implements TogetherRoom.Listener {
             }
 
             if (firstList) {
+                if (!joined.isEmpty()) {
+                    addSystemMessage(mContext.getString(R.string.together_with, TextUtils.join(", ", joined)));
+                }
+            } else {
+                for (String name : joined) {
+                    addSystemMessage(mContext.getString(R.string.together_system_joined, name));
+                }
+            }
+
+            for (String name : left) {
+                addSystemMessage(mContext.getString(R.string.together_system_left, name));
+            }
+
+            if (firstList) {
                 // Just came in: who is already here
                 if (!joined.isEmpty()) {
                     MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_with, TextUtils.join(", ", joined)), true);
@@ -759,6 +852,51 @@ public final class TogetherManager implements TogetherRoom.Listener {
 
             notifyRoomChanged();
         });
+    }
+
+    /**
+     * A line in the chat of this device only ("Ana joined"), in time order with the real messages.
+     */
+    private void addSystemMessage(String text) {
+        TogetherRoom room = mRoom;
+
+        if (room == null) {
+            return;
+        }
+
+        Message message = new Message();
+        long now = room.serverNow();
+        message.key = pushKey(now);
+        message.by = "";
+        message.name = "";
+        message.type = "system";
+        message.text = text;
+        message.ts = now;
+
+        synchronized (mHistory) {
+            insertSorted(message);
+        }
+
+        for (UiListener listener : mUiListeners) {
+            listener.onMessage(message);
+        }
+    }
+
+    /**
+     * A key that sorts like the Firebase push ids of the same moment (they start with the time).
+     */
+    private static String pushKey(long timeMs) {
+        String chars = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+        char[] key = new char[20];
+        for (int i = 7; i >= 0; i--) {
+            key[i] = chars.charAt((int) (timeMs % 64));
+            timeMs /= 64;
+        }
+        java.util.Random random = new java.util.Random();
+        for (int i = 8; i < 20; i++) {
+            key[i] = chars.charAt(random.nextInt(64));
+        }
+        return new String(key);
     }
 
     /**

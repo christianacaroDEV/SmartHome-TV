@@ -22,6 +22,8 @@ public class TogetherController extends BasePlayerController implements Together
     private long mPendingPositionMs = -1;
     private boolean mPendingPlaying = true;
     private float mVolumeBeforeDuck = -1;
+    /** Play state the room is known to have (applied from it or sent to it): the player repeating it isn't news */
+    private Boolean mRoomPlaying;
 
     private TogetherManager getManager() {
         return TogetherManager.instance(getContext());
@@ -45,6 +47,7 @@ public class TogetherController extends BasePlayerController implements Together
                 getPlayer().setPositionMs(mPendingPositionMs);
             }
             getPlayer().setPlayWhenReady(mPendingPlaying);
+            mRoomPlaying = mPendingPlaying;
             mPendingVideoId = null;
             mPendingPositionMs = -1;
             return;
@@ -55,11 +58,24 @@ public class TogetherController extends BasePlayerController implements Together
 
     @Override
     public void onPlay() {
-        publish();
+        publishIfChanged();
     }
 
     @Override
     public void onPause() {
+        publishIfChanged();
+    }
+
+    /**
+     * The player reports "playing"/"paused" also when it just finishes loading or buffering: only a real change
+     * (e.g. this person pressed play) goes to the room. Else a video that loaded paused here could pause everybody
+     * right after someone else pressed play.
+     */
+    private void publishIfChanged() {
+        if (getPlayer() != null && mRoomPlaying != null && mRoomPlaying == getPlayer().getPlayWhenReady()) {
+            return;
+        }
+
         publish();
     }
 
@@ -74,7 +90,8 @@ public class TogetherController extends BasePlayerController implements Together
         }
 
         Video video = getVideo();
-        getManager().publishState(video.videoId, video.getTitle(), getPlayer().getPositionMs(), getPlayer().getPlayWhenReady());
+        mRoomPlaying = getPlayer().getPlayWhenReady();
+        getManager().publishState(video.videoId, video.getTitle(), getPlayer().getPositionMs(), mRoomPlaying);
     }
 
     @Override
@@ -103,6 +120,7 @@ public class TogetherController extends BasePlayerController implements Together
     @Override
     public void applyRemoteState(String videoId, String title, long positionMs, boolean playing) {
         mQuietUntil = System.currentTimeMillis() + QUIET_MS;
+        mRoomPlaying = playing;
         Video current = getVideo();
 
         boolean sameVideo = current != null && videoId.equals(current.videoId);
@@ -136,6 +154,29 @@ public class TogetherController extends BasePlayerController implements Together
             mQuietUntil = System.currentTimeMillis() + QUIET_MS;
             getPlayer().setPlayWhenReady(false);
         }
+    }
+
+    @Override
+    public Boolean isPlaying() {
+        return getPlayer() != null && getVideo() != null ? getPlayer().getPlayWhenReady() : null;
+    }
+
+    @Override
+    public boolean control(int action) {
+        if (getPlayer() == null || getVideo() == null) {
+            return false;
+        }
+
+        mQuietUntil = 0; // the user's own action: always sent
+
+        if (action == TogetherManager.ACTION_TOGGLE_PLAY) {
+            getPlayer().setPlayWhenReady(!getPlayer().getPlayWhenReady());
+        } else if (action == TogetherManager.ACTION_REWIND) {
+            getPlayer().setPositionMs(Math.max(0, getPlayer().getPositionMs() - TogetherManager.REWIND_MS));
+        }
+
+        publish();
+        return true;
     }
 
     @Override

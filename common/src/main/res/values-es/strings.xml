@@ -867,6 +867,23 @@
     <string name="together_someone_joined">👋 %s se unió a la sala. Dale play para empezar juntos</string>
     <string name="together_someone_left">%s salió de la sala</string>
     <string name="together_with">Con: %s</string>
+    <plurals name="together_people">
+        <item quantity="one">%d persona</item>
+        <item quantity="other">%d personas</item>
+    </plurals>
+    <string name="together_system_joined">%s se unió</string>
+    <string name="together_system_left">%s salió</string>
+    <string name="together_room_title">Sala %s</string>
+    <string name="together_pause_all">Pausar a todos</string>
+    <string name="together_play_all">Reanudar a todos</string>
+    <string name="together_sync">Sincronizar</string>
+    <string name="together_synced">Sincronizado con la sala</string>
+    <string name="together_nothing_to_sync">Todavía no hay nada reproduciéndose en la sala</string>
+    <string name="together_open_video_first">Primero abre un video</string>
+    <string name="together_send">Enviar</string>
+    <string name="together_emojis">Emojis</string>
+    <string name="together_recording_live">Grabando %s · desliza a la izquierda para cancelar</string>
+    <string name="together_recording_cancelled">Nota de voz cancelada</string>
     <string name="together_menu_hint">Mira el mismo video con otra persona, en celular o TV, con chat y notas de voz.</string>
     <string name="together_keep_watching">Seguir viendo</string>
     <string name="together_open_chat">Abrir chat ›</string>

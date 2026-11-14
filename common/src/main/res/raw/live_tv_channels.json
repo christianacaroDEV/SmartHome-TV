@@ -131,11 +131,7 @@
    "id": "france24",
    "name": "France 24 Español",
    "cat": "noticias",
-   "hls": [
-    "https://live.france24.com/hls/live/2037220/F24_ES_HI_HLS/master_2300.m3u8",
-    "https://live.france24.com/hls/live/2037220-b/F24_ES_HI_HLS/master_2300.m3u8"
-   ],
-   "card": "ltv_france24"
+   "yt": "France24_es"
   },
   {
    "n": 15,

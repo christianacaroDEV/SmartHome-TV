@@ -868,6 +868,23 @@
     <string name="together_someone_joined">👋 %s joined the room. Press play to start together</string>
     <string name="together_someone_left">%s left the room</string>
     <string name="together_with">With: %s</string>
+    <plurals name="together_people">
+        <item quantity="one">%d person</item>
+        <item quantity="other">%d people</item>
+    </plurals>
+    <string name="together_system_joined">%s joined</string>
+    <string name="together_system_left">%s left</string>
+    <string name="together_room_title">Room %s</string>
+    <string name="together_pause_all">Pause everyone</string>
+    <string name="together_play_all">Play for everyone</string>
+    <string name="together_sync">Sync</string>
+    <string name="together_synced">Synced with the room</string>
+    <string name="together_nothing_to_sync">Nothing is playing in the room yet</string>
+    <string name="together_open_video_first">Open a video first</string>
+    <string name="together_send">Send</string>
+    <string name="together_emojis">Emojis</string>
+    <string name="together_recording_live">Recording %s · slide left to cancel</string>
+    <string name="together_recording_cancelled">Voice note cancelled</string>
     <string name="together_menu_hint">Watch the same video with someone else, on a phone or a TV, with chat and voice notes.</string>
     <string name="together_keep_watching">Keep watching</string>
     <string name="together_open_chat">Open chat ›</string>

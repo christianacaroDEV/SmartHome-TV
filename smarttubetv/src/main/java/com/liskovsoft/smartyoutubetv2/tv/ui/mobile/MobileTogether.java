@@ -40,7 +40,8 @@ public final class MobileTogether {
     private static final int TEXT_SECONDARY = 0xFF9FB3D9;
     private static final int CARD = 0xFF13224A;
     private static final int REQUEST_MIC = 4711;
-    private static final String[] REACTIONS = {"❤️", "😂", "😮", "👏"};
+    private static final String[] REACTIONS = {"❤️", "😂", "😮", "👏", "🔥", "😢", "👍", "🙏"};
+    private static final int RECORDING = 0xFFE5484D;
 
     private MobileTogether() {
     }
@@ -334,12 +335,20 @@ public final class MobileTogether {
         private final Adapter mAdapter = new Adapter();
         private final TextView mNewMessages;
         private final TextView mTitle;
+        private final TextView mSubtitle;
+        private final TextView mPlayAll;
+        private final LinearLayout mEmojiBar;
+        private final ImageButton mAction;
         private final EditText mInput;
+        private boolean mCancelled;
+        private float mTouchStartX;
         private final android.os.Handler mHandler = new android.os.Handler(android.os.Looper.getMainLooper());
         private final Runnable mVoiceTicker = new Runnable() {
             @Override
             public void run() {
                 mAdapter.notifyVoiceProgress();
+                updateRecordingHint();
+                updatePlayAll();
                 mHandler.postDelayed(this, 250);
             }
         };
@@ -370,16 +379,49 @@ public final class MobileTogether {
             background.setCornerRadii(new float[] {radius, radius, radius, radius, 0, 0, 0, 0});
             root.setBackground(background);
 
-            // Title row: "Chat · room 984 045" | close
+            // Title: "Room 984 045" + who is in | share | close
             LinearLayout top = new LinearLayout(activity);
             top.setGravity(Gravity.CENTER_VERTICAL);
-            top.setPadding(dp(activity, 16), dp(activity, 10), dp(activity, 6), dp(activity, 6));
-            mTitle = text(activity, 15, Color.WHITE, true);
-            top.addView(mTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            top.setPadding(dp(activity, 16), dp(activity, 10), dp(activity, 6), dp(activity, 4));
+            LinearLayout titles = new LinearLayout(activity);
+            titles.setOrientation(LinearLayout.VERTICAL);
+            mTitle = text(activity, 16, Color.WHITE, true);
+            titles.addView(mTitle);
+            mSubtitle = text(activity, 12, TEXT_SECONDARY, false);
+            mSubtitle.setMaxLines(1);
+            mSubtitle.setEllipsize(TextUtils.TruncateAt.END);
+            titles.addView(mSubtitle);
+            top.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            ImageButton share = iconButton(activity, R.drawable.ic_m_share);
+            share.setContentDescription(activity.getString(R.string.together_share));
+            share.setOnClickListener(v -> share(activity, mManager.getCode()));
+            top.addView(share, new LinearLayout.LayoutParams(dp(activity, 44), dp(activity, 44)));
             ImageButton close = iconButton(activity, R.drawable.ic_m_close);
             close.setContentDescription(activity.getString(R.string.together_keep_watching));
             top.addView(close, new LinearLayout.LayoutParams(dp(activity, 44), dp(activity, 44)));
             root.addView(top);
+
+            // Everybody's video: pause/play | -10 s | sync
+            android.widget.HorizontalScrollView controlsScroll = new android.widget.HorizontalScrollView(activity);
+            controlsScroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout controls = new LinearLayout(activity);
+            controls.setPadding(dp(activity, 12), dp(activity, 2), dp(activity, 12), dp(activity, 8));
+            mPlayAll = chip(activity, activity.getString(R.string.together_pause_all), R.drawable.ic_m_pause);
+            mPlayAll.setOnClickListener(v -> control(TogetherManager.ACTION_TOGGLE_PLAY));
+            controls.addView(mPlayAll);
+            TextView rewind = chip(activity, "10 s", R.drawable.ic_m_replay);
+            rewind.setOnClickListener(v -> control(TogetherManager.ACTION_REWIND));
+            controls.addView(rewind);
+            TextView sync = chip(activity, activity.getString(R.string.together_sync), R.drawable.ic_m_sync);
+            sync.setOnClickListener(v -> Toast.makeText(mActivity, mManager.syncNow()
+                    ? R.string.together_synced : R.string.together_nothing_to_sync, Toast.LENGTH_SHORT).show());
+            controls.addView(sync);
+            controlsScroll.addView(controls);
+            root.addView(controlsScroll);
+
+            View divider = new View(activity);
+            divider.setBackgroundColor(0xFF1B2A4F);
+            root.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(activity, 1) / 2)));
 
             // Messages (scrolls) + "new messages" button over them
             android.widget.FrameLayout messagesBox = new android.widget.FrameLayout(activity);
@@ -412,22 +454,48 @@ public final class MobileTogether {
                 }
             });
 
-            // Reactions
-            LinearLayout reactions = new LinearLayout(activity);
-            reactions.setPadding(dp(activity, 8), dp(activity, 2), dp(activity, 8), 0);
-            for (String reaction : REACTIONS) {
-                TextView chip = text(activity, 20, Color.WHITE, false);
-                chip.setText(reaction);
-                chip.setGravity(Gravity.CENTER);
-                chip.setOnClickListener(v -> mManager.sendText(reaction));
-                reactions.addView(chip, new LinearLayout.LayoutParams(dp(activity, 48), dp(activity, 40)));
+            // Quick phrases (one tap = sent)
+            android.widget.HorizontalScrollView phrasesScroll = new android.widget.HorizontalScrollView(activity);
+            phrasesScroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout phrases = new LinearLayout(activity);
+            phrases.setPadding(dp(activity, 12), dp(activity, 6), dp(activity, 12), dp(activity, 2));
+            for (int resId : new int[] {R.string.together_quick_1, R.string.together_quick_2, R.string.together_quick_3}) {
+                String phrase = activity.getString(resId);
+                TextView chip = chip(activity, phrase, 0);
+                chip.setOnClickListener(v -> mManager.sendText(phrase));
+                phrases.addView(chip);
             }
-            root.addView(reactions);
+            phrasesScroll.addView(phrases);
+            root.addView(phrasesScroll);
 
-            // Text box | send | hold-to-talk
+            // Emojis, opened with the smiley button
+            mEmojiBar = new LinearLayout(activity);
+            mEmojiBar.setGravity(Gravity.CENTER_HORIZONTAL);
+            mEmojiBar.setPadding(dp(activity, 8), dp(activity, 4), dp(activity, 8), 0);
+            mEmojiBar.setVisibility(View.GONE);
+            for (String reaction : REACTIONS) {
+                TextView emoji = text(activity, 24, Color.WHITE, false);
+                emoji.setText(reaction);
+                emoji.setGravity(Gravity.CENTER);
+                emoji.setOnClickListener(v -> {
+                    mManager.sendText(reaction);
+                    mEmojiBar.setVisibility(View.GONE);
+                });
+                mEmojiBar.addView(emoji, new LinearLayout.LayoutParams(0, dp(activity, 46), 1f));
+            }
+            root.addView(mEmojiBar);
+
+            // Smiley | text box | one button: mic (hold to talk) while empty, send once something is typed
             LinearLayout inputRow = new LinearLayout(activity);
             inputRow.setGravity(Gravity.CENTER_VERTICAL);
-            inputRow.setPadding(dp(activity, 12), 0, dp(activity, 6), dp(activity, 8));
+            inputRow.setPadding(dp(activity, 8), dp(activity, 6), dp(activity, 8), dp(activity, 8));
+            TextView smiley = text(activity, 22, Color.WHITE, false);
+            smiley.setText("🙂");
+            smiley.setGravity(Gravity.CENTER);
+            smiley.setContentDescription(activity.getString(R.string.together_emojis));
+            smiley.setBackground(circle(CARD));
+            smiley.setOnClickListener(v -> mEmojiBar.setVisibility(mEmojiBar.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+            inputRow.addView(smiley, new LinearLayout.LayoutParams(dp(activity, 44), dp(activity, 44)));
             mInput = new EditText(activity);
             mInput.setHint(R.string.together_message_hint);
             mInput.setTextColor(Color.WHITE);
@@ -435,20 +503,36 @@ public final class MobileTogether {
             mInput.setTextSize(15);
             mInput.setSingleLine(true);
             mInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
+            mInput.setBackground(pill(activity, CARD));
+            mInput.setPadding(dp(activity, 16), dp(activity, 10), dp(activity, 16), dp(activity, 10));
             mInput.setOnEditorActionListener((v, actionId, event) -> {
                 sendText();
                 return true;
             });
-            inputRow.addView(mInput, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            ImageButton send = iconButton(activity, R.drawable.ic_m_play);
-            send.setContentDescription(activity.getString(R.string.together_message_hint));
-            send.setOnClickListener(v -> sendText());
-            inputRow.addView(send, new LinearLayout.LayoutParams(dp(activity, 44), dp(activity, 44)));
-            ImageButton mic = iconButton(activity, R.drawable.ic_m_mic);
-            mic.setContentDescription(activity.getString(R.string.together_hold_to_talk));
-            mic.setOnTouchListener(this::onMicTouch);
-            inputRow.addView(mic, new LinearLayout.LayoutParams(dp(activity, 44), dp(activity, 44)));
+            LinearLayout.LayoutParams inputParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            inputParams.setMargins(dp(activity, 8), 0, dp(activity, 8), 0);
+            inputRow.addView(mInput, inputParams);
+            mAction = iconButton(activity, R.drawable.ic_m_mic);
+            mAction.setPadding(dp(activity, 11), dp(activity, 11), dp(activity, 11), dp(activity, 11));
+            mAction.setBackground(circle(ACCENT));
+            mAction.setOnTouchListener(this::onActionTouch);
+            inputRow.addView(mAction, new LinearLayout.LayoutParams(dp(activity, 46), dp(activity, 46)));
             root.addView(inputRow);
+            mInput.addTextChangedListener(new android.text.TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(android.text.Editable s) {
+                    updateActionButton();
+                }
+            });
+            updateActionButton();
 
             // Above the system navigation buttons (the window goes edge to edge)
             int baseBottom = root.getPaddingBottom();
@@ -510,7 +594,13 @@ public final class MobileTogether {
         }
 
         private void refresh(boolean first) {
-            mTitle.setText("👥  " + mActivity.getString(R.string.together_chat_title, formatCode(mManager.getCode())));
+            mTitle.setText(mActivity.getString(R.string.together_room_title, formatCode(mManager.getCode())));
+            String others = mManager.getOtherNames();
+            mSubtitle.setText(others.isEmpty()
+                    ? mActivity.getString(R.string.together_waiting)
+                    : mActivity.getString(R.string.together_with, others) + "  ·  "
+                        + mActivity.getResources().getQuantityString(R.plurals.together_people, mManager.getMembers(), mManager.getMembers()));
+            updatePlayAll();
             boolean wasAtEnd = first || isAtEnd();
             List<Message> history = mManager.getHistory();
             int added = history.size() - mShownCount;
@@ -560,31 +650,90 @@ public final class MobileTogether {
             }
         }
 
+        private void control(int action) {
+            if (!mManager.control(action)) {
+                Toast.makeText(mActivity, R.string.together_open_video_first, Toast.LENGTH_SHORT).show();
+            }
+            updatePlayAll();
+        }
+
+        private void updatePlayAll() {
+            Boolean playing = mManager.isPlaying();
+            boolean paused = playing != null && !playing;
+            String label = mActivity.getString(paused ? R.string.together_play_all : R.string.together_pause_all);
+
+            if (!label.contentEquals(mPlayAll.getText())) {
+                mPlayAll.setText(label);
+                setChipIcon(mPlayAll, paused ? R.drawable.ic_m_play : R.drawable.ic_m_pause);
+            }
+        }
+
+        private boolean hasText() {
+            return !TextUtils.isEmpty(mInput.getText().toString().trim());
+        }
+
+        private void updateActionButton() {
+            boolean text = hasText();
+            mAction.setImageResource(text ? R.drawable.ic_m_send : R.drawable.ic_m_mic);
+            mAction.setContentDescription(mActivity.getString(text ? R.string.together_send : R.string.together_hold_to_talk));
+        }
+
         // -----------------------------------------------------------------------------------------
-        // Voice notes: hold the mic, talk, release
+        // Voice notes: hold the mic, talk, release (slide left to cancel)
         // -----------------------------------------------------------------------------------------
 
-        private boolean onMicTouch(View view, MotionEvent event) {
+        private boolean onActionTouch(View view, MotionEvent event) {
+            if (hasText() && mRecorder == null) {
+                if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                    sendText();
+                }
+                return true;
+            }
+
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     if (!hasMicPermission()) {
                         requestMicPermission();
                         return true;
                     }
-                    view.setPressed(true);
+                    mTouchStartX = event.getRawX();
+                    mCancelled = false;
                     startRecording();
                     return true;
+                case MotionEvent.ACTION_MOVE:
+                    if (mRecorder != null && mTouchStartX - event.getRawX() > dp(mActivity, 90)) {
+                        mCancelled = true;
+                        stopRecording(false);
+                        Toast.makeText(mActivity, R.string.together_recording_cancelled, Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
                 case MotionEvent.ACTION_UP:
-                    view.setPressed(false);
-                    stopRecording(true);
+                    stopRecording(!mCancelled);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
-                    view.setPressed(false);
                     stopRecording(false);
                     return true;
             }
 
             return true;
+        }
+
+        /**
+         * While recording, the text box shows the time and how to cancel; the button turns red.
+         */
+        private void updateRecordingHint() {
+            if (mRecorder != null) {
+                mInput.setHint(mActivity.getString(R.string.together_recording_live,
+                        formatSeconds(System.currentTimeMillis() - mRecordStart)));
+                mInput.setHintTextColor(0xFFFF9EA1);
+                mAction.setBackground(circle(RECORDING));
+            }
+        }
+
+        private void resetRecordingHint() {
+            mInput.setHint(R.string.together_message_hint);
+            mInput.setHintTextColor(TEXT_SECONDARY);
+            mAction.setBackground(circle(ACCENT));
         }
 
         private boolean hasMicPermission() {
@@ -619,7 +768,7 @@ public final class MobileTogether {
                 mRecorder.prepare();
                 mRecorder.start();
                 mRecordStart = System.currentTimeMillis();
-                Toast.makeText(mActivity, R.string.together_recording, Toast.LENGTH_SHORT).show();
+                updateRecordingHint();
             } catch (Exception e) {
                 stopRecording(false);
             }
@@ -640,6 +789,7 @@ public final class MobileTogether {
 
             mRecorder.release();
             mRecorder = null;
+            resetRecordingHint();
 
             if (send && duration >= 700) {
                 mManager.sendVoice(mRecording, duration, success -> {
@@ -694,7 +844,8 @@ public final class MobileTogether {
             private final TextView mText;
             private final LinearLayout mVoice;
             private final ImageButton mPlay;
-            private final android.widget.ProgressBar mProgress;
+            private final WaveView mProgress;
+            private final TextView mSystem;
             private final TextView mDuration;
             private final TextView mTime;
             private Message mMessage;
@@ -704,6 +855,11 @@ public final class MobileTogether {
                 LinearLayout row = (LinearLayout) itemView;
                 row.setLayoutParams(new androidx.recyclerview.widget.RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                 row.setPadding(0, dp(context, 3), 0, dp(context, 3));
+
+                mSystem = text(context, 12, TEXT_SECONDARY, false);
+                mSystem.setPadding(dp(context, 12), dp(context, 4), dp(context, 12), dp(context, 4));
+                mSystem.setBackground(pill(context, CARD));
+                row.addView(mSystem, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
                 mBubble = new LinearLayout(context);
                 mBubble.setOrientation(LinearLayout.VERTICAL);
@@ -721,9 +877,8 @@ public final class MobileTogether {
                 mPlay = iconButton(context, R.drawable.ic_m_play);
                 mPlay.setPadding(dp(context, 7), dp(context, 7), dp(context, 7), dp(context, 7));
                 mVoice.addView(mPlay, new LinearLayout.LayoutParams(dp(context, 36), dp(context, 36)));
-                mProgress = new android.widget.ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal);
-                mProgress.setMax(1000);
-                LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(context, 120), dp(context, 6));
+                mProgress = new WaveView(context);
+                LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(context, 120), dp(context, 26));
                 progressParams.setMargins(dp(context, 4), 0, dp(context, 8), 0);
                 mVoice.addView(mProgress, progressParams);
                 mDuration = text(context, 12, Color.WHITE, false);
@@ -739,6 +894,17 @@ public final class MobileTogether {
                 mMessage = message;
                 Context context = itemView.getContext();
                 LinearLayout row = (LinearLayout) itemView;
+                boolean system = "system".equals(message.type);
+                mSystem.setVisibility(system ? View.VISIBLE : View.GONE);
+                mBubble.setVisibility(system ? View.GONE : View.VISIBLE);
+
+                if (system) {
+                    row.setGravity(Gravity.CENTER_HORIZONTAL);
+                    String time = message.ts > 0 ? new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(message.ts)) : "";
+                    mSystem.setText(time.isEmpty() ? message.text : message.text + "  ·  " + time);
+                    return;
+                }
+
                 row.setGravity(message.mine ? Gravity.END : Gravity.START);
 
                 boolean isReaction = "text".equals(message.type) && message.text != null && message.text.length() <= 4
@@ -764,6 +930,7 @@ public final class MobileTogether {
                 mText.setText(message.text);
 
                 if (voice) {
+                    mProgress.setSeed(message.key != null ? message.key.hashCode() : 0);
                     mPlay.setOnClickListener(v -> {
                         mManager.toggleVoice(message);
                         updateVoice();
@@ -781,7 +948,7 @@ public final class MobileTogether {
                 int position = mManager.getVoicePosition(mMessage);
                 long duration = Math.max(1, mMessage.durationMs);
                 mPlay.setImageResource(playing ? R.drawable.ic_m_pause : R.drawable.ic_m_play);
-                mProgress.setProgress(position >= 0 ? (int) Math.min(1000, position * 1000L / duration) : 0);
+                mProgress.setProgress(position >= 0 ? Math.min(1f, position / (float) duration) : 0f);
                 mDuration.setText(position >= 0
                         ? formatSeconds(position) + " / " + formatSeconds(duration)
                         : formatSeconds(duration));
@@ -797,6 +964,95 @@ public final class MobileTogether {
             long seconds = Math.max(0, Math.round(ms / 1000f));
             return String.format(java.util.Locale.US, "%d:%02d", seconds / 60, seconds % 60);
         }
+    }
+
+    /**
+     * Voice note "waveform": bars (always the same for a note) that light up while it plays.
+     */
+    private static class WaveView extends View {
+        private static final int BARS = 24;
+        private final android.graphics.Paint mPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final float[] mHeights = new float[BARS];
+        private float mProgress;
+
+        WaveView(Context context) {
+            super(context);
+            setSeed(0);
+        }
+
+        void setSeed(int seed) {
+            java.util.Random random = new java.util.Random(seed);
+            for (int i = 0; i < BARS; i++) {
+                mHeights[i] = 0.25f + random.nextFloat() * 0.75f;
+            }
+            invalidate();
+        }
+
+        void setProgress(float progress) {
+            if (progress != mProgress) {
+                mProgress = progress;
+                invalidate();
+            }
+        }
+
+        @Override
+        protected void onDraw(android.graphics.Canvas canvas) {
+            float step = getWidth() / (float) BARS;
+            float bar = step * 0.55f;
+            float middle = getHeight() / 2f;
+
+            for (int i = 0; i < BARS; i++) {
+                mPaint.setColor((i + 0.5f) / BARS <= mProgress ? Color.WHITE : 0x80FFFFFF);
+                float half = Math.max(bar / 2, mHeights[i] * getHeight() / 2f);
+                float left = i * step + (step - bar) / 2;
+                canvas.drawRoundRect(new android.graphics.RectF(left, middle - half, left + bar, middle + half), bar / 2, bar / 2, mPaint);
+            }
+        }
+    }
+
+    /**
+     * A rounded chip with an optional icon on the left (chat controls and quick phrases).
+     */
+    private static TextView chip(Context context, String label, int iconResId) {
+        TextView chip = text(context, 13, Color.WHITE, false);
+        chip.setText(label);
+        chip.setGravity(Gravity.CENTER_VERTICAL);
+        chip.setSingleLine(true);
+        chip.setPadding(dp(context, 12), 0, dp(context, 14), 0);
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(CARD);
+        shape.setStroke(dp(context, 1), 0xFF3A4E80);
+        shape.setCornerRadius(dp(context, 18));
+        chip.setBackground(shape);
+        setChipIcon(chip, iconResId);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(context, 36));
+        params.setMargins(0, 0, dp(context, 8), 0);
+        chip.setLayoutParams(params);
+        return chip;
+    }
+
+    private static void setChipIcon(TextView chip, int iconResId) {
+        Context context = chip.getContext();
+
+        if (iconResId == 0) {
+            chip.setCompoundDrawables(null, null, null, null);
+            return;
+        }
+
+        android.graphics.drawable.Drawable icon = androidx.core.content.ContextCompat.getDrawable(context, iconResId);
+        if (icon != null) {
+            icon = icon.mutate();
+            icon.setBounds(0, 0, dp(context, 18), dp(context, 18));
+        }
+        chip.setCompoundDrawables(icon, null, null, null);
+        chip.setCompoundDrawablePadding(dp(context, 6));
+    }
+
+    private static GradientDrawable circle(int color) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.OVAL);
+        shape.setColor(color);
+        return shape;
     }
 
     private static GradientDrawable pill(Context context, int color) {
