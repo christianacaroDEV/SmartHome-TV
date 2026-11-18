@@ -890,6 +890,29 @@
     <string name="together_call_unmute_others">Hear the call</string>
     <string name="together_call_join_tv">📞 Join the voice call</string>
     <string name="together_call_leave_tv">📞 Leave the call</string>
+    <string name="together_status_online">connected</string>
+    <string name="together_status_offline">disconnected</string>
+    <string name="together_member_offline">%s disconnected</string>
+    <string name="together_member_back">%s is back</string>
+    <string name="cast_title">Send to TV</string>
+    <string name="cast_chip">Send to TV</string>
+    <string name="cast_how">The TV needs BlueTube open. Its code is in BlueTube on the TV: Watch together.</string>
+    <string name="cast_link_tv">Link a TV</string>
+    <string name="cast_code_hint">TV code</string>
+    <string name="cast_link">Link</string>
+    <string name="cast_link_failed">No TV with that code. Check that BlueTube is open on the TV</string>
+    <string name="cast_checking">Checking…</string>
+    <string name="cast_online">Ready</string>
+    <string name="cast_offline">Not available: open BlueTube on the TV</string>
+    <string name="cast_remove">Remove</string>
+    <string name="cast_sent">Playing on %s</string>
+    <string name="cast_casting_on">📺 On %s</string>
+    <string name="cast_waiting">Waiting for the TV…</string>
+    <string name="cast_stop">Stop on the TV</string>
+    <string name="cast_watch_here">Watch on the phone</string>
+    <string name="cast_tv_button">📲 Send from the phone · code %s</string>
+    <string name="cast_tv_help">On the phone: open a video → Send to TV → Link a TV and type %s</string>
+    <string name="cast_tv_section">📲 To send videos from the phone to this TV, use the code %s</string>
     <string name="together_system_joined">%s joined</string>
     <string name="together_system_left">%s left</string>
     <string name="together_room_title">Room %s</string>
@@ -967,6 +990,7 @@
         <item>finance</item>
         <item>mentoring</item>
         <item>movies</item>
+        <item>christmas_movies</item>
         <item>action</item>
         <item>couples</item>
         <item>kdrama</item>
@@ -1009,6 +1033,7 @@
         <item>1</item>
         <item>1</item>
         <item>1</item>
+        <item>2</item>
         <item>2</item>
         <item>2</item>
         <item>2</item>
@@ -1062,6 +1087,7 @@
         <item>💰 Personal finance</item>
         <item>🧭 Mentoring and business</item>
         <item>🎬 Movies and new releases</item>
+        <item>🎄 Christmas movies (most watched)</item>
         <item>💥 Action movies</item>
         <item>💞 Movies for couples</item>
         <item>🇰🇷 K-dramas and Korean movies</item>
@@ -1105,6 +1131,7 @@
         <item>personal finance</item>
         <item>mentoring entrepreneurship personal growth</item>
         <item>official movie trailer</item>
+        <item>christmas movies full movie most viewed</item>
         <item>action movie trailer</item>
         <item>romantic movies for couples</item>
         <item>korean drama</item>

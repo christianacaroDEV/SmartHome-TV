@@ -889,6 +889,29 @@
     <string name="together_call_unmute_others">Escuchar la llamada</string>
     <string name="together_call_join_tv">📞 Unirme a la llamada de voz</string>
     <string name="together_call_leave_tv">📞 Salir de la llamada</string>
+    <string name="together_status_online">conectado</string>
+    <string name="together_status_offline">desconectado</string>
+    <string name="together_member_offline">%s se desconectó</string>
+    <string name="together_member_back">%s volvió a conectarse</string>
+    <string name="cast_title">Transmitir a la TV</string>
+    <string name="cast_chip">Transmitir</string>
+    <string name="cast_how">La TV debe tener BlueTube abierto. Su código está en BlueTube de la TV: Ver juntos.</string>
+    <string name="cast_link_tv">Vincular una TV</string>
+    <string name="cast_code_hint">Código de la TV</string>
+    <string name="cast_link">Vincular</string>
+    <string name="cast_link_failed">No hay ninguna TV con ese código. Revisa que BlueTube esté abierto en la TV</string>
+    <string name="cast_checking">Revisando…</string>
+    <string name="cast_online">Lista</string>
+    <string name="cast_offline">No disponible: abre BlueTube en la TV</string>
+    <string name="cast_remove">Quitar</string>
+    <string name="cast_sent">Reproduciendo en %s</string>
+    <string name="cast_casting_on">📺 En %s</string>
+    <string name="cast_waiting">Esperando a la TV…</string>
+    <string name="cast_stop">Detener en la TV</string>
+    <string name="cast_watch_here">Ver en el celular</string>
+    <string name="cast_tv_button">📲 Transmitir desde el celular · código %s</string>
+    <string name="cast_tv_help">En el celular: abre un video → Transmitir → Vincular una TV y escribe %s</string>
+    <string name="cast_tv_section">📲 Para transmitir videos desde el celular a esta TV usa el código %s</string>
     <string name="together_system_joined">%s se unió</string>
     <string name="together_system_left">%s salió</string>
     <string name="together_room_title">Sala %s</string>
@@ -974,6 +997,7 @@
         <item>💰 Finanzas personales</item>
         <item>🧭 Mentorías y emprendimiento</item>
         <item>🎬 Películas y estrenos</item>
+        <item>🎄 Películas de Navidad (las más vistas)</item>
         <item>💥 Películas de acción</item>
         <item>💞 Películas para ver en pareja</item>
         <item>🇰🇷 Doramas y cine coreano</item>
@@ -1017,6 +1041,7 @@
         <item>finanzas personales</item>
         <item>mentoría emprendimiento desarrollo personal</item>
         <item>tráiler oficial estreno español</item>
+        <item>películas de navidad completas en español las más vistas</item>
         <item>películas de acción tráiler</item>
         <item>películas románticas para ver en pareja</item>
         <item>dorama coreano</item>

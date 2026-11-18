@@ -178,11 +178,40 @@ public class TogetherRoom {
 
     public boolean putMember(String deviceId, String name) {
         try {
-            JSONObject member = new JSONObject().put("name", name).put("ts", serverTimestamp());
-            return request("PUT", url("members/" + deviceId), member.toString()) != null;
+            return putMember(deviceId, new JSONObject().put("name", name));
         } catch (JSONException e) {
             return false;
         }
+    }
+
+    /**
+     * This device in the room: name, and while it is watching, what and where (also its "connected" sign).
+     */
+    public boolean putMember(String deviceId, JSONObject member) {
+        try {
+            member.put("ts", serverTimestamp());
+        } catch (JSONException e) {
+            return false;
+        }
+
+        long sentAt = System.currentTimeMillis();
+        String result = request("PUT", url("members/" + deviceId), member.toString());
+
+        if (result == null) {
+            return false;
+        }
+
+        try {
+            // The answer has the server time: our clock vs the server one (to know where a playing video is now)
+            long serverTs = new JSONObject(result).optLong("ts", 0);
+            if (serverTs > 0) {
+                mServerOffsetMs = serverTs - (sentAt + System.currentTimeMillis()) / 2;
+            }
+        } catch (JSONException e) {
+            // NOP
+        }
+
+        return true;
     }
 
     /**

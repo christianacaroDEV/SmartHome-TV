@@ -20,6 +20,12 @@ public class TogetherController extends BasePlayerController implements Together
     private long mQuietUntil;
     private String mPendingVideoId;
     private long mPendingPositionMs = -1;
+    /** When the pending position was computed: a playing room moves on while the video loads */
+    private long mPendingSinceMs;
+    /** A room video just opened: once it plays, the time spent buffering is caught up */
+    private boolean mCatchUp;
+    private final android.os.Handler mHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable mCatchUpCheck = this::catchUp;
     private boolean mPendingPlaying = true;
     private float mVolumeBeforeDuck = -1;
     /** Play state the room is known to have (applied from it or sent to it): the player repeating it isn't news */
@@ -44,7 +50,9 @@ public class TogetherController extends BasePlayerController implements Together
             // The video the room asked for: same position and play state as the others
             mQuietUntil = System.currentTimeMillis() + QUIET_MS;
             if (mPendingPositionMs >= 0) {
-                getPlayer().setPositionMs(mPendingPositionMs);
+                long loading = mPendingPlaying ? Math.max(0, android.os.SystemClock.elapsedRealtime() - mPendingSinceMs) : 0;
+                getPlayer().setPositionMs(mPendingPositionMs + loading);
+                mCatchUp = mPendingPlaying;
             }
             getPlayer().setPlayWhenReady(mPendingPlaying);
             mRoomPlaying = mPendingPlaying;
@@ -59,6 +67,29 @@ public class TogetherController extends BasePlayerController implements Together
     @Override
     public void onPlay() {
         publishIfChanged();
+
+        if (mCatchUp) {
+            mCatchUp = false;
+            mHandler.removeCallbacks(mCatchUpCheck);
+            mHandler.postDelayed(mCatchUpCheck, 2_000);
+        }
+    }
+
+    /**
+     * The room video plays now: if it started behind the others (loading, buffering), jump to where they are.
+     */
+    private void catchUp() {
+        if (getPlayer() == null || getVideo() == null || !getPlayer().getPlayWhenReady()) {
+            return;
+        }
+
+        long target = getManager().estimateRoomPosition(getVideo().videoId);
+        long drift = target - getPlayer().getPositionMs();
+
+        if (target >= 0 && Math.abs(drift) > 2_000) {
+            mQuietUntil = System.currentTimeMillis() + QUIET_MS; // not a change of this person: not sent
+            getPlayer().setPositionMs(target + (drift > 0 ? 1_000 : 0)); // + the short buffering after the jump
+        }
     }
 
     @Override
@@ -129,6 +160,7 @@ public class TogetherController extends BasePlayerController implements Together
             // Another video (or this one still loading): the position is applied once it has loaded
             mPendingVideoId = videoId;
             mPendingPositionMs = positionMs;
+            mPendingSinceMs = android.os.SystemClock.elapsedRealtime();
             mPendingPlaying = playing;
 
             if (!sameVideo) {

@@ -73,6 +73,7 @@ public final class MobileTopics {
      * Indexes of the chosen topics, in the order of the list (grouped by section).
      */
     public static List<Integer> getSelected(Context context) {
+        addSeasonalTopicOnce(context);
         List<Integer> result = new ArrayList<>();
         List<String> saved = new ArrayList<>();
 
@@ -89,6 +90,25 @@ public final class MobileTopics {
         }
 
         return result;
+    }
+
+    /** "Christmas movies" offered once to everyone who already chose topics (each profile) */
+    private static void addSeasonalTopicOnce(Context context) {
+        String addedKey = MobileProfiles.key(context, "topic_christmas_added");
+
+        if (prefs(context).getBoolean(addedKey, false)) {
+            return;
+        }
+
+        String topicsKey = MobileProfiles.key(context, KEY_TOPICS);
+        String topics = prefs(context).getString(topicsKey, "");
+        android.content.SharedPreferences.Editor editor = prefs(context).edit().putBoolean(addedKey, true);
+
+        if (!topics.trim().isEmpty() && !java.util.Arrays.asList(topics.split(",")).contains("christmas_movies")) {
+            editor.putString(topicsKey, topics + ",christmas_movies");
+        }
+
+        editor.apply();
     }
 
     private static void setSelected(Context context, List<Integer> topics) {

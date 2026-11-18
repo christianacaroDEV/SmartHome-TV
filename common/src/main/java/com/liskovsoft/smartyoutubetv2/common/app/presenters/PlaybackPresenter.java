@@ -68,6 +68,7 @@ public class PlaybackPresenter extends BasePresenter<PlaybackView> implements Pl
         mEventListeners.add(new ChatController());
         mEventListeners.add(new CommentsController());
         mEventListeners.add(new TogetherController()); // BlueTube "Watch together"
+        mEventListeners.add(new com.liskovsoft.smartyoutubetv2.common.app.models.playback.controllers.CastController()); // BlueTube "Send to TV"
     }
 
     public static PlaybackPresenter instance(Context context) {

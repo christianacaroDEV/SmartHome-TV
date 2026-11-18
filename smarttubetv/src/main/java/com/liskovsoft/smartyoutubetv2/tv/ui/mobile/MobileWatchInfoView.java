@@ -145,6 +145,28 @@ public class MobileWatchInfoView extends LinearLayout {
                 MobileTogether.showDialog((android.app.Activity) getContext());
             }
         }));
+        // "Send to TV": a TV with BlueTube plays it, this phone is the remote
+        actions.addView(chip(R.drawable.ic_m_cast, R.string.cast_chip, v -> {
+            if (getContext() instanceof android.app.Activity) {
+                MobileCast.show((android.app.Activity) getContext(), mVideo, new MobileCast.LocalPlayer() {
+                    @Override
+                    public long getPositionMs() {
+                        return mPlayer.getPositionMs();
+                    }
+
+                    @Override
+                    public void pause() {
+                        mPlayer.setPlayWhenReady(false);
+                    }
+
+                    @Override
+                    public void resumeAt(long positionMs) {
+                        mPlayer.setPositionMs(positionMs);
+                        mPlayer.setPlayWhenReady(true);
+                    }
+                });
+            }
+        }));
         actions.addView(chip(R.drawable.ic_m_share, R.string.mobile_watch_share, v -> share()));
         actions.addView(chip(R.drawable.ic_m_playlist_add, R.string.mobile_watch_save, v -> press(R.id.action_playlist_add)));
         addView(actionsScroll);

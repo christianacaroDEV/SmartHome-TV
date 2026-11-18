@@ -73,6 +73,12 @@ public final class TogetherTvDialog {
             return;
         }
 
+        // "Send to TV": the code a phone needs to send videos here
+        dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.cast_tv_button,
+                BlueCast.formatCode(BlueCast.instance(context).getTvCode())), option ->
+                MessageHelpers.showLongMessage(context, context.getString(R.string.cast_tv_help,
+                        BlueCast.formatCode(BlueCast.instance(context).getTvCode())))));
+
         dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.together_join_room), option -> {
             dialog.closeDialog();
             SimpleEditDialog.show(context, context.getString(R.string.together_join_room), context.getString(R.string.together_code_hint), "", newValue -> {

@@ -142,6 +142,7 @@ public final class BlueTubeSync {
      * Indexes (in the topics arrays) of the Favorites topics of the current profile.
      */
     public static List<Integer> getSelectedTopics(Context context) {
+        addSeasonalTopicOnce(context);
         List<Integer> result = new ArrayList<>();
         List<String> saved = Arrays.asList(prefs(context).getString(key(context, KEY_TOPICS), "").split(","));
         String[] keys = context.getResources().getStringArray(R.array.mobile_topic_keys);
@@ -153,6 +154,28 @@ public final class BlueTubeSync {
         }
 
         return result;
+    }
+
+    /** New topic offered once to everyone who already chose topics (each profile) */
+    private static final String SEASONAL_TOPIC = "christmas_movies";
+    private static final String KEY_SEASONAL_ADDED = "topic_christmas_added";
+
+    private static void addSeasonalTopicOnce(Context context) {
+        SharedPreferences prefs = prefs(context);
+        String addedKey = key(context, KEY_SEASONAL_ADDED);
+
+        if (prefs.getBoolean(addedKey, false)) {
+            return;
+        }
+
+        String topics = prefs.getString(key(context, KEY_TOPICS), "");
+        SharedPreferences.Editor editor = prefs.edit().putBoolean(addedKey, true);
+
+        if (!topics.isEmpty() && !Arrays.asList(topics.split(",")).contains(SEASONAL_TOPIC)) {
+            editor.putString(key(context, KEY_TOPICS), topics + "," + SEASONAL_TOPIC);
+        }
+
+        editor.apply();
     }
 
     /**

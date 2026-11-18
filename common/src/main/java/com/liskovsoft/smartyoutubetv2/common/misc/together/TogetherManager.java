@@ -39,7 +39,12 @@ public final class TogetherManager implements TogetherRoom.Listener {
     private static final String KEY_ROOM_TIME = "together_room_time";
     /** A room is remembered this long (the app may be closed by Android and opened again) */
     private static final long ROOM_MEMORY_MS = 12 * 60 * 60 * 1_000;
-    private static final long HEARTBEAT_MS = 60_000;
+    /** Each device says "I'm here (watching X at Y)" this often */
+    private static final long HEARTBEAT_MS = 15_000;
+    /** Not heard of for this long (phone off, no internet): disconnected */
+    private static final long OFFLINE_MS = 45_000;
+    /** A playing video moves on by itself: never more than this is added (a stale state) */
+    private static final long MAX_ELAPSED_MS = 6 * 60 * 60 * 1_000;
     private static final int MAX_HISTORY = 60;
     @SuppressLint("StaticFieldLeak")
     private static TogetherManager sInstance;
@@ -57,6 +62,11 @@ public final class TogetherManager implements TogetherRoom.Listener {
     private int mMembers;
     /** deviceId -> name of everybody in the room (this device included) */
     private final java.util.Map<String, String> mMemberNames = new java.util.LinkedHashMap<>();
+    /** deviceId -> what each one last said (watching, videoId, positionMs, playing, ts) */
+    private final java.util.Map<String, JSONObject> mMemberData = new java.util.HashMap<>();
+    /** Others connected (watching a video with the app open) */
+    private final java.util.Set<String> mOnline = new java.util.HashSet<>();
+    private boolean mOnlineKnown;
     private MediaPlayer mChimePlayer;
     private JSONObject mPendingState;
     /** The latest state of the room (also our own), for "Sync" */
@@ -206,7 +216,8 @@ public final class TogetherManager implements TogetherRoom.Listener {
                 if (names.length() > 0) {
                     names.append(", ");
                 }
-                names.append(member.getValue());
+                names.append(member.getValue()).append(" (").append(mContext.getString(isOnline(member.getKey())
+                        ? R.string.together_status_online : R.string.together_status_offline)).append(")");
             }
         }
 
@@ -240,6 +251,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
     public void create(Callback callback) {
         // The player is read here, on its own (main) thread
         JSONObject localState = mPlayerSide != null ? mPlayerSide.getLocalState() : null;
+        JSONObject me = memberJson();
 
         runAsync(() -> {
             SecureRandom random = new SecureRandom();
@@ -259,7 +271,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
             }
 
             TogetherRoom room = new TogetherRoom(dbUrl(), code, this);
-            boolean ok = room.putMember(mDeviceId, myName());
+            boolean ok = room.putMember(mDeviceId, me);
 
             if (ok) {
                 JSONObject state = localState;
@@ -294,10 +306,12 @@ public final class TogetherManager implements TogetherRoom.Listener {
             return;
         }
 
+        JSONObject me = memberJson();
+
         runAsync(() -> {
             boolean exists = TogetherRoom.exists(dbUrl(), clean);
             TogetherRoom room = new TogetherRoom(dbUrl(), clean, this);
-            boolean ok = exists && room.putMember(mDeviceId, myName());
+            boolean ok = exists && room.putMember(mDeviceId, me);
 
             post(() -> {
                 if (ok) {
@@ -319,6 +333,10 @@ public final class TogetherManager implements TogetherRoom.Listener {
         mRoom = null;
         mMembers = 0;
         mMemberNames.clear();
+        mMemberData.clear();
+        mOnline.clear();
+        mPresenceSeen.clear();
+        mOnlineKnown = false;
         mLastState = null;
         forgetRoom();
         mPendingState = null;
@@ -353,10 +371,98 @@ public final class TogetherManager implements TogetherRoom.Listener {
         Log.d(TAG, "Heartbeat room=%s", room != null);
 
         if (room != null) {
-            runAsync(() -> room.putMember(mDeviceId, myName()));
+            JSONObject me = memberJson();
+            runAsync(() -> room.putMember(mDeviceId, me));
+            updatePresence(); // someone who stopped saying "I'm here" is now disconnected
             mHandler.postDelayed(mHeartbeat, HEARTBEAT_MS);
         }
     }
+
+    /**
+     * This device for the others: watching = the app is on screen with a video open (also in full screen).
+     * Out of the app, or with the phone off (nothing sent any more), it shows as disconnected.
+     */
+    private JSONObject memberJson() {
+        JSONObject member = new JSONObject();
+
+        try {
+            member.put("name", myName());
+            JSONObject local = mPlayerSide != null && com.liskovsoft.smartyoutubetv2.common.misc.MotherActivity.isAppVisible()
+                    ? mPlayerSide.getLocalState() : null;
+            member.put("watching", local != null);
+            if (local != null) {
+                member.put("videoId", local.optString("videoId"))
+                        .put("positionMs", local.optLong("positionMs"))
+                        .put("playing", local.optBoolean("playing"));
+            }
+        } catch (JSONException e) {
+            // NOP
+        }
+
+        return member;
+    }
+
+    private boolean isOnline(String id) {
+        JSONObject data = mMemberData.get(id);
+        TogetherRoom room = mRoom;
+
+        if (data == null || room == null || !data.optBoolean("watching")) {
+            return false;
+        }
+
+        long ts = data.optLong("ts", 0);
+        return ts > 0 && room.serverNow() - ts < OFFLINE_MS;
+    }
+
+    /**
+     * Connected / disconnected of the others: shown in the room text, and said when it changes.
+     */
+    private void updatePresence() {
+        if (mRoom == null) {
+            return;
+        }
+
+        java.util.Set<String> online = new java.util.HashSet<>();
+        for (String id : mMemberNames.keySet()) {
+            if (!mDeviceId.equals(id) && isOnline(id)) {
+                online.add(id);
+            }
+        }
+
+        if (online.equals(mOnline)) {
+            mOnlineKnown = true;
+            return;
+        }
+
+        if (mOnlineKnown) {
+            for (String id : mOnline) {
+                if (!online.contains(id) && mMemberNames.containsKey(id)) {
+                    String name = mMemberNames.get(id);
+                    playChime(R.raw.together_leave);
+                    MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_member_offline, name), true);
+                    addSystemMessage(mContext.getString(R.string.together_member_offline, name));
+                }
+            }
+            for (String id : online) {
+                if (!mOnline.contains(id) && mPresenceSeen.contains(id)) {
+                    String name = mMemberNames.get(id);
+                    playChime(R.raw.together_join);
+                    MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_member_back, name), true);
+                    addSystemMessage(mContext.getString(R.string.together_member_back, name));
+                }
+            }
+        }
+
+        mPresenceSeen.addAll(mOnline);
+        mOnline.clear();
+        mOnline.addAll(online);
+        mOnlineKnown = true;
+        com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter.instance(mContext).refreshIfTogetherShown();
+        notifyRoomChanged();
+    }
+
+    /** Ids that were connected at some point (coming back = "back", not a first connection) */
+    private final java.util.Set<String> mPresenceSeen = new java.util.HashSet<>();
 
     // ---------------------------------------------------------------------------------------------
     // Player
@@ -437,15 +543,53 @@ public final class TogetherManager implements TogetherRoom.Listener {
         }
 
         boolean playing = state.optBoolean("playing");
+        mPlayerSide.applyRemoteState(videoId, state.optString("title"), estimatePosition(state), playing);
+    }
+
+    /**
+     * Where the room is now in its video (ms), -1 if unknown or another video. Used right after a video opened
+     * from the room starts playing: its loading time is caught up.
+     */
+    public long estimateRoomPosition(String videoId) {
+        JSONObject state = mLastState;
+
+        if (mRoom == null || state == null || videoId == null || !videoId.equals(state.optString("videoId"))
+                || !state.optBoolean("playing")) {
+            return -1;
+        }
+
+        return estimatePosition(state);
+    }
+
+    private long estimatePosition(JSONObject state) {
+        String videoId = state.optString("videoId");
+        boolean playing = state.optBoolean("playing");
         long position = state.optLong("positionMs");
         long ts = state.optLong("ts", 0);
 
         if (playing && ts > 0) {
             // The time that passed since the other person pressed play/seek
-            position += Math.max(0, Math.min(60_000, mRoom.serverNow() - ts));
+            position += Math.max(0, Math.min(MAX_ELAPSED_MS, mRoom.serverNow() - ts));
         }
 
-        mPlayerSide.applyRemoteState(videoId, state.optString("title"), position, playing);
+        // Fresher: someone connected watching this video said where they are (every few seconds). Coming back
+        // (phone off, app closed) lands exactly where the others are now, not where the last play happened.
+        long newest = ts;
+        for (java.util.Map.Entry<String, JSONObject> member : mMemberData.entrySet()) {
+            JSONObject data = member.getValue();
+            long memberTs = data.optLong("ts", 0);
+            if (mDeviceId.equals(member.getKey()) || !isOnline(member.getKey()) || memberTs <= newest
+                    || !videoId.equals(data.optString("videoId"))) {
+                continue;
+            }
+            newest = memberTs;
+            position = data.optLong("positionMs");
+            if (data.optBoolean("playing")) {
+                position += Math.max(0, Math.min(MAX_ELAPSED_MS, mRoom.serverNow() - memberTs));
+            }
+        }
+
+        return position;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -798,12 +942,16 @@ public final class TogetherManager implements TogetherRoom.Listener {
     @Override
     public void onMembers(JSONObject members) {
         java.util.Map<String, String> now = new java.util.LinkedHashMap<>();
+        java.util.Map<String, JSONObject> data = new java.util.HashMap<>();
 
         for (java.util.Iterator<String> keys = members.keys(); keys.hasNext(); ) {
             String id = keys.next();
             JSONObject member = members.optJSONObject(id);
             String name = member != null ? member.optString("name") : "";
             now.put(id, TextUtils.isEmpty(name) ? "BlueTube" : name);
+            if (member != null) {
+                data.put(id, member);
+            }
         }
 
         post(() -> {
@@ -830,6 +978,8 @@ public final class TogetherManager implements TogetherRoom.Listener {
             boolean changed = !mMemberNames.equals(now);
             mMemberNames.clear();
             mMemberNames.putAll(now);
+            mMemberData.clear();
+            mMemberData.putAll(data);
             mMembers = now.size();
 
             if (changed) {
@@ -863,6 +1013,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
                 MessageHelpers.showMessage(mContext, mContext.getString(R.string.together_someone_left, TextUtils.join(", ", left)), true);
             }
 
+            updatePresence(); // connected / disconnected (joining and leaving were said above)
             notifyRoomChanged();
         });
     }

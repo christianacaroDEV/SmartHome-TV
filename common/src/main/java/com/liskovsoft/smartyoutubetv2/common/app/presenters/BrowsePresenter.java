@@ -853,9 +853,11 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                     getView().showProgressBar(false);
                     com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager together =
                             com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(getContext());
-                    String message = together.isActive()
+                    String message = (together.isActive()
                             ? together.describeRoom(getContext())
-                            : getContext().getString(R.string.together_menu_hint);
+                            : getContext().getString(R.string.together_menu_hint))
+                            + "\n\n" + getContext().getString(R.string.cast_tv_section, com.liskovsoft.smartyoutubetv2.common.misc.together.BlueCast
+                                .formatCode(com.liskovsoft.smartyoutubetv2.common.misc.together.BlueCast.instance(getContext()).getTvCode()));
                     getView().showError(new ErrorFragmentData() {
                         @Override
                         public void onAction() {
