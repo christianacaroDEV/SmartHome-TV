@@ -168,7 +168,18 @@ public final class TogetherManager implements TogetherRoom.Listener {
     // Room
     // ---------------------------------------------------------------------------------------------
 
-    private String dbUrl() {
+    public String getDeviceId() {
+        return mDeviceId;
+    }
+
+    /** Voice call: lowers the video while someone talks */
+    public void duckForCall(boolean ducked) {
+        if (mPlayerSide != null && mVoicePlayer == null) {
+            mPlayerSide.setDucked(ducked);
+        }
+    }
+
+    String dbUrl() {
         return mContext.getString(R.string.together_db_url);
     }
 
@@ -304,6 +315,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
             return;
         }
 
+        VoiceCall.instance(mContext).onRoomLeft();
         mRoom = null;
         mMembers = 0;
         mMemberNames.clear();
@@ -328,6 +340,7 @@ public final class TogetherManager implements TogetherRoom.Listener {
 
         mRoom = room;
         mFirstState = true;
+        VoiceCall.instance(mContext).onRoomStarted(room.getCode());
         rememberRoom(room.getCode());
         room.start();
         mHandler.postDelayed(mHeartbeat, HEARTBEAT_MS);

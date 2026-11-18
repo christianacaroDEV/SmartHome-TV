@@ -101,7 +101,15 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
     private OrientationEventListener mOrientationListener;
     private int mSavedSystemUi = -1;
 
+    /** The sheet of the home screen, for the "now playing" bar of other screens (search) */
+    private static java.lang.ref.WeakReference<MobileWatchSheet> sCurrent = new java.lang.ref.WeakReference<>(null);
+
+    public static MobileWatchSheet current() {
+        return sCurrent.get();
+    }
+
     public MobileWatchSheet(Activity activity, View bottomNav) {
+        sCurrent = new java.lang.ref.WeakReference<>(this);
         mActivity = activity;
         mRoot = activity.findViewById(android.R.id.content);
         mBottomNav = bottomNav;
@@ -472,6 +480,10 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
             mLockClockUpdate.run();
         }
 
+        // Locked in portrait is a full screen too: no system bars (the time/battery are already shown above the
+        // video, the status bar repeated them)
+        setSystemBarsHidden(shouldHideSystemBars());
+
         // Black page behind a locked portrait video, the app background otherwise
         if (mState == STATE_EXPANDED && (mControls.isLocked() || mShortsMode)) {
             mSheet.setBackgroundColor(Color.BLACK);
@@ -544,7 +556,39 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         mLockInfo.setText(battery != null ? "·  " + battery + "  ·  " + date : "·  " + date);
     }
 
+    private boolean shouldHideSystemBars() {
+        return mState == STATE_FULLSCREEN || (mState == STATE_EXPANDED && mControls.isLocked() && !mShortsMode);
+    }
+
+    private final Runnable mRehideSystemBars = () -> {
+        if (shouldHideSystemBars()) {
+            setSystemBarsHidden(true);
+        }
+    };
+    private boolean mSystemUiListenerSet;
+
+    /**
+     * Back to the app (notification shade, a dialog, another app...) or a notification showed the bars: in full
+     * screen (or locked) they go away again.
+     */
+    public void reapplySystemBars() {
+        if (isActive() && shouldHideSystemBars()) {
+            setSystemBarsHidden(true);
+        }
+    }
+
     private void setSystemBarsHidden(boolean hidden) {
+        if (!mSystemUiListenerSet) {
+            mSystemUiListenerSet = true;
+            mActivity.getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(visibility -> {
+                // The bars came back (a notification, a swipe): hide them again after a moment
+                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 && shouldHideSystemBars()) {
+                    mSheet.removeCallbacks(mRehideSystemBars);
+                    mSheet.postDelayed(mRehideSystemBars, 3_000);
+                }
+            });
+        }
+
         View decor = mActivity.getWindow().getDecorView();
 
         if (!hidden) {
@@ -559,7 +603,7 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
         if (mClock == null) {
             mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(mActivity, true);
         }
-        if (hidden && !mControls.isPanelVisible()) {
+        if (hidden && mState == STATE_FULLSCREEN && !mControls.isPanelVisible()) {
             mClock.show();
         } else {
             mClock.hide();
@@ -607,6 +651,24 @@ public class MobileWatchSheet implements MobilePlayerView.Listener {
             if (mState == STATE_HIDDEN) {
                 mActivity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             }
+        }
+    }
+
+    public Video getVideo() {
+        return mVideo;
+    }
+
+    /** Play/pause from another screen (search "now playing" bar) */
+    public void togglePlayback() {
+        if (isActive()) {
+            togglePlay();
+        }
+    }
+
+    /** Big again (tap on the "now playing" bar of another screen) */
+    public void expand() {
+        if (isActive() && mState == STATE_MINI) {
+            setState(isLandscape() ? STATE_FULLSCREEN : STATE_EXPANDED);
         }
     }
 

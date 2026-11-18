@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- "Watch together": Firebase Realtime Database of the rooms (rules: only /rooms/{6 digits} readable/writable) -->
+    <!-- Voice call relay (TURN) for networks where the devices can't reach each other; empty = STUN only -->
+    <string name="together_turn_url" translatable="false"></string>
+    <string name="together_turn_user" translatable="false"></string>
+    <string name="together_turn_password" translatable="false"></string>
     <string name="together_db_url" translatable="false">https://bluetube-juntos-default-rtdb.firebaseio.com</string>
 </resources>

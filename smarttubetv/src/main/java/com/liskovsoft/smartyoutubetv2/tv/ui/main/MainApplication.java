@@ -103,6 +103,7 @@ public class MainApplication extends MultiDexApplication implements Configuratio
         MobileSettings.applyMobileMenuOnce(this);
         MobileSettings.applyTvDefaultsOnce(this);
         com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(this); // rejoins a remembered room
+        com.liskovsoft.smartyoutubetv2.tv.ui.widgets.CallOverlay.install(this); // voice call pill over every screen
         setupGlobalExceptionHandler();
         setupViewManager();
     }

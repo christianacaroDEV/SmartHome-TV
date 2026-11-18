@@ -40,6 +40,29 @@ public final class TogetherTvDialog {
             }
             dialog.appendStringsCategory(context.getString(R.string.together_send_reaction), reactions);
 
+            // Voice call: a TV usually has no microphone, so it listens (and shows who talks)
+            VoiceCall call = VoiceCall.instance(context);
+            if (VoiceCall.isSupported()) {
+                if (call.isInCall()) {
+                    dialog.appendSingleButton(UiOptionItem.from(context.getString(call.isOthersMuted()
+                            ? R.string.together_call_unmute_others : R.string.together_call_mute_others), option -> {
+                        call.setOthersMuted(!call.isOthersMuted());
+                        dialog.closeDialog();
+                    }));
+                    dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.together_call_leave_tv), option -> {
+                        call.leave();
+                        dialog.closeDialog();
+                    }));
+                } else {
+                    String others = call.getOtherNames();
+                    dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.together_call_join_tv)
+                            + (others.isEmpty() ? "" : " (" + context.getString(R.string.together_call_someone_in, others) + ")"), option -> {
+                        call.join();
+                        dialog.closeDialog();
+                    }));
+                }
+            }
+
             dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.together_leave), option -> {
                 manager.leave();
                 dialog.closeDialog();

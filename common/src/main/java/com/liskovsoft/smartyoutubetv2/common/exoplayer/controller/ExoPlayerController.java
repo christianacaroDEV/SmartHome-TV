@@ -55,6 +55,9 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
     private final PlayerEventListener mEventListener;
     private SimpleExoPlayer mPlayer;
     private boolean mAudioFocusSuspended;
+    /** "Watch together" voice call going on: the video must keep playing next to it */
+    private static boolean sInAppCall;
+    private static WeakReference<ExoPlayerController> sLastController = new WeakReference<>(null);
     /** Not null only for sabr live streams */
     private SabrManifest mSabrLiveManifest;
     /** Sabr live stream without DVR: rewind is forbidden, the playback must always stay on the live edge */
@@ -240,30 +243,59 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
                 prepareAudioForPlay();
             }
             mPlayer.setPlayWhenReady(play);
+            if (play) {
+                checkAudioFocusRefused();
+            }
         }
     }
 
     /**
      * During a phone/WhatsApp call Android denies the audio focus to other apps, so ExoPlayer refused to play
      * (play did nothing, e.g. "Watch together" while on a video call). While a call is going on the player stops
-     * asking for the focus; it asks again once the call is over.
+     * asking for the focus; once the call is over it asks again (next play).
      */
     public void prepareAudioForPlay() {
-        if (mPlayer == null || mContext == null || !PlayerTweaksData.instance(mContext).isAudioFocusEnabled()) {
+        if (!isAudioFocusManaged()) {
             return;
         }
 
-        boolean inCall = isCallActive();
+        if (isCallActive()) {
+            setAudioFocusHandling(false);
+        } else if (mAudioFocusSuspended) {
+            setAudioFocusHandling(true); // the call is over: behave like before (pause for other media apps)
+        }
+    }
 
-        if (inCall == mAudioFocusSuspended) {
+    /**
+     * Right after play: the focus was refused or someone else holds it (some phones don't report a WhatsApp call
+     * through the audio mode), so the video would stay frozen. Play without the focus instead.
+     */
+    public void checkAudioFocusRefused() {
+        if (!isAudioFocusManaged() || mAudioFocusSuspended) {
             return;
+        }
+
+        if (!mPlayer.getPlayWhenReady() || mPlayer.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+            Log.d(TAG, "Audio focus refused: playing without it");
+            setAudioFocusHandling(false);
+            mPlayer.setPlayWhenReady(true);
+        }
+    }
+
+    private boolean isAudioFocusManaged() {
+        return mPlayer != null && mContext != null && PlayerTweaksData.instance(mContext).isAudioFocusEnabled();
+    }
+
+    private void setAudioFocusHandling(boolean handle) {
+        if (handle != mAudioFocusSuspended) {
+            return; // already so
         }
 
         try {
-            mPlayer.setAudioAttributes(com.liskovsoft.smartyoutubetv2.common.exoplayer.other.ExoPlayerInitializer.getAudioAttributes(), !inCall);
-            mAudioFocusSuspended = inCall;
+            mPlayer.setAudioAttributes(com.liskovsoft.smartyoutubetv2.common.exoplayer.other.ExoPlayerInitializer.getAudioAttributes(), handle);
+            mAudioFocusSuspended = !handle;
         } catch (SecurityException e) {
-            Log.e(TAG, "prepareAudioForPlay: " + e.getMessage());
+            Log.e(TAG, "setAudioFocusHandling: " + e.getMessage());
         }
     }
 
@@ -274,9 +306,31 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
             return false;
         }
 
-        int mode = audioManager.getMode();
-        return mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION
-                || mode == android.media.AudioManager.MODE_RINGTONE;
+        // Ringing, phone call, VoIP call (WhatsApp, Meet, our own "Watch together" call...) or call screening
+        return sInAppCall || audioManager.getMode() > android.media.AudioManager.MODE_NORMAL;
+    }
+
+    /**
+     * A call (or another app) took the audio: ExoPlayer freezes the video but still reports "playing", so the
+     * play/pause button shows pause and pressing it did nothing useful. After a moment it becomes a real pause:
+     * the button shows play, and play then works during the call (see {@link #checkAudioFocusRefused()}).
+     */
+    private final Runnable mSuppressionCheck = () -> {
+        if (mPlayer != null && mPlayer.getPlayWhenReady()
+                && mPlayer.getPlaybackSuppressionReason() == Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS) {
+            Log.d(TAG, "Audio taken by another app (call?): pausing");
+            mPlayer.setPlayWhenReady(false);
+        }
+    };
+    private final android.os.Handler mHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+
+    @Override
+    public void onPlaybackSuppressionReasonChanged(int playbackSuppressionReason) {
+        mHandler.removeCallbacks(mSuppressionCheck);
+
+        if (playbackSuppressionReason == Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS) {
+            mHandler.postDelayed(mSuppressionCheck, 2_000);
+        }
     }
 
     public boolean getPlayWhenReady() {
@@ -308,6 +362,7 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
     }
     
     public void release() {
+        mHandler.removeCallbacks(mSuppressionCheck);
         mTrackSelectorManager.release();
         mMediaSourceFactory.release();
         releasePlayer();
@@ -316,8 +371,18 @@ public class ExoPlayerController implements Player.EventListener, LiveStateProvi
         //mEventListener = null;
     }
     
+    public static void setInAppCall(boolean inCall) {
+        sInAppCall = inCall;
+        ExoPlayerController controller = sLastController.get();
+
+        if (inCall && controller != null && controller.isAudioFocusManaged()) {
+            controller.setAudioFocusHandling(false); // keeps playing
+        }
+    }
+
     public void setPlayer(SimpleExoPlayer player) {
         mPlayer = player;
+        sLastController = new WeakReference<>(this);
         mAudioFocusSuspended = false;
         player.addListener(this);
     }

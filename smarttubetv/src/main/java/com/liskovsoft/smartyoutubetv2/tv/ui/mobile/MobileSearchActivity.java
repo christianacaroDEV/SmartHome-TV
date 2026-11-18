@@ -125,6 +125,7 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         });
 
         findViewById(R.id.mobile_search_back).setOnClickListener(v -> onBackPressed());
+        createNowPlayingBar();
         findViewById(R.id.mobile_search_mic).setOnClickListener(v -> startVoiceRecognition());
         mClearButton.setOnClickListener(v -> {
             mField.setText("");
@@ -162,6 +163,123 @@ public class MobileSearchActivity extends MotherActivity implements SearchView {
         mPresenter = SearchPresenter.instance(this);
         mPresenter.setView(this);
         mPresenter.onViewInitialized();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // "Now playing" bar: the video opened from the results keeps playing (minimized) while browsing them
+    // ---------------------------------------------------------------------------------------------
+
+    private LinearLayout mNowPlaying;
+    private ImageView mNowThumb;
+    private TextView mNowTitle;
+    private ImageButton mNowPlayPause;
+    private String mNowVideoId;
+
+    private void createNowPlayingBar() {
+        ViewGroup content = findViewById(android.R.id.content);
+        if (content == null || content.getChildCount() == 0 || !(content.getChildAt(0) instanceof LinearLayout)) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+        mNowPlaying = new LinearLayout(this);
+        mNowPlaying.setGravity(Gravity.CENTER_VERTICAL);
+        mNowPlaying.setBackgroundColor(0xFF13224A);
+        mNowPlaying.setPadding(0, 0, Math.round(4 * density), 0);
+        mNowPlaying.setVisibility(View.GONE);
+        mNowPlaying.setOnClickListener(v -> openNowPlaying());
+
+        mNowThumb = new ImageView(this);
+        mNowThumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        mNowPlaying.addView(mNowThumb, new LinearLayout.LayoutParams(Math.round(107 * density), Math.round(60 * density)));
+
+        mNowTitle = new TextView(this);
+        mNowTitle.setTextColor(Color.WHITE);
+        mNowTitle.setTextSize(14);
+        mNowTitle.setMaxLines(2);
+        mNowTitle.setEllipsize(TextUtils.TruncateAt.END);
+        mNowTitle.setPadding(Math.round(12 * density), 0, Math.round(8 * density), 0);
+        mNowPlaying.addView(mNowTitle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        mNowPlayPause = nowButton(R.drawable.ic_m_pause, density);
+        mNowPlayPause.setOnClickListener(v -> {
+            MobileWatchSheet sheet = MobileWatchSheet.current();
+            if (sheet != null) {
+                sheet.togglePlayback();
+            }
+            updateNowPlaying();
+        });
+        mNowPlaying.addView(mNowPlayPause);
+
+        ImageButton close = nowButton(R.drawable.ic_m_close, density);
+        close.setOnClickListener(v -> {
+            MobileWatchSheet sheet = MobileWatchSheet.current();
+            if (sheet != null && sheet.isActive()) {
+                sheet.close();
+            }
+            updateNowPlaying();
+        });
+        mNowPlaying.addView(close);
+
+        ((LinearLayout) content.getChildAt(0)).addView(mNowPlaying,
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(60 * density)));
+    }
+
+    private ImageButton nowButton(int iconResId, float density) {
+        ImageButton button = new ImageButton(this);
+        button.setImageResource(iconResId);
+        button.setBackground(null);
+        int padding = Math.round(12 * density);
+        button.setPadding(padding, padding, padding, padding);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        button.setLayoutParams(new LinearLayout.LayoutParams(Math.round(48 * density), Math.round(48 * density)));
+        return button;
+    }
+
+    private void updateNowPlaying() {
+        if (mNowPlaying == null) {
+            return;
+        }
+
+        MobileWatchSheet sheet = MobileWatchSheet.current();
+        Video video = sheet != null && sheet.isActive() ? sheet.getVideo() : null;
+
+        if (video == null) {
+            mNowPlaying.setVisibility(View.GONE);
+            mNowVideoId = null;
+            return;
+        }
+
+        mNowPlaying.setVisibility(View.VISIBLE);
+        mNowTitle.setText(video.getTitle());
+        mNowPlayPause.setImageResource(sheet.isPlaying() ? R.drawable.ic_m_pause : R.drawable.ic_m_play);
+
+        if (video.videoId != null && !video.videoId.equals(mNowVideoId) && !isDestroyed()) {
+            mNowVideoId = video.videoId;
+            Glide.with(this).load(video.cardImageUrl).apply(ViewUtil.glideOptions()).into(mNowThumb);
+        }
+    }
+
+    /** Tap on the bar: the video big again, on the home screen */
+    private void openNowPlaying() {
+        MobileWatchSheet sheet = MobileWatchSheet.current();
+
+        if (sheet == null || !sheet.isActive()) {
+            updateNowPlaying();
+            return;
+        }
+
+        sheet.expand();
+        MobileBrowseActivity.requestBackToPrevious();
+        Intent intent = new Intent(this, MobileBrowseActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateNowPlaying();
     }
 
     @Override

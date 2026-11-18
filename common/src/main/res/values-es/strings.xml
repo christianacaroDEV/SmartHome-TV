@@ -871,6 +871,24 @@
         <item quantity="one">%d persona</item>
         <item quantity="other">%d personas</item>
     </plurals>
+    <string name="together_call_title">Llamada de voz</string>
+    <string name="together_call_join">Unirme</string>
+    <string name="together_call_leave">Salir</string>
+    <string name="together_call_in_call">En la llamada</string>
+    <string name="together_call_someone_in">%s está en la llamada</string>
+    <string name="together_call_speaking">%s habla…</string>
+    <string name="together_call_joined">%s entró a la llamada</string>
+    <string name="together_call_failed">No se pudo conectar la llamada con %s</string>
+    <string name="together_call_listen_only">Sin micrófono: solo vas a escuchar</string>
+    <string name="together_call_mic_needed">Permite el micrófono y vuelve a tocar Unirme</string>
+    <string name="together_call_tip">Consejo: usa audífonos para que el video no se escuche en la llamada</string>
+    <string name="together_call_unsupported">La llamada no está disponible en este equipo</string>
+    <string name="together_call_mute_mic">Silenciar micrófono</string>
+    <string name="together_call_unmute_mic">Activar micrófono</string>
+    <string name="together_call_mute_others">Silenciar la llamada</string>
+    <string name="together_call_unmute_others">Escuchar la llamada</string>
+    <string name="together_call_join_tv">📞 Unirme a la llamada de voz</string>
+    <string name="together_call_leave_tv">📞 Salir de la llamada</string>
     <string name="together_system_joined">%s se unió</string>
     <string name="together_system_left">%s salió</string>
     <string name="together_room_title">Sala %s</string>

@@ -325,7 +325,7 @@ public final class MobileTogether {
      * The whole conversation from the bottom (the video stays above): bubbles, voice notes with play/pause,
      * "new messages" when reading older ones, reactions, text box and hold-to-talk.
      */
-    public static class ChatSheet implements TogetherManager.UiListener {
+    public static class ChatSheet implements TogetherManager.UiListener, com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.Listener {
         private static ChatSheet sShowing;
         private final Activity mActivity;
         private final TogetherManager mManager;
@@ -337,6 +337,8 @@ public final class MobileTogether {
         private final TextView mTitle;
         private final TextView mSubtitle;
         private final TextView mPlayAll;
+        private final TextView mCallText;
+        private final TextView mCallButton;
         private final LinearLayout mEmojiBar;
         private final ImageButton mAction;
         private final EditText mInput;
@@ -418,6 +420,32 @@ public final class MobileTogether {
             controls.addView(sync);
             controlsScroll.addView(controls);
             root.addView(controlsScroll);
+
+            // Voice call: "Ana is in the call · Join" / "In the call · Leave"
+            LinearLayout callRow = new LinearLayout(activity);
+            callRow.setGravity(Gravity.CENTER_VERTICAL);
+            callRow.setPadding(dp(activity, 14), dp(activity, 8), dp(activity, 10), dp(activity, 8));
+            GradientDrawable callBackground = new GradientDrawable();
+            callBackground.setColor(CARD);
+            callBackground.setCornerRadius(dp(activity, 14));
+            callRow.setBackground(callBackground);
+            TextView callIcon = text(activity, 18, Color.WHITE, false);
+            callIcon.setText("📞");
+            callRow.addView(callIcon);
+            mCallText = text(activity, 14, Color.WHITE, false);
+            mCallText.setPadding(dp(activity, 10), 0, dp(activity, 8), 0);
+            mCallText.setMaxLines(2);
+            mCallText.setEllipsize(TextUtils.TruncateAt.END);
+            callRow.addView(mCallText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            mCallButton = text(activity, 14, Color.WHITE, true);
+            mCallButton.setGravity(Gravity.CENTER);
+            mCallButton.setPadding(dp(activity, 16), 0, dp(activity, 16), 0);
+            mCallButton.setOnClickListener(v -> toggleCall());
+            callRow.addView(mCallButton, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(activity, 36)));
+            LinearLayout.LayoutParams callParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            callParams.setMargins(dp(activity, 12), 0, dp(activity, 12), dp(activity, 8));
+            callRow.setVisibility(com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.isSupported() ? View.VISIBLE : View.GONE);
+            root.addView(callRow, callParams);
 
             View divider = new View(activity);
             divider.setBackgroundColor(0xFF1B2A4F);
@@ -549,6 +577,7 @@ public final class MobileTogether {
 
             sShowing = this;
             mManager.addUiListener(this);
+            com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.instance(activity).addListener(this);
             mManager.setChatOpen(true);
             mManager.loadWholeConversation();
             refresh(true);
@@ -575,6 +604,7 @@ public final class MobileTogether {
             mHandler.removeCallbacks(mVoiceTicker);
             stopRecording(false);
             mManager.removeUiListener(this);
+            com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.instance(mActivity).removeListener(this);
             mManager.setChatOpen(false);
         }
 
@@ -601,6 +631,7 @@ public final class MobileTogether {
                     : mActivity.getString(R.string.together_with, others) + "  ·  "
                         + mActivity.getResources().getQuantityString(R.plurals.together_people, mManager.getMembers(), mManager.getMembers()));
             updatePlayAll();
+            updateCallRow();
             boolean wasAtEnd = first || isAtEnd();
             List<Message> history = mManager.getHistory();
             int added = history.size() - mShownCount;
@@ -655,6 +686,48 @@ public final class MobileTogether {
                 Toast.makeText(mActivity, R.string.together_open_video_first, Toast.LENGTH_SHORT).show();
             }
             updatePlayAll();
+        }
+
+        @Override
+        public void onCallChanged() {
+            updateCallRow();
+        }
+
+        private void updateCallRow() {
+            com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall call =
+                    com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.instance(mActivity);
+            String others = call.getOtherNames();
+
+            if (call.isInCall()) {
+                mCallText.setText(others.isEmpty() ? mActivity.getString(R.string.together_waiting)
+                        : mActivity.getString(R.string.together_call_in_call) + " · " + others);
+                mCallButton.setText(R.string.together_call_leave);
+                mCallButton.setBackground(pill(mActivity, 0xFFE5484D));
+            } else {
+                mCallText.setText(others.isEmpty() ? mActivity.getString(R.string.together_call_title)
+                        : mActivity.getString(R.string.together_call_someone_in, others));
+                mCallButton.setText(R.string.together_call_join);
+                mCallButton.setBackground(pill(mActivity, ACCENT));
+            }
+        }
+
+        private void toggleCall() {
+            com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall call =
+                    com.liskovsoft.smartyoutubetv2.common.misc.together.VoiceCall.instance(mActivity);
+
+            if (call.isInCall()) {
+                call.leave();
+                return;
+            }
+
+            if (call.hasMicHardware() && !call.hasMicPermission()) {
+                Toast.makeText(mActivity, R.string.together_call_mic_needed, Toast.LENGTH_LONG).show();
+                requestMicPermission();
+                return;
+            }
+
+            call.join();
+            Toast.makeText(mActivity, R.string.together_call_tip, Toast.LENGTH_LONG).show();
         }
 
         private void updatePlayAll() {

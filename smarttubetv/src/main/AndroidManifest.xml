@@ -20,6 +20,8 @@
     <!-- DIAL discovery (SSDP multicast) -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Voice call of "Watch together" (WebRTC in a WebView): speaker/communication audio mode -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <uses-sdk tools:overrideLibrary="

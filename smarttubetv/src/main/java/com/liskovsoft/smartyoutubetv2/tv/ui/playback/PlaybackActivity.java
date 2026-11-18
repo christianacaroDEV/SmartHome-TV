@@ -424,9 +424,10 @@ public class PlaybackActivity extends LeanbackActivity {
     protected void onResume() {
         super.onResume();
 
-        // BlueTube: time (24 h) in a corner; battery too on devices that have one
+        // BlueTube: time (24 h) in a corner; battery only on phones/tablets (TV boxes often report a fake 100 %)
         if (mClock == null) {
-            mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(this, true);
+            mClock = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.ClockOverlay(this,
+                    com.liskovsoft.smartyoutubetv2.common.misc.DeviceMode.isMobile(this));
         }
         mClock.show();
     }

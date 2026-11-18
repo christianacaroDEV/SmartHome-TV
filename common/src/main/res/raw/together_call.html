@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+// BlueTube "Watch together" voice call: WebRTC audio between the people of the room (mesh, one connection per
+// person). Signals (offer/answer/ice) go through the room database; the Java side (VoiceCall) carries them.
+// Bridge "Android": send(to, json), onReady(hasMic), onLevel(id, speaking), onPeerState(id, state), log(text)
+var ICE = [];
+var pcs = {};
+var pending = {};
+var audios = {};
+var local = null;
+var othersMuted = false;
+var audioCtx = null;
+var analysers = {};
+var speaking = {};
+
+function log(t) { try { Android.log(String(t)); } catch (e) {} }
+
+function setIce(json) { try { ICE = JSON.parse(json); } catch (e) { ICE = []; } }
+
+function start(withMic) {
+  if (!withMic || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    Android.onReady(false);
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}, video: false})
+    .then(function (stream) { local = stream; Android.onReady(true); })
+    .catch(function (e) { log('mic: ' + e); local = null; Android.onReady(false); });
+}
+
+function peer(id) {
+  if (pcs[id]) return pcs[id];
+  var pc = new RTCPeerConnection({iceServers: ICE});
+  if (local) local.getTracks().forEach(function (t) { pc.addTrack(t, local); });
+  pc.onicecandidate = function (e) {
+    if (e.candidate) Android.send(id, JSON.stringify({type: 'ice', c: {candidate: e.candidate.candidate, sdpMid: e.candidate.sdpMid, sdpMLineIndex: e.candidate.sdpMLineIndex}}));
+  };
+  pc.ontrack = function (e) {
+    var stream = (e.streams && e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+    var a = audios[id];
+    if (!a) { a = new Audio(); a.autoplay = true; audios[id] = a; document.body.appendChild(a); }
+    a.srcObject = stream;
+    a.muted = othersMuted;
+    var p = a.play(); if (p && p.catch) p.catch(function (err) { log('play: ' + err); });
+    watchLevel(id, stream);
+  };
+  pc.oniceconnectionstatechange = function () { Android.onPeerState(id, pc.iceConnectionState); };
+  pc.onicegatheringstatechange = function () { log('gathering ' + id + ' ' + pc.iceGatheringState); };
+  pcs[id] = pc;
+  return pc;
+}
+
+function call(id) {
+  var pc = peer(id);
+  pc.createOffer({offerToReceiveAudio: true}).then(function (o) {
+    return pc.setLocalDescription(o).then(function () { Android.send(id, JSON.stringify({type: 'offer', sdp: o.sdp})); });
+  }).catch(function (e) { log('offer: ' + e); });
+}
+
+function flush(id) {
+  var list = pending[id] || [];
+  pending[id] = [];
+  list.forEach(function (c) { pcs[id].addIceCandidate(new RTCIceCandidate(c)).catch(function (e) { log('ice: ' + e); }); });
+}
+
+function onSignal(from, json) {
+  var m; try { m = JSON.parse(json); } catch (e) { return; }
+  log('signal ' + m.type + ' from ' + from);
+  // Old WebViews (many TV boxes, Chrome < 71) reject this line of newer devices: it isn't needed for audio
+  if (m.sdp) m.sdp = m.sdp.replace(/a=extmap-allow-mixed\r?\n/g, '');
+  if (m.type === 'offer') {
+    hangup(from); // a new offer replaces an old connection (the other side restarted)
+    var pc = peer(from);
+    pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: m.sdp}))
+      .then(function () { flush(from); return pc.createAnswer(); })
+      .then(function (a) { return pc.setLocalDescription(a).then(function () { Android.send(from, JSON.stringify({type: 'answer', sdp: a.sdp})); }); })
+      .catch(function (e) { log('answer: ' + e); });
+  } else if (m.type === 'answer') {
+    var p2 = pcs[from];
+    if (p2) p2.setRemoteDescription(new RTCSessionDescription({type: 'answer', sdp: m.sdp})).then(function () { flush(from); }).catch(function (e) { log('remote: ' + e); });
+  } else if (m.type === 'ice') {
+    var p3 = pcs[from];
+    if (p3 && p3.remoteDescription && p3.remoteDescription.type) p3.addIceCandidate(new RTCIceCandidate(m.c)).catch(function (e) { log('ice: ' + e); });
+    else { (pending[from] = pending[from] || []).push(m.c); }
+  }
+}
+
+function hangup(id) {
+  if (pcs[id]) { try { pcs[id].close(); } catch (e) {} delete pcs[id]; }
+  if (audios[id]) { audios[id].srcObject = null; audios[id].remove(); delete audios[id]; }
+  delete analysers[id];
+  delete pending[id];
+  if (speaking[id]) { speaking[id] = false; Android.onLevel(id, false); }
+}
+
+function hangupAll() {
+  Object.keys(pcs).forEach(hangup);
+  if (local) { local.getTracks().forEach(function (t) { t.stop(); }); local = null; }
+}
+
+function setMic(on) { if (local) local.getAudioTracks().forEach(function (t) { t.enabled = on; }); }
+
+function setOthersMuted(m) {
+  othersMuted = m;
+  Object.keys(audios).forEach(function (id) { audios[id].muted = m; });
+}
+
+// Who is talking: level of each remote voice
+function watchLevel(id, stream) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var src = audioCtx.createMediaStreamSource(stream);
+    var an = audioCtx.createAnalyser();
+    an.fftSize = 512;
+    src.connect(an);
+    analysers[id] = {an: an, buf: new Uint8Array(an.fftSize), loud: 0};
+  } catch (e) { log('level: ' + e); }
+}
+
+setInterval(function () {
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  Object.keys(analysers).forEach(function (id) {
+    var a = analysers[id];
+    a.an.getByteTimeDomainData(a.buf);
+    var sum = 0;
+    for (var i = 0; i < a.buf.length; i++) { var v = (a.buf[i] - 128) / 128; sum += v * v; }
+    var rms = Math.sqrt(sum / a.buf.length);
+    if (rms > 0.04) a.loud = 4; else if (a.loud > 0) a.loud--;
+    var now = a.loud > 0;
+    if (now !== !!speaking[id]) { speaking[id] = now; Android.onLevel(id, now); }
+  });
+}, 200);
+</script>
+</body>
+</html>

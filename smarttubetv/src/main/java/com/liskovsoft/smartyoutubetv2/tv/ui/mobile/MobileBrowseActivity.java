@@ -97,6 +97,14 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     private MobileWatchSheet mWatchSheet;
     private com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay mOffline;
     private boolean mIsResumed;
+    /** The video was opened from another screen (search results, a channel): BACK returns there, like YouTube */
+    private boolean mBackToPrevious;
+    /** Set by the search "now playing" bar: the video was made big again from there */
+    private static boolean sBackToPrevious;
+
+    public static void requestBackToPrevious() {
+        sBackToPrevious = true;
+    }
     private RecyclerView mFeed;
     private FeedAdapter mAdapter;
     private LinearLayout mChips;
@@ -412,6 +420,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
         }
 
         // e.g. a search result: bring the home screen (and its player) to the front
+        mBackToPrevious = !mIsResumed;
+        sBackToPrevious = false;
         if (!mIsResumed) {
             Intent intent = new Intent(this, MobileBrowseActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
@@ -424,8 +434,17 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
 
     @Override
     public void onBackPressed() {
+        boolean wasExpanded = mWatchSheet != null && mWatchSheet.getState() == MobileWatchSheet.STATE_EXPANDED;
+
         if (mWatchSheet != null && mWatchSheet.onBackPressed()) {
-            return; // full screen -> expanded -> mini
+            // full screen -> expanded -> mini; opened from the search results: back to them (the video keeps
+            // playing and shows in a bar there)
+            if (wasExpanded && (mBackToPrevious || sBackToPrevious) && mWatchSheet.getState() == MobileWatchSheet.STATE_MINI) {
+                mBackToPrevious = false;
+                sBackToPrevious = false;
+                moveTaskToBack(true);
+            }
+            return;
         }
 
         // Like YouTube: from another tab BACK goes to Home first
@@ -499,9 +518,22 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
     }
 
     @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        // Notification shade/heads-up, dialogs: in full screen the system bars go away again
+        if (hasFocus && mWatchSheet != null) {
+            mWatchSheet.reapplySystemBars();
+        }
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         mIsResumed = true;
+        if (mWatchSheet != null) {
+            mWatchSheet.reapplySystemBars(); // MotherActivity.onResume shows the bars of the normal screens
+        }
         BackgroundPlaybackService.stop(this);
         if (mOffline == null) {
             mOffline = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.OfflineOverlay(this, () -> {

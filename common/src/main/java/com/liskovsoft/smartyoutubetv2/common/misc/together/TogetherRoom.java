@@ -205,7 +205,7 @@ public class TogetherRoom {
         return mDbUrl + "/rooms/" + mCode + "/" + node + ".json";
     }
 
-    private static String request(String method, String url, String body) {
+    static String request(String method, String url, String body) {
         HttpURLConnection connection = null;
 
         try {
