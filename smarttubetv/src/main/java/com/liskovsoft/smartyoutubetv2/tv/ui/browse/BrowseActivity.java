@@ -35,6 +35,8 @@ public class BrowseActivity extends LeanbackActivity {
     protected void onResume() {
         super.onResume();
         mOffline.start(); // no internet: "You're offline / Retry" screen
+        // Was in a "Watch together" room when the app closed: ask before going back
+        com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(this).offerRejoin(this);
         com.liskovsoft.smartyoutubetv2.common.misc.StartupUpdateCheck.checkOnce(this);
     }
 

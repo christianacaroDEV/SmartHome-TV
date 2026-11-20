@@ -42,6 +42,11 @@ public class StartupUpdateCheck {
     private static boolean sChecked;
 
     public static void checkOnce(Activity activity) {
+        if (BlueTubeUpdater.resumePending(activity)) {
+            sChecked = true; // the update goes on by itself (the permission was just given)
+            return;
+        }
+
         if (sChecked || activity == null) {
             return;
         }
@@ -99,11 +104,34 @@ public class StartupUpdateCheck {
     private static final int TEXT_SECONDARY = 0xFF9FB4E0;
     private static final int BLUE = 0xFF2F7BFF;
 
+    /** A card on screen: its dialog and the line of text under the title (for progress) */
+    public static class Card {
+        public Dialog dialog;
+        public TextView message;
+    }
+
+    private static void showCard(Activity activity, Update update) {
+        String url = update.chooseUrl(activity);
+        int code = update.versionCode;
+        card(activity, activity.getString(R.string.bluetube_update_title), null,
+                activity.getString(R.string.bluetube_update_now), () -> {
+                    // If the install is cancelled (e.g. the unknown apps permission), ask again when back in the app
+                    sChecked = false;
+                    if (url != null) {
+                        BlueTubeUpdater.start(activity, url, code);
+                    } else {
+                        AppUpdatePresenter.instance(activity).downloadAndInstall();
+                    }
+                },
+                activity.getString(R.string.bluetube_update_later), null);
+    }
+
     /**
-     * BlueTube card: app icon, version, "What's new" with ticks, and big buttons.
+     * BlueTube card: app icon, title, an optional message and big buttons (secondary may be null).
      * Phone: anchored at the bottom, full width. TV: centered, buttons side by side with a visible focus ring.
      */
-    private static void showCard(Activity activity, Update update) {
+    public static Card card(Activity activity, String titleText, String messageText, String primaryLabel, Runnable onPrimary,
+                            String secondaryLabel, Runnable onSecondary) {
         boolean tv = !DeviceMode.isMobile(activity);
         Dialog dialog = new Dialog(activity);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -113,7 +141,6 @@ public class StartupUpdateCheck {
         card.setPadding(dp(activity, 22), dp(activity, 22), dp(activity, 22), dp(activity, tv ? 22 : 12));
         card.setBackground(shape(activity, CARD, 24, 0, 0));
 
-        // Header: icon + "A new update is available" (no version, no list of changes: just that there is one)
         LinearLayout header = new LinearLayout(activity);
         header.setGravity(Gravity.CENTER_VERTICAL);
         ImageView icon = new ImageView(activity);
@@ -122,33 +149,53 @@ public class StartupUpdateCheck {
         LinearLayout titles = new LinearLayout(activity);
         titles.setOrientation(LinearLayout.VERTICAL);
         titles.setPadding(dp(activity, 14), 0, 0, 0);
-        titles.addView(text(activity, activity.getString(R.string.bluetube_update_title), tv ? 22 : 19, Color.WHITE, true));
+        titles.addView(text(activity, titleText, tv ? 22 : 19, Color.WHITE, true));
         header.addView(titles, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        header.setPadding(0, 0, 0, dp(activity, 20));
+        header.setPadding(0, 0, 0, dp(activity, 14));
         card.addView(header);
 
-        // Buttons
-        TextView now = button(activity, R.string.bluetube_update_now, true, tv);
-        TextView later = button(activity, R.string.bluetube_update_later, false, tv);
-        now.setOnClickListener(v -> {
-            dialog.dismiss();
-            // If the install is cancelled (e.g. the first time Android asks for the "unknown apps" permission),
-            // ask again when the user is back in the app
-            sChecked = false;
-            AppUpdatePresenter.instance(activity).downloadAndInstall();
-        });
-        later.setOnClickListener(v -> dialog.dismiss());
+        TextView message = text(activity, messageText != null ? messageText : "", tv ? 17 : 15, TEXT_SECONDARY, false);
+        message.setPadding(0, 0, 0, dp(activity, 16));
+        message.setVisibility(messageText != null ? android.view.View.VISIBLE : android.view.View.GONE);
+        card.addView(message);
+
+        TextView now = primaryLabel != null ? button(activity, primaryLabel, true, tv) : null;
+        TextView later = secondaryLabel != null ? button(activity, secondaryLabel, false, tv) : null;
+        if (now != null) {
+            now.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onPrimary != null) {
+                    onPrimary.run();
+                }
+            });
+        }
+        if (later != null) {
+            later.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (onSecondary != null) {
+                    onSecondary.run();
+                }
+            });
+        }
 
         if (tv) {
             LinearLayout buttons = new LinearLayout(activity);
-            buttons.addView(now);
-            LinearLayout.LayoutParams laterParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            laterParams.leftMargin = dp(activity, 14);
-            buttons.addView(later, laterParams);
+            if (now != null) {
+                buttons.addView(now);
+            }
+            if (later != null) {
+                LinearLayout.LayoutParams laterParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                laterParams.leftMargin = dp(activity, 14);
+                buttons.addView(later, laterParams);
+            }
             card.addView(buttons);
         } else {
-            card.addView(now, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            card.addView(later, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            if (now != null) {
+                card.addView(now, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+            if (later != null) {
+                card.addView(later, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
         }
 
         dialog.setContentView(card);
@@ -169,8 +216,18 @@ public class StartupUpdateCheck {
             }
             window.setAttributes(params);
         }
-        dialog.show();
-        now.requestFocus(); // TV remote: OK = update
+
+        if (!activity.isFinishing()) {
+            dialog.show();
+        }
+        if (now != null) {
+            now.requestFocus(); // TV remote: OK = main action
+        }
+
+        Card result = new Card();
+        result.dialog = dialog;
+        result.message = message;
+        return result;
     }
 
     private static TextView text(Activity activity, String value, int sizeSp, int color, boolean bold) {
@@ -184,8 +241,8 @@ public class StartupUpdateCheck {
         return view;
     }
 
-    private static TextView button(Activity activity, int labelResId, boolean primary, boolean tv) {
-        TextView button = text(activity, activity.getString(labelResId), tv ? 17 : 16, primary ? Color.WHITE : TEXT_SECONDARY, primary);
+    private static TextView button(Activity activity, String label, boolean primary, boolean tv) {
+        TextView button = text(activity, label, tv ? 17 : 16, primary ? Color.WHITE : TEXT_SECONDARY, primary);
         button.setGravity(Gravity.CENTER);
         button.setPadding(dp(activity, 26), dp(activity, 12), dp(activity, 26), dp(activity, 12));
         button.setFocusable(true);
@@ -248,6 +305,11 @@ public class StartupUpdateCheck {
 
             JSONObject json = new JSONObject(out.toString("UTF-8"));
             Update best = null;
+            JSONObject pkg = json.optJSONObject("package");
+            String apkUrl = pkg != null ? pkg.optString("downloadUrl", null) : null;
+            // One APK per processor: much lighter than the universal one (that carries both ARM libraries)
+            String arm64ApkUrl = pkg != null ? pkg.optString("downloadUrlArm64", pkg.optString("downloadUrlPhone", null)) : null;
+            String arm32ApkUrl = pkg != null ? pkg.optString("downloadUrlArm32", null) : null;
             Iterator<String> keys = json.keys();
             while (keys.hasNext()) {
                 String key = keys.next();
@@ -268,6 +330,12 @@ public class StartupUpdateCheck {
                 }
             }
 
+            if (best != null) {
+                best.url = apkUrl;
+                best.arm64Url = arm64ApkUrl;
+                best.arm32Url = arm32ApkUrl;
+            }
+
             return best;
         } catch (Exception e) {
             return null; // no internet etc.: silently try on the next start
@@ -281,6 +349,34 @@ public class StartupUpdateCheck {
     private static class Update {
         String versionName;
         int versionCode;
+        String url;
+        String arm64Url;
+        String arm32Url;
         final List<String> changes = new ArrayList<>();
+
+        /**
+         * The APK of this device's processor (phones and TVs): 64-bit ARM, else 32-bit ARM, else the universal one
+         * (e.g. x86). About 9 MB less to download and to keep free than the universal APK.
+         */
+        @SuppressWarnings("deprecation")
+        String chooseUrl(Activity activity) {
+            String[] abis = android.os.Build.VERSION.SDK_INT >= 21 ? android.os.Build.SUPPORTED_ABIS
+                    : new String[] {android.os.Build.CPU_ABI, android.os.Build.CPU_ABI2};
+            java.util.List<String> list = java.util.Arrays.asList(abis);
+
+            if (list.contains("arm64-v8a") && notEmpty(arm64Url)) {
+                return arm64Url;
+            }
+
+            if (list.contains("armeabi-v7a") && !list.contains("arm64-v8a") && notEmpty(arm32Url)) {
+                return arm32Url;
+            }
+
+            return notEmpty(url) ? url : null;
+        }
+
+        private static boolean notEmpty(String value) {
+            return value != null && !value.isEmpty();
+        }
     }
 }

@@ -106,7 +106,10 @@ public final class CallOverlay implements Application.ActivityLifecycleCallbacks
         background.setCornerRadius(dp(activity, 28));
         mPill.setBackground(background);
         mPill.setFocusable(false);
-        mPill.setElevation(dp(activity, 8));
+        // Above everything of the screen: the phone player (elevation 8 dp) comes to the front again when it
+        // leaves full screen and covered the pill (mic / mute / hang up couldn't be reached any more)
+        mPill.setElevation(dp(activity, 40));
+        mPill.setTranslationZ(dp(activity, 40));
 
         mAvatars = new LinearLayout(activity);
         mPill.addView(mAvatars);

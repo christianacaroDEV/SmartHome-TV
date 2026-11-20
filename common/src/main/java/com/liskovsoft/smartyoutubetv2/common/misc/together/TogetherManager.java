@@ -142,20 +142,58 @@ public final class TogetherManager implements TogetherRoom.Listener {
         long savedTime = prefs.getLong(KEY_ROOM_TIME, 0);
 
         if (savedRoom != null && System.currentTimeMillis() - savedTime < ROOM_MEMORY_MS) {
-            mHandler.postDelayed(() -> {
-                if (mRoom == null) {
-                    join(savedRoom, success -> {
-                        if (!success) {
-                            forgetRoom();
-                        }
-                    });
-                }
-            }, 1_500);
+            // Not by itself any more: the first screen asks "Back to the room?" (see offerRejoin)
+            mRejoinCode = savedRoom;
         } else if (savedRoom != null) {
             // Not used for hours: if nobody is there any more, it goes away with its chat and voice notes
             forgetRoom();
             runAsync(() -> TogetherRoom.deleteIfAbandoned(dbUrl(), savedRoom, ROOM_MEMORY_MS));
         }
+    }
+
+    /** The room this device was in when the app closed (phone off, app killed): offered once on the next start */
+    private String mRejoinCode;
+
+    /**
+     * First screen after a restart: "You were in the room 476 404. Go back?" Yes = back where the others are now,
+     * No = this device leaves the room for good. Nothing if the room is gone.
+     */
+    public void offerRejoin(android.app.Activity activity) {
+        String code = mRejoinCode;
+
+        if (code == null || mRoom != null || activity == null) {
+            return;
+        }
+
+        mRejoinCode = null;
+
+        runAsync(() -> {
+            boolean exists = TogetherRoom.exists(dbUrl(), code);
+            post(() -> {
+                if (!exists) {
+                    forgetRoom(); // everybody left: nothing to go back to
+                    return;
+                }
+                if (activity.isFinishing() || mRoom != null) {
+                    return;
+                }
+                String pretty = code.substring(0, 3) + " " + code.substring(3);
+                com.liskovsoft.smartyoutubetv2.common.misc.StartupUpdateCheck.card(activity,
+                        activity.getString(R.string.together_rejoin_title),
+                        activity.getString(R.string.together_rejoin_text, pretty),
+                        activity.getString(R.string.together_rejoin_yes), () -> join(code, success -> {
+                            if (!success) {
+                                forgetRoom();
+                                MessageHelpers.showMessage(mContext, R.string.together_join_failed);
+                            }
+                        }),
+                        activity.getString(R.string.together_rejoin_no), () -> {
+                            forgetRoom();
+                            TogetherRoom old = new TogetherRoom(dbUrl(), code, this);
+                            runAsync(() -> old.leave(mDeviceId)); // the others see this device leave
+                        });
+            });
+        });
     }
 
     private void rememberRoom(String code) {

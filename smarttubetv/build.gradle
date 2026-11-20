@@ -64,7 +64,7 @@ android {
         applicationId "com.bluetube.tv"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
-        versionCode 2484
+        versionCode 2485
         versionName "32.72"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "long", "TIMESTAMP", System.currentTimeMillis() + "L"
@@ -112,11 +112,12 @@ android {
     
     buildTypes {
         release {
-            // Enable minification
+            // BlueTube: conservative code shrinking (unused third-party code only, nothing renamed or optimized:
+            // see proguard-rules.pro). Resources are not shrunk (live TV cards are loaded by name).
             // shrinkResources true
-            // minifyEnabled true
+            minifyEnabled true
 
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
 
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release

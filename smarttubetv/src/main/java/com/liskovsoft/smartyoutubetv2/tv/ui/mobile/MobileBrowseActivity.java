@@ -546,6 +546,8 @@ public class MobileBrowseActivity extends MotherActivity implements BrowseView, 
             mOffline.setGate(() -> mWatchSheet == null || !mWatchSheet.isPlaying()); // don't cover a video still playing
         }
         mOffline.start(); // no internet: "You're offline / Retry" screen
+        // Was in a "Watch together" room when the app closed: ask before going back
+        com.liskovsoft.smartyoutubetv2.common.misc.together.TogetherManager.instance(this).offerRejoin(this);
         com.liskovsoft.smartyoutubetv2.common.misc.StartupUpdateCheck.checkOnce(this); // new version? ask right away
 
         if (mWatchSheet != null) {

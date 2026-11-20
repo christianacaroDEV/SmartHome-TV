@@ -80,6 +80,8 @@ public final class MobileTogether {
             box.addView(members);
 
             box.addView(button(activity, R.string.together_share, true, v -> share(activity, manager.getCode())));
+            // Only the 6 numbers, to paste in a chat (a shared message is copied whole)
+            box.addView(button(activity, R.string.together_copy_code, false, v -> copyCode(activity, manager.getCode())));
             // Back to the video (the code stays in the "Watching together" bar: tap it to share again)
             box.addView(button(activity, R.string.together_keep_watching, false, v -> dialog.dismiss()));
             box.addView(button(activity, R.string.together_leave, false, v -> {
@@ -140,6 +142,12 @@ public final class MobileTogether {
                 choice.setVisibility(View.GONE);
                 hint.setText(R.string.together_code_hint);
                 joinBox.setVisibility(View.VISIBLE);
+                // A code was just copied (e.g. from WhatsApp): already filled in
+                String copied = codeFromClipboard(activity);
+                if (copied != null && code.getText().length() == 0) {
+                    code.setText(copied);
+                    code.setSelection(code.getText().length());
+                }
                 code.requestFocus();
                 android.view.inputmethod.InputMethodManager imm =
                         (android.view.inputmethod.InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -160,6 +168,18 @@ public final class MobileTogether {
             LinearLayout.LayoutParams codeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             codeParams.setMargins(0, dp(activity, 12), 0, 0);
             joinBox.addView(code, codeParams);
+
+            // Paste: the code from the clipboard, even if the whole message was copied ("... 476404 ...")
+            View paste = button(activity, R.string.together_paste_code, false, v -> {
+                String pasted = codeFromClipboard(activity);
+                if (pasted != null) {
+                    code.setText(pasted);
+                    code.setSelection(code.getText().length());
+                } else {
+                    Toast.makeText(activity, R.string.together_paste_nothing, Toast.LENGTH_SHORT).show();
+                }
+            });
+            joinBox.addView(paste);
 
             View join = button(activity, R.string.together_join, true, null);
             join.setOnClickListener(v -> {
@@ -196,10 +216,38 @@ public final class MobileTogether {
         }
     }
 
+    private static void copyCode(Context context, String code) {
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard != null && code != null) {
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("BlueTube", code));
+            Toast.makeText(context, context.getString(R.string.together_code_copied, code), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** The first room code in the clipboard: "476404", "476 404" or inside a longer message; null if none */
+    private static String codeFromClipboard(Context context) {
+        try {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard == null || !clipboard.hasPrimaryClip() || clipboard.getPrimaryClip() == null
+                    || clipboard.getPrimaryClip().getItemCount() == 0) {
+                return null;
+            }
+            CharSequence text = clipboard.getPrimaryClip().getItemAt(0).coerceToText(context);
+            if (text == null) {
+                return null;
+            }
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(?<!\\d)(\\d{3})[ .-]?(\\d{3})(?!\\d)").matcher(text);
+            return matcher.find() ? matcher.group(1) + matcher.group(2) : null;
+        } catch (RuntimeException e) {
+            return null; // clipboard not readable (background, Android policy)
+        }
+    }
+
     private static void share(Context context, String code) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.together_share_text, formatCode(code)));
+        // The code alone on its line and without spaces: easy to select and copy in any chat
+        intent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.together_share_text, code));
         context.startActivity(Intent.createChooser(intent, context.getString(R.string.together_share)));
     }
 
